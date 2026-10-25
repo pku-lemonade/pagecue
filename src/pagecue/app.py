@@ -262,13 +262,19 @@ class Presenter(QObject):
                 QDesktopServices.openUrl(QUrl(release.url))
         else:
             self.notify(message)
-            if QSystemTrayIcon.isSystemTrayAvailable() and QSystemTrayIcon.supportsMessages():
-                if self.update_tray is None:
-                    self.update_tray = QSystemTrayIcon(self.app.windowIcon(), self)
-                    self.update_tray.messageClicked.connect(self._open_notified_release)
-                    self.update_tray.show()
-                self._notified_release_url = release.url
-                self.update_tray.showMessage("PageCue update", message)
+            self.desktop_notification("PageCue update", message, release.url)
+
+    def desktop_notification(self, title, message, url):
+        """Request native delivery; Qt does not report whether the OS displayed it."""
+        if self._closed or not QSystemTrayIcon.isSystemTrayAvailable() or not QSystemTrayIcon.supportsMessages():
+            return False
+        if self.update_tray is None:
+            self.update_tray = QSystemTrayIcon(self.app.windowIcon(), self)
+            self.update_tray.messageClicked.connect(self._open_notified_release)
+            self.update_tray.show()
+        self._notified_release_url = url
+        self.update_tray.showMessage(title, message)
+        return True
 
     def _open_notified_release(self):
         if not self._closed and self._notified_release_url:
@@ -876,6 +882,7 @@ def main():
     parser.add_argument("--smoke-web", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--hardware-output", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--hardware-camera", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--notification-output", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.icon is not None:
         from .artwork import icon_png
@@ -898,11 +905,13 @@ def main():
         parser.error("--hardware-camera requires --hardware-output and explicit user authorization")
     if args.hardware_output and (not args.pdf or args.smoke_output):
         parser.error("The hardware check requires a PDF and cannot run with --smoke-output")
-    if args.smoke_output or args.hardware_output:
+    if args.notification_output and (not args.pdf or args.smoke_output or args.hardware_output):
+        parser.error("The notification check requires a PDF and cannot run with other diagnostics")
+    if args.smoke_output or args.hardware_output or args.notification_output:
         from PySide6.QtCore import QSettings
         QSettings.setDefaultFormat(QSettings.Format.IniFormat)
         QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
-                          str((args.smoke_output or args.hardware_output) / "settings"))
+                          str((args.smoke_output or args.hardware_output or args.notification_output) / "settings"))
     app = Application(sys.argv[:1])
     app.setApplicationName("PageCue")
     app.setOrganizationName("PageCue")
@@ -919,6 +928,9 @@ def main():
     if args.hardware_output:
         from .hardware import HardwareCheck
         presenter.hardware_check = HardwareCheck(presenter, args.hardware_output, args.hardware_camera)
+    if args.notification_output:
+        from .notification_check import NotificationCheck
+        presenter.notification_check = NotificationCheck(presenter, args.notification_output)
     if args.pdf:
         QTimer.singleShot(0, lambda: presenter.open(args.pdf, page=args.page - 1 if args.page else None))
     app.aboutToQuit.connect(presenter.quit)

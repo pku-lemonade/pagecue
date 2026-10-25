@@ -44,6 +44,16 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
+Native Computer Use access is available again. A fresh isolated Mac bundle now
+offers an opt-in `--notification-output` diagnostic that uses the same desktop
+notification sender as update alerts, without enabling periodic update checks or
+changing normal application preferences. The bundle passes strict signature
+verification and the existing 94 tests pass after factoring the sender.
+The native UI actually presented PageCue's notification permission prompt;
+approval was requested, so delivery/click acceptance remains pending. A Qt request
+returning successfully is not treated as delivery evidence. See
+HARDWARE_ACCEPTANCE.md. The user's existing PageCue process/bundle is unchanged.
+
 The latest geometry/control audit passes **94 tests** locally. Page metadata used
 the raw CropBox while Qt clips it against MediaBox, stretching affected slides and
 misplacing annotation targets. `visible_box` now supplies consistent bounds to
@@ -89,7 +99,8 @@ before compositing and after resize. The expected camera pixels remain required;
 the check is not skipped or relaxed to accept an unpainted web view. Native local
 execution and the subsequent three-platform run above pass this correction.
 
-`uv run pytest -q`: **85 passed** on the development Mac at this checkpoint.
+At the earlier single-point-ink checkpoint, `uv run pytest -q` passed **85 tests**
+on the development Mac.
 Single-point ink was present in the model but invisible because a move-only
 QPainterPath has no painted segment. It now uses the same round pen to draw a
 point. The regression failed on the old code, then passed with offscreen and

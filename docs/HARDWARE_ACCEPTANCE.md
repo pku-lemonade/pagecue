@@ -64,6 +64,34 @@ This is direct user acceptance, not a simulated QFileOpenEvent claim. The
 Computer Use service could not access Finder or PageCue's windows, so it did not
 perform or capture these interactions.
 
+## Desktop notification observation
+
+A freshly built executable can request a clearly labeled notification using the
+same sender as update alerts, with isolated application preferences:
+
+```sh
+dist/PageCue.app/Contents/MacOS/PageCue qa/demo.pdf \
+  --notification-output qa/notification-check
+```
+
+On Windows use the corresponding `PageCue.exe`. The diagnostic is opt-in and is
+never part of CI or ordinary installation checks. It does not enable background
+update checks, activate a camera, or change OS notification permissions. It sends
+one test alert, records whether Qt accepted the request and whether its click
+signal arrived, then exits after a click or 90 seconds. Clicking the test alert
+opens the public PageCue repository. `requested: true` is **not** proof of delivery;
+observe the OS alert and the resulting page. An OS permission prompt must be
+approved by the user before accepting it.
+
+On 2026-10-25, an isolated Mac bundle built under
+`qa/notification-build/dist/PageCue.app` passed strict signature verification and
+requested the notification. Computer Use access was working again and observed
+the actual “PageCue Notifications” permission prompt with Allow/Don't Allow
+actions. Permission approval and notification delivery were still pending at
+this checkpoint. The user's existing `dist/PageCue.app` process was preserved.
+Local metadata is under `qa/notification-live/`; no camera or video frames were
+captured by this check.
+
 ## Still to verify
 
 The user declined the physical display-disconnect check for now on 2026-10-25.
