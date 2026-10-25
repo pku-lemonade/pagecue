@@ -9,7 +9,7 @@ inside WebView2's synchronous input callback.
 The app does not yet use this plugin. The manual native-browser workflow can
 build it with **patched_windows** enabled. `scripts/build_native_webview.py`
 checks the pinned download hashes, applies the patch, and builds just the Windows
-plugin with Visual Studio 2022. It does not rebuild Qt or Chromium.
+plugin with the installed Visual C++ tools. It does not rebuild Qt or Chromium.
 
 The upstream source is Qt WebView 6.12.0, commit
 `5774c23849cdad2bcdf71ad8c8bd6946dcae38f0`. This dependency patch uses the upstream

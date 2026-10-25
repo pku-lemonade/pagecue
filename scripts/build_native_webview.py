@@ -61,7 +61,9 @@ def main():
     webview_sdk = BUILD / "webview2"
     with zipfile.ZipFile(archives["webview2"]) as archive:
         archive.extractall(webview_sdk)
-    qt_sdk = sdk / "6.12.0/msvc2022_64"
+    qt_config, = sdk.rglob("Qt6Config.cmake")
+    qt_sdk = qt_config.parents[3]
+    print(f"Qt SDK: {qt_sdk}", flush=True)
     run("cmake", "-S", CONFIG, "-B", BUILD / "cmake", "-G", "NMake Makefiles", "-DCMAKE_BUILD_TYPE=Release",
         f"-DCMAKE_PREFIX_PATH={qt_sdk}", f"-DQT_SOURCE_DIR={source_root}", f"-DWEBVIEW2_SDK_ROOT={webview_sdk}", env=compiler_env)
     run("cmake", "--build", BUILD / "cmake", env=compiler_env)
