@@ -201,6 +201,7 @@ def main():
     app = QApplication([])
     app.setApplicationName("PresenteriyakiNativeKeyboardProbe")
     window = ProbeWindow()
+    window.probe_output = args.output
     window.resize(600, 400)
     web = QWebView()
     web.setProperty("presenteriyakiShortcuts", True)

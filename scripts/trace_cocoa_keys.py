@@ -14,6 +14,8 @@ class DispatchTrace:
         from Foundation import NSThread
         self.objc = objc
         self.thread = NSThread
+        self.application = NSApp()
+        self.window = window
         self.entries = result.setdefault("dispatch_trace", [])
         self.runtime = ctypes.CDLL(ctypes.util.find_library("objc"))
         runtime = self.runtime
@@ -89,6 +91,14 @@ class DispatchTrace:
                      "window": int(event.windowNumber()), "timestamp": event.timestamp(), **details}
             if stage == "dequeue" and entry["key"] == 53 and entry["type"] == 10:
                 entry["stack"] = [str(frame) for frame in self.thread.callStackSymbols()][:50]
+                if entry.get("mode") == "NSEventTrackingRunLoopMode":
+                    from PySide6.QtCore import QPoint
+                    entry["visible_windows"] = [str(w.className()) for w in self.application.windows() if w.isVisible()]
+                    origin = self.window.mapToGlobal(QPoint(0, 0)) - self.window.screen().geometry().topLeft()
+                    capture = self.window.screen().grabWindow(0, origin.x(), origin.y(), self.window.width(), self.window.height())
+                    name = f"tracking-escape-{len(self.entries)}.png"
+                    entry["capture_saved"] = capture.save(str(self.window.probe_output / name))
+                    entry["capture"] = name
             self.entries.append(entry)
 
     def close(self):

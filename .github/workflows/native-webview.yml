@@ -64,5 +64,6 @@ jobs:
             qa/native-webview/result.json
             qa/native-webview/window.png
             qa/native-webkeys/result.json
+            qa/native-webkeys/tracking-escape-*.png
             build/native-webview/result.json
           if-no-files-found: warn
