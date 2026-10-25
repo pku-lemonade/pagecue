@@ -60,8 +60,14 @@ opening a deck. The combined timed/animated fixture verifies keyboard pause,
 disabled timers across navigation, and menu resume through actual page advance.
 It passes offscreen and native Cocoa. Keyboard help now includes previously
 unlisted playback/stepping/section/expansion/hide controls; normal and minimum
-scrolled captures under `qa/parity-help-layout/` were inspected. Fresh native CI
-for these changes is pending; older successful runs below predate them.
+scrolled captures under `qa/parity-help-layout/` were inspected.
+Commit `43c08989aabf3c546ed2207b869f2575e82160c9` passes on Windows x64, Mac arm64
+and Mac Intel in [run 40190588667](https://github.com/pku-lemonade/pagecue/actions/runs/40190588667):
+**94 tests, 15 native interaction checks**, and actual packaged execution plus
+installation/update/removal. Downloaded Windows JUnit reports confirm no failures
+or skips; the rotated/cropped native capture and minimum scrolled help capture
+were inspected under `qa/geometry-windows-ci/`. The user's open local application
+and the immutable v0.1.0 source tag remain unchanged.
 
 WebEngine's separate audience widget previously covered the camera image painted
 on the canvas below it. The reference keeps its camera above web content. A
@@ -362,6 +368,17 @@ locally with TeX/FFmpeg excluded from PATH.
 1. Validate OS update notification delivery and real privacy-video playback.
    The v0.1.0 source update channel is published and live-checked; release/source
    parsing, cancellation, routing and public HTTPS service calls have coverage.
+   A fresh live Qt check on 2026-10-25 resolved the public directory to
+   `yt.chocolatemoo53.com` and retrieved metadata for Big Buck Bunny
+   (`YE7VzlLtp-4`, 597 seconds). The actual PageCue WebEngine watch page then
+   presented a human-verification challenge and no video element. The check
+   stopped without attempting the challenge; no playback or decoded frames are
+   claimed. Metadata is under `qa/live-video-recheck.json` and
+   `qa/live-video-playback/result.json`; no video frames were saved. A usable
+   instance or a human-completed session is needed for the remaining live check.
+   The [official instance policy](https://docs.invidious.io/instances/) requires
+   public-instance anti-abuse controls, so directory/API reachability alone cannot
+   establish browser playback.
 2. Complete the remaining rendering/long-deck audit. Current and compiled
    2013/2016/2018 animation output now cover widget and named-icon forms, original
    object-style timing, independent animations, posters and click/keyboard controls.
