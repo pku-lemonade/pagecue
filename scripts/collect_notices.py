@@ -168,7 +168,9 @@ def main():
     collect_native_runtime()
     if sys.platform == "win32":
         target = OUT / "native-webview"
-        shutil.copytree(ROOT / "bundle/native-webview", target)
+        shutil.copytree(ROOT / "bundle/native-webview", target / "bundle/native-webview")
+        (target / "scripts").mkdir()
+        shutil.copy2(ROOT / "scripts/build_native_webview.py", target / "scripts")
         for name in ("qtwebview-modified-source.tar.gz", "result.json"):
             shutil.copy2(ROOT / "build/native-webview" / name, target / name)
         shutil.copy2(ROOT / "build/native-webview/webview2/LICENSE.txt", target / "Microsoft-WebView2-SDK-LICENSE.txt")

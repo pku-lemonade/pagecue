@@ -37,7 +37,10 @@ The application remains MIT licensed. To replace the dependency, rebuild it with
 this script against compatible Qt libraries and replace
 `_internal/PySide6/plugins/webview/qtwebview_webview2.dll` in the installed app.
 Use the bundled CMake configuration and pinned SDKs when rebuilding outside
-the application checkout.
+the application checkout: copy the entire `licenses/dependencies/native-webview`
+directory to a writable folder, install Python 3.13+, Visual Studio C++ tools,
+CMake and 7-Zip, then run `python scripts/build_native_webview.py` from that folder.
+It has the same `scripts/` and `bundle/native-webview/` layout as this repository.
 
 Sources and SHA-256 checksums are in `sources.json`. The Qt SDK and Microsoft
 WebView2 SDK are build dependencies, not application source. Microsoft's SDK
