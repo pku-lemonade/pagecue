@@ -1,9 +1,7 @@
 """Desktop entry point and user commands for Presenteriyaki."""
 
-import argparse
 import logging
 from pathlib import Path
-import sys
 from urllib.parse import quote, urlsplit, urlunsplit
 
 from PySide6.QtCore import QEvent, QObject, QPointF, QRect, Qt, QTimer, QUrl, Signal
@@ -12,7 +10,7 @@ from PySide6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, Q
                               QFileDialog, QFormLayout, QInputDialog, QLineEdit, QMainWindow,
                               QMessageBox, QSlider, QSpinBox, QStatusBar, QSystemTrayIcon)
 
-from . import __version__, STORAGE_NAME
+from . import __version__
 from .canvas import Canvas, WebCameraOverlay
 from .document import PasswordRequired
 from .media import Camera, MediaPlayer, Posters
@@ -183,14 +181,17 @@ class Presenter(QObject):
 
     def _menus(self):
         file_menu = self.presenter.menuBar().addMenu("File")
-        def action(menu, label, callback, shortcut=None):
+        def action(menu, label, callback=None, shortcut=None):
             item = QAction(label, self.presenter)
-            item.triggered.connect(callback)
+            if callback is not None:
+                item.triggered.connect(callback)
             if shortcut:
                 item.setShortcut(shortcut)
             menu.addAction(item)
             return item
         action(file_menu, "Open PDF…", self.pick, QKeySequence.StandardKey.Open)
+        self.recent_menu = file_menu.addMenu("Open Recent")
+        self.recent_menu.aboutToShow.connect(self._recent_files)
         action(file_menu, "Reload", self.reload)
         action(file_menu, "Quit", self.quit, QKeySequence.StandardKey.Quit)
         view_menu = self.presenter.menuBar().addMenu("View")
@@ -201,13 +202,17 @@ class Presenter(QObject):
         action(view_menu, "Notes layout…", self.choose_notes_layout)
         action(view_menu, "Reset notes / web zoom", self.reset_text_zoom)
         action(view_menu, "Show audience window", self.audience.show)
-        action(view_menu, "Show clock / timer", self.toggle_clock)
         self.automatic_action = action(view_menu, "Automatic playback",
-            lambda: self.session.set_auto_advance(not self.session.auto_advance))
+            self.session.set_auto_advance)
         self.automatic_action.setCheckable(True)
         self.automatic_action.setChecked(self.session.auto_advance)
         self.automatic_action.setToolTip("Honor PDF page durations and start autoplay animations")
         action(view_menu, "Hide both windows", self.hide_all)
+        timer_menu = self.presenter.menuBar().addMenu("Timer")
+        self.timer_action = action(timer_menu, "Start timer", self.toggle_timer)
+        action(timer_menu, "Reset timer", self.reset_timer)
+        action(timer_menu, "Set duration…", self.set_duration)
+        action(timer_menu, "Show clock / timer", self.toggle_clock)
         media_menu = self.presenter.menuBar().addMenu("Media")
         action(media_menu, "Open video or audio…", self.pick_media)
         action(media_menu, "Expand/restore media", self.expand_media)
@@ -218,7 +223,7 @@ class Presenter(QObject):
         help_menu = self.presenter.menuBar().addMenu("Help")
         action(help_menu, "Keyboard help", self.toggle_help)
         action(help_menu, "Check for updates…", lambda: self.updates.check(manual=True))
-        self.auto_update_action = action(help_menu, "Notify about new versions", lambda: None)
+        self.auto_update_action = action(help_menu, "Notify about new versions")
         self.auto_update_action.setCheckable(True)
         self.auto_update_action.setChecked(self.session.settings.value("check-updates", False, type=bool))
         self.auto_update_action.toggled.connect(lambda checked: self.session.settings.setValue("check-updates", checked))
@@ -322,7 +327,10 @@ class Presenter(QObject):
                 return False
 
     def _opened(self):
-        name = self.session.snapshot.path.name
+        path = self.session.snapshot.path
+        name = path.name
+        recent = self.session.settings.value("recent-files", [], type=list)
+        self.session.settings.setValue("recent-files", ([str(path)] + [p for p in recent if p != str(path)])[:10])
         self.presenter.setWindowTitle(f"{name} · Presenteriyaki")
         self.audience.setWindowTitle(f"{name} · audience")
         self.media.stop()
@@ -332,6 +340,19 @@ class Presenter(QObject):
         self.posters.reset(action.value for page in self.session.snapshot.pages
                            for action in page.actions if action.kind == "media")
         self.view.setFocus()
+
+    def _recent_files(self):
+        self.recent_menu.clear()
+        paths = [Path(p) for p in self.session.settings.value("recent-files", [], type=list) if Path(p).is_file()]
+        for path in paths:
+            label = path.name
+            if sum(p.name == path.name for p in paths) > 1:
+                label += f" — {path.parent.name}"
+            item = self.recent_menu.addAction(label)
+            item.setToolTip(str(path))
+            item.triggered.connect(lambda checked=False, path=path: self.open(path))
+        if not paths:
+            self.recent_menu.addAction("No recent PDFs").setEnabled(False)
 
     def reload(self):
         try:
@@ -353,6 +374,22 @@ class Presenter(QObject):
     def toggle_clock(self):
         self.session.clock.show_wall = not self.session.clock.show_wall
         self.session.changed.emit()
+
+    def toggle_timer(self):
+        self.session.clock.toggle()
+        self.session.changed.emit()
+
+    def reset_timer(self):
+        self.session.clock.reset()
+        self.session.changed.emit()
+
+    def set_duration(self):
+        minutes, okay = QInputDialog.getDouble(self.presenter, "Presentation timer",
+            "Duration in minutes (0 for elapsed time):", self.session.clock.duration / 60, 0, 1440, 1)
+        if okay:
+            self.session.clock.duration = minutes * 60
+            self.session.clock.show_wall = False
+            self.session.changed.emit()
 
     def hide_all(self):
         self._hidden_fullscreen = self.fullscreen
@@ -394,7 +431,11 @@ class Presenter(QObject):
 
     def command(self, command):
         if isinstance(command, str):
-            if command == "fullscreen":
+            if command == "open":
+                self.pick()
+            elif command == "timer-toggle":
+                self.toggle_timer()
+            elif command == "fullscreen":
                 self.toggle_fullscreen(audience_only=True)
             elif command == "media-toggle":
                 self.media.toggle()
@@ -414,6 +455,10 @@ class Presenter(QObject):
             self.toggle_fullscreen()
             return
         if key == Qt.Key.Key_Escape:
+            if state.digits:
+                state.digits = ""
+                state.changed.emit()
+                return
             self.video_router.cancel()
             if self.fullscreen:
                 self.leave_fullscreen()
@@ -463,7 +508,7 @@ class Presenter(QObject):
         elif key == Qt.Key.Key_T and shift:
             self.toggle_clock()
         elif text.lower() == "t":
-            state.clock.toggle()
+            self.toggle_timer()
         elif text == " ":
             if state.surface == Surface.MEDIA:
                 self.media.toggle()
@@ -474,7 +519,7 @@ class Presenter(QObject):
             else:
                 state.clock.toggle()
         elif text.lower() == "z":
-            state.clock.reset()
+            self.reset_timer()
         elif text in ("[", "]", "{", "}"):
             state.clock.duration = max(0, state.clock.duration + {"[": -60, "]": 60, "{": -600, "}": 600}[text])
             state.clock.show_wall = False
@@ -727,22 +772,25 @@ class Presenter(QObject):
 
     def _surface_changed(self):
         self.automatic_action.setChecked(self.session.auto_advance)
+        clock = self.session.clock
+        self.timer_action.setText("Pause timer" if clock.started is not None else
+                                  "Resume timer" if clock.elapsed else "Start timer")
         context = (id(self.session.snapshot), self.session.page, self.session.surface)
         if context != self._video_context:
             self.video_router.cancel()
             self._video_context = context
+            if self.session.surface != Surface.MEDIA:
+                self.media.pause()
+                self.seek.hide()
         if self.web:
-            self.web.setVisible(self.session.surface == Surface.WEB)
-            if self.session.surface == Surface.WEB:
-                self.web.setGeometry(self.audience.centralWidget().geometry())
+            visible = self.session.surface == Surface.WEB
+            if visible and self.web.isHidden():
                 self.web.raise_()
+                self.web_camera.raise_()
+            self.web.setVisible(visible)
             self.web_camera.setGeometry(self.slide.geometry())
-            self.web_camera.setVisible(self.session.surface == Surface.WEB and self.slide.camera_image is not None)
-            self.web_camera.raise_()
+            self.web_camera.setVisible(visible and self.slide.camera_image is not None)
             self.web_camera.update()
-        if self.session.surface != Surface.MEDIA:
-            self.media.pause()
-            self.seek.hide()
 
     def _place(self, window, screen):
         window.winId()
@@ -868,74 +916,9 @@ class Presenter(QObject):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Presenteriyaki — minimalist PDF presenter")
-    parser.add_argument("pdf", nargs="?", type=Path)
-    parser.add_argument("--page", "-p", type=int, default=None, help="Initial physical page (1-based)")
-    parser.add_argument("--duration", "-d", type=float, default=0, help="Talk duration in minutes")
-    parser.add_argument("--version", "-v", action="version", version=__version__)
-    parser.add_argument("--icon", "-i", nargs="?", const="-", metavar="FILE",
-                        help="Export Presenteriyaki's PNG icon and exit (default: binary stdout)")
-    parser.add_argument("--direct-video", "--youtube", "-y", action="store_true", help="Open YouTube links directly for this session")
-    parser.add_argument("--smoke-output", type=Path, help=argparse.SUPPRESS)
-    parser.add_argument("--smoke-media", type=Path, help=argparse.SUPPRESS)
-    parser.add_argument("--smoke-web", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--hardware-output", type=Path, help=argparse.SUPPRESS)
-    parser.add_argument("--hardware-camera", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--notification-output", type=Path, help=argparse.SUPPRESS)
-    args = parser.parse_args()
-    if args.icon is not None:
-        from .artwork import icon_png
-        if args.icon == "-":
-            output = getattr(sys.stdout, "buffer", None)
-            if output is None:
-                parser.error("Standard output is unavailable; use --icon FILE.png")
-            output.write(icon_png())
-            output.flush()
-        else:
-            try:
-                with Path(args.icon).open("xb") as output:
-                    output.write(icon_png())
-            except OSError as error:
-                parser.error(f"Could not export icon: {error}. Choose an unused output filename.")
-        return 0
-    if args.smoke_output and not args.pdf:
-        parser.error("The packaged smoke check requires a PDF")
-    if args.hardware_camera and not args.hardware_output:
-        parser.error("--hardware-camera requires --hardware-output and explicit user authorization")
-    if args.hardware_output and (not args.pdf or args.smoke_output):
-        parser.error("The hardware check requires a PDF and cannot run with --smoke-output")
-    if args.notification_output and (not args.pdf or args.smoke_output or args.hardware_output):
-        parser.error("The notification check requires a PDF and cannot run with other diagnostics")
-    if args.smoke_output or args.hardware_output or args.notification_output:
-        from PySide6.QtCore import QSettings
-        QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-        QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
-                          str((args.smoke_output or args.hardware_output or args.notification_output) / "settings"))
-    app = Application(sys.argv[:1])
-    app.setApplicationName(STORAGE_NAME)
-    app.setApplicationDisplayName("Presenteriyaki")
-    app.setOrganizationName(STORAGE_NAME)
-    app.setApplicationVersion(__version__)
-    app.setStyle("Fusion")
-    presenter = Presenter(app)
-    if args.direct_video:
-        presenter.video_mode = ""
-    presenter.session.clock.duration = max(0, args.duration * 60)
-    presenter.show()
-    if args.smoke_output:
-        from .diagnostics import SmokeCheck
-        presenter.smoke = SmokeCheck(presenter, args.smoke_output, args.smoke_media, args.smoke_web)
-    if args.hardware_output:
-        from .hardware import HardwareCheck
-        presenter.hardware_check = HardwareCheck(presenter, args.hardware_output, args.hardware_camera)
-    if args.notification_output:
-        from .notification_check import NotificationCheck
-        presenter.notification_check = NotificationCheck(presenter, args.notification_output)
-    if args.pdf:
-        QTimer.singleShot(0, lambda: presenter.open(args.pdf, page=args.page - 1 if args.page else None))
-    app.aboutToQuit.connect(presenter.quit)
-    return app.exec()
+    from .cli import main as run
+    return run()
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

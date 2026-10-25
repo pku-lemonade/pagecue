@@ -16,11 +16,12 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--source", type=Path)
     args = parser.parse_args()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     platform = platform_name()
-    source = ROOT / "dist" / ("Presenteriyaki.app" if platform == "macos" else "Presenteriyaki")
+    source = args.source or ROOT / "dist" / ("Presenteriyaki.app" if platform == "macos" else "Presenteriyaki")
     validate(source, platform)
     with tempfile.TemporaryDirectory(prefix="presenteriyaki-安装 with spaces-") as directory:
         work = Path(directory)

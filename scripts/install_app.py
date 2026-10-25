@@ -97,6 +97,8 @@ def install(source, destination, platform):
     info = validate(source, platform)
     if destination.exists() or destination.is_symlink():
         identity(destination, platform)
+        if (destination / "unins000.exe").exists():
+            raise ValueError("Update this installation with Presenteriyaki Setup.exe.")
     destination.parent.mkdir(parents=True, exist_ok=True)
     # All renames stay on the destination volume. Keep the old app until the
     # complete staged copy verifies; restore it if the final rename fails.
@@ -128,6 +130,8 @@ def install(source, destination, platform):
 def uninstall(destination, platform):
     destination = destination_path(destination)
     identity(destination, platform)
+    if (destination / "unins000.exe").exists():
+        raise ValueError("Remove this installation from Windows Settings → Installed apps.")
     # shutil.rmtree does not follow interior symlinks. Its entire scope is the
     # identified app bundle; preferences and presentation files are elsewhere.
     shutil.rmtree(destination)

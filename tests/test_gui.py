@@ -16,10 +16,12 @@ def test_settings_override_and_recent_page_are_isolated(qtbot, deck, tmp_path):
     restored.open(deck)
     assert restored.page == 2
     restored.settings.setValue("recent/" + str(deck.resolve()), "invalid page")
-    restored.open(deck)
-    assert restored.page == 0
+    invalid = Session()
+    invalid.open(deck)
+    assert invalid.page == 0
     session.close()
     restored.close()
+    invalid.close()
 
 
 def test_rename_reuses_existing_pagecue_preferences(qapp, qtbot, deck):

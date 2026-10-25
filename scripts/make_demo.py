@@ -34,7 +34,7 @@ def create(path):
     path.with_suffix(".pdfpc").write_text(json.dumps({"pdfpcFormat": 2, "pages": [
         {"idx": 0, "note": "Start with the idea, then give the audience a moment to look.\n\n"
                             "中文讲稿：让观众专注于内容。讲者备注只显示在自己的屏幕上。\n\n"
-                            "Use the arrow keys to advance. Press ? to hide keyboard help."},
+                            "Use the arrow keys to advance. Press ? for all shortcuts."},
         {"idx": 1, "note": "This is the second page. The timer and notes remain on the presenter screen."}
     ]}, ensure_ascii=False, indent=2), encoding="utf-8")
     return path

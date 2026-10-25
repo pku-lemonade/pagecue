@@ -94,7 +94,7 @@ def test_automatic_instance_resolution_and_stale_response(qtbot, monkeypatch):
 
 
 def test_missing_release_falls_back_to_source_tags_over_qt_network(qapp, qtbot, release_server):
-    checker = ReleaseChecker(endpoint=release_server + "/missing", tags_endpoint=release_server + "/tags")
+    checker = ReleaseChecker(endpoint=release_server + "/missing", tags_endpoint=release_server + "/tags", current="0.2.0")
     with qtbot.waitSignal(checker.checked, timeout=3000) as signal:
         checker.check(manual=False)
     assert signal.args[0].version == "0.3.0"

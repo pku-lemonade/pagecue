@@ -6,6 +6,9 @@ Open a PDF from the File menu or drag it into a window. The presenter window sho
 the current slide, next slide, notes, timer and thumbnails. The audience window
 shows the presentation.
 
+The opening screen has an **Open PDF…** button. **File → Open Recent** reopens
+previous decks. The next-slide preview says **End of presentation** on the last page.
+
 Choose **View → Audience display** to select a screen. Press **F5** for fullscreen
 or double-click the audience window to fill only that screen. **Esc** returns to
 windowed mode; **X** swaps the displays.
@@ -21,7 +24,11 @@ windowed mode; **X** swaps the displays.
 | . | Blackout |
 | B | Whiteboard |
 | L | Cycle pointer, laser and spotlight |
-| ? | Show keyboard help |
+| ? | Switch between quick help and all shortcuts |
+
+Click the clock to start or pause the timer. **Timer → Set duration** sets a
+countdown; use zero for elapsed time. Changing the duration preserves elapsed
+time. The label below the clock shows whether the timer is running or paused.
 
 ## Notes
 

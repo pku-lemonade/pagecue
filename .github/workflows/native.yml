@@ -43,7 +43,7 @@ jobs:
           QT_QPA_PLATFORM: ${{ runner.os == 'Windows' && 'windows' || 'cocoa' }}
         run: >-
           uv run pytest tests/test_view_interactions.py tests/test_long_deck.py
-          tests/test_pdf_geometry.py
+          tests/test_pdf_geometry.py tests/test_hci.py
           tests/test_presentations.py::test_space_pauses_timed_page_with_animation_and_menu_resumes
           -vv -s --log-cli-level=INFO -o faulthandler_timeout=30
           --junitxml=qa/native-views.xml --basetemp=qa/native-views
@@ -58,7 +58,11 @@ jobs:
         run: uv run python scripts/build_app.py
       - name: Install, launch, update and remove the actual native package
         run: uv run python scripts/check_bundle.py --output qa/packaged
-      - name: Preserve evidence, not an unaudited binary release
+      - name: Build the platform installer
+        run: uv run python scripts/build_installer.py
+      - name: Verify the installer artifact
+        run: uv run python scripts/check_installer.py --output qa/installer
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -74,5 +78,6 @@ jobs:
             qa/layout
             qa/opening/result.json
             qa/opening/picker.png
+            qa/installer
           retention-days: 14
           if-no-files-found: warn

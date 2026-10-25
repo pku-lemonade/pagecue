@@ -33,7 +33,7 @@ class Session(QObject):
         self.notes_scale = 1.0
         self.notes_scroll = 0.0
         self.preview = None
-        self.show_help = True
+        self.show_help = False
         self.pointer = QPointF(0.5, 0.5)
         self.pointer_mode = 0
         self.pointer_size = 0.035
@@ -86,7 +86,8 @@ class Session(QObject):
             page = destination
         if page is None:
             try:
-                page = previous if reload else int(self.settings.value("recent/" + str(candidate.path), 0))
+                page = previous if reload or (old and old.path == candidate.path) else int(
+                    self.settings.value("recent/" + str(candidate.path), 0))
             except (TypeError, ValueError):
                 page = 0
         navigation = Navigation(len(candidate.pages), [p.label for p in candidate.pages], candidate.sections, page)

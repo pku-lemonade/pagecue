@@ -7,23 +7,27 @@ from PySide6.QtWidgets import QWidget, QToolTip
 
 from .model import Stroke, Surface
 from .typography import ui_font
+from .welcome import MODIFIER, Welcome
 
 
 HELP = [
-    ("← → / click", "previous / next page"), ("Ctrl/⌘ + ← →", "previous / next frame"),
-    ("Ctrl/⌘ + ↑ ↓", "previous / next section"), ("Home / End", "first / last page"),
+    ("← → / click", "previous / next page"), (f"{MODIFIER}← →", "previous / next frame"),
+    (f"{MODIFIER}↑ ↓", "previous / next section"), ("Home / End", "first / last page"),
     ("Alt + arrows", "history back / forward"), ("0–9 ↵", "go to physical page"),
     ("F5 / Esc", "fullscreen / windowed"), ("X", "swap screens"),
     ("T / Shift+T / Z", "timer / clock / reset"), ("[ ] / { }", "adjust talk duration"),
     ("Space", "play / pause media, timed page or animation"), ("< / >", "step media / animation"),
-    ("+ − / 0", "text size / reset"), ("R", "reload PDF and notes"),
+    ("+ − / 0", "text size / reset"),
     (". / B", "blackout / whiteboard"), ("L / P", "pointer mode / size"),
     ("drag / Shift", "draw / draw immediately"), ("Alt + drag", "select ink"),
-    ("Shift + drag", "move selected ink"), ("⌘/Ctrl + drag", "pan slide"),
-    ("⌘/Ctrl + wheel", "zoom slide"), ("C / E / ⌫", "color / clear / erase last"),
+    ("Shift + drag", "move selected ink"), (f"{MODIFIER}drag", "pan slide"),
+    (f"{MODIFIER}wheel", "zoom slide"), ("C / E / ⌫", "color / clear / erase last"),
     ("V / M / W", "camera / media / web"), ("Shift+V/M", "expand camera / media"),
-    ("H / Q / R", "hide / quit / reload"), ("?", "toggle this help"),
+    ("H / Q / R", "hide / quit / reload"), ("?", "less help"),
 ]
+
+QUICK_HELP = [("← →", "Change slide"), ("F5 / Esc", "Fullscreen / exit"),
+              ("T", "Start / pause timer"), (".", "Blackout"), ("?", "All shortcuts")]
 
 
 def fit_rect(box: QRectF, width: float, height: float) -> QRectF:
@@ -87,8 +91,21 @@ class Canvas(QWidget):
         self.camera_opacity = .8
         self._animation_last = {}
         self._cursor_context = None
+        self.clock_box = QRectF()
+        self._notes_document = QTextDocument(self)
+        self._notes_layout_key = None
+        self.welcome = Welcome(self) if presenter else None
+        if self.welcome:
+            self.welcome.open_requested.connect(lambda: self.command.emit("open"))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.welcome:
+            self.welcome.setGeometry(self.rect())
 
     def _refresh(self):
+        if self.welcome:
+            self.welcome.setVisible(self.session.snapshot is None)
         context = (id(self.session.snapshot), self.session.page, self.session.surface)
         if context != self._cursor_context:
             self._cursor_context = context
@@ -116,8 +133,9 @@ class Canvas(QWidget):
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         painter.fillRect(self.rect(), QColor("#101113") if self.presenter else QColor("black"))
         if self.session.snapshot is None:
-            self._text(painter, QRectF(self.rect()), "Drop a PDF to begin\n⌘/Ctrl O to open", 22,
-                       flags=Qt.AlignmentFlag.AlignCenter)
+            if not self.presenter:
+                self._text(painter, QRectF(self.rect()), "Audience display", 18, "#777c86",
+                           flags=Qt.AlignmentFlag.AlignCenter)
             return
         if self.presenter:
             self._paint_presenter(painter)
@@ -140,10 +158,21 @@ class Canvas(QWidget):
         self.notes_box = QRectF(margin, top + current_height + margin * .7,
                                left_width, max(20, height - top - current_height - margin * 1.4))
         self.rail = QRectF(width - rail_width, 0, rail_width, height)
-        self._text(painter, QRectF(margin, 12, left_width * .65, top - 20), self.session.clock.text(),
+        self.clock_box = QRectF(margin, 8, left_width * .55, top - 12)
+        clock = self.session.clock
+        self._text(painter, QRectF(margin, 8, left_width * .65, top - 30), clock.text(),
                    min(34, width * .027), "#efb267" if self.session.clock.duration and
-                   self.session.clock.elapsed > self.session.clock.duration else "#f3f3f3")
-        label = f"{page.label}   {self.session.page + 1}/{len(self.session.snapshot.pages)}"
+                   not clock.show_wall and clock.elapsed > clock.duration else "#f3f3f3")
+        mode = "CLOCK" if clock.show_wall else "REMAINING" if clock.duration else "ELAPSED"
+        status = "RUNNING" if clock.started is not None else "PAUSED" if clock.elapsed else "CLICK TO START"
+        if clock.show_wall:
+            status = f"TIMER {status}" if clock.elapsed else "CLICK TO START TIMER"
+        self._text(painter, QRectF(margin, top - 20, left_width * .65, 14),
+                   f"{mode} · {status}", 8, "#939ba8")
+        number = self.session.page + 1
+        label = f"{number} / {len(self.session.snapshot.pages)}"
+        if page.label != str(number):
+            label = f"{page.label} · {label}"
         if self.session.digits:
             label = f"Go to {self.session.digits} ↵"
         self._text(painter, QRectF(margin + left_width * .55, 12, left_width * .45, top - 20), label,
@@ -153,11 +182,13 @@ class Canvas(QWidget):
         if next_page < len(self.session.snapshot.pages):
             self._paint_pdf(painter, next_page, self.next_box, navigation=False)
             self._text(painter, QRectF(self.next_box.x(), self.next_box.bottom() + 6,
-                                      self.next_box.width(), 22), f"NEXT  ·  {next_page + 1}", 9, "#777c86")
+                                      self.next_box.width(), 22),
+                       f"{'PREVIEW' if self.session.preview is not None else 'NEXT'}  ·  {next_page + 1}", 9, "#939ba8")
+        else:
+            painter.fillRect(self.next_box, QColor("#181a1e"))
+            self._text(painter, self.next_box, "End of presentation", 12, "#939ba8", Qt.AlignmentFlag.AlignCenter)
         self._paint_notes(painter)
-        self.help_box = QRectF()
-        if self.session.show_help:
-            self._paint_help(painter)
+        self._paint_help(painter)
         self._paint_thumbnails(painter)
 
     def _paint_help(self, painter):
@@ -169,7 +200,7 @@ class Canvas(QWidget):
         widths = (split - 8, self.help_box.width() - split - 7)
         flags = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap
         rows = []
-        for key, description in HELP:
+        for key, description in HELP if self.session.show_help else QUICK_HELP:
             height = max(metrics.boundingRect(QRectF(0, 0, width, 1000), int(flags), text).height()
                          for width, text in zip(widths, (key, description))) + 6
             rows.append((key, description, height))
@@ -195,10 +226,14 @@ class Canvas(QWidget):
         text = self.session.snapshot.notes.pages.get(self.session.page, "")
         if not text:
             return
-        doc = QTextDocument()
-        doc.setDefaultFont(ui_font(max(17, self.width() * .018) * self.session.notes_scale))
-        doc.setPlainText(text)
-        doc.setTextWidth(self.notes_box.width())
+        doc = self._notes_document
+        size = max(17, self.width() * .018) * self.session.notes_scale
+        key = (text, size, self.notes_box.width())
+        if key != self._notes_layout_key:
+            doc.setDefaultFont(ui_font(size))
+            doc.setPlainText(text)
+            doc.setTextWidth(self.notes_box.width())
+            self._notes_layout_key = key
         maximum = max(0, doc.size().height() - self.notes_box.height())
         self.session.notes_scroll = max(0, min(maximum, self.session.notes_scroll))
         painter.save()
@@ -461,6 +496,10 @@ class Canvas(QWidget):
         if not self.session.snapshot:
             return
         pos = event.position()
+        if self.presenter and self.clock_box.contains(pos):
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.command.emit("timer-toggle")
+            return
         if event.button() == Qt.MouseButton.RightButton:
             self.session.navigate(-1)
             return
@@ -507,8 +546,12 @@ class Canvas(QWidget):
             point = self._to_page(pos)
             self.session.show_pointer(point)
         action = self._action_at(pos)
-        self.setCursor(Qt.CursorShape.PointingHandCursor if action else Qt.CursorShape.ArrowCursor)
-        if action and action.title:
+        over_clock = self.presenter and self.clock_box.contains(pos)
+        self.setCursor(Qt.CursorShape.PointingHandCursor if action or over_clock else Qt.CursorShape.ArrowCursor)
+        if over_clock:
+            verb = "Pause" if self.session.clock.started is not None else "Start / resume"
+            QToolTip.showText(event.globalPosition().toPoint(), f"{verb} timer (T)", self)
+        elif action and action.title:
             QToolTip.showText(event.globalPosition().toPoint(), action.title, self)
         else:
             QToolTip.hideText()
@@ -558,6 +601,13 @@ class Canvas(QWidget):
             self.command.emit("media-expand")
         elif not self.presenter:
             self.command.emit("fullscreen")
+
+    def leaveEvent(self, event):
+        if self.presenter and self.session.preview is not None:
+            self.session.preview = None
+            self.session.changed.emit()
+        QToolTip.hideText()
+        super().leaveEvent(event)
 
     def wheelEvent(self, event):
         if not self.session.snapshot:

@@ -13,14 +13,20 @@ timer on the other. Use a single screen to rehearse.
 - Video, audio and LaTeX animations
 - Optional camera overlay and web content
 
+## Install
+
+Presenteriyaki runs as a standalone app; Python is included.
+
+- **macOS:** open the `.dmg` and drag Presenteriyaki to Applications.
+- **Windows:** run `Presenteriyaki-…-setup.exe`, then open it from Start.
+
+Public downloads are not available yet. Developers can
+[build the app and installers](CONTRIBUTING.md#build-the-app).
+
 ## Getting started
 
 Open Presenteriyaki and drop in a PDF, or choose **File → Open PDF**. Use the arrow
 keys to change slides, **F5** for fullscreen and **?** for keyboard help.
-
-Presenteriyaki runs as a standalone application with its runtime included.
-Public app downloads are not available yet. Developers can
-[build from source](CONTRIBUTING.md#build-the-app).
 
 See the [user guide](docs/USER_GUIDE.md) for notes, drawing and media controls.
 

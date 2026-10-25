@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "presenteriyaki"
-version = "0.2.0"
+version = "0.3.0"
 description = "A minimalist two-screen PDF presenter built with Qt"
 requires-python = ">=3.12,<3.15"
 license = "MIT"
 dependencies = ["PySide6==6.12.0", "pypdf[crypto]==6.21.2", "packaging>=25"]
 
 [project.scripts]
-presenteriyaki = "presenteriyaki.app:main"
-pagecue = "presenteriyaki.app:main"
+presenteriyaki = "presenteriyaki.cli:main"
+pagecue = "presenteriyaki.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-qt>=4.4", "reportlab>=4", "pyinstaller>=6.16"]

@@ -23,7 +23,10 @@ def main():
     app.setStyle("Fusion")
     presenter = Presenter(app)
     presenter.show()
+    app.processEvents()
+    presenter.presenter.grab().save(str(output / "welcome.png"))
     presenter.open(args.pdf)
+    presenter.session.show_help = True
     presenter.presenter.resize(700, 420)
     results = {"passed": False, "synthetic_camera_only": True}
     def save(name, widget):
@@ -47,6 +50,14 @@ def main():
         QTimer.singleShot(500, lambda: guard(large))
     def large():
         save("normal", presenter.presenter)
+        presenter.session.show_help = False
+        presenter.view.repaint()
+        save("quick-help", presenter.presenter)
+        presenter.session.go(len(presenter.session.snapshot.pages) - 1)
+        presenter.view.repaint()
+        QTimer.singleShot(500, lambda: guard(end_of_deck))
+    def end_of_deck():
+        save("end-of-deck", presenter.presenter)
         image = QImage(640, 360, QImage.Format.Format_RGB32)
         image.fill(QColor("#ef8e56"))
         painter = QPainter(image)
