@@ -39,6 +39,7 @@ class CocoaKeys(QAbstractNativeEventFilter):
         result["pyobjc"] = version("pyobjc-framework-Cocoa")
 
     def close(self):
+        self.window.cocoa_keys = None
         QApplication.instance().removeNativeEventFilter(self)
 
     def nativeEventFilter(self, kind, pointer):

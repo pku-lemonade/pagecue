@@ -44,12 +44,15 @@ jobs:
       - name: Decode original H.264 video through the native browser
         run: uv run python scripts/check_native_webview.py --capture --camera-overlay
       - name: Check native Cocoa browser input
+        timeout-minutes: 2
         if: runner.os == 'macOS' && !inputs.trace_cocoa
         run: uv run --with pyobjc-framework-Cocoa==12.2.2 python scripts/check_native_web_keys.py
       - name: Trace native Cocoa browser input
+        timeout-minutes: 2
         if: runner.os == 'macOS' && inputs.trace_cocoa
         run: uv run --with pyobjc-framework-Cocoa==12.2.2 python scripts/trace_cocoa_keys.py
       - name: Check native Windows browser input
+        timeout-minutes: 2
         if: runner.os == 'Windows'
         run: uv run python scripts/check_native_web_keys.py
       - name: Upload browser result
