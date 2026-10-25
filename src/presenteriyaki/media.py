@@ -32,7 +32,7 @@ class MediaPlayer(QObject):
         self.player.playbackStateChanged.connect(lambda _: self.changed.emit())
         self.gif = None
         self.resource = None
-        self.temp = tempfile.TemporaryDirectory(prefix="pagecue-media-")
+        self.temp = tempfile.TemporaryDirectory(prefix="presenteriyaki-media-")
         self.frame_duration = 1000 / 30
         self.frame_start = self.frame_end = None
         self.autoplay = True

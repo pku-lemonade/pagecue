@@ -6,10 +6,10 @@ from pypdf.generic import ArrayObject, DictionaryObject, NameObject, NumberObjec
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtTest import QTest
 
-from pagecue.app import Presenter
-from pagecue.document import filespec, load_snapshot
-from pagecue.session import Session
-from pagecue.model import Surface
+from presenteriyaki.app import Presenter
+from presenteriyaki.document import filespec, load_snapshot
+from presenteriyaki.session import Session
+from presenteriyaki.model import Surface
 
 
 def pdf(value):

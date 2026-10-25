@@ -2,7 +2,7 @@ from io import BytesIO
 import pytest
 from pypdf import PdfReader, PdfWriter
 from pypdf.annotations import Text
-from pagecue.document import PasswordRequired, load_snapshot, rectangle
+from presenteriyaki.document import PasswordRequired, load_snapshot, rectangle
 
 
 def test_notes_and_render_copy_preserve_original(deck):

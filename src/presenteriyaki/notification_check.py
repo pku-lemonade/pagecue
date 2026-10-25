@@ -33,7 +33,7 @@ class NotificationCheck(QObject):
 
     def start(self):
         self.result["requested"] = self.presenter.desktop_notification(
-            "PageCue notification test", "Local delivery check. Click to open PageCue's source repository.",
+            "Presenteriyaki notification test", "Local delivery check. Click to open Presenteriyaki's source repository.",
             f"https://github.com/{REPOSITORY}")
         if self.result["requested"]:
             self.presenter.update_tray.messageClicked.connect(self.clicked)

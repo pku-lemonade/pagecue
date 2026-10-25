@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,14 +13,18 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     os.chdir(ROOT)
     (ROOT / "build").mkdir(exist_ok=True)
-    from pagecue.artwork import icon_png
+    from presenteriyaki.artwork import icon_png
     (ROOT / "build/icon.png").write_bytes(icon_png(1024))
-    from pagecue import __version__
+    from presenteriyaki import __version__
     (ROOT / "build/bundle-identity.json").write_text(json.dumps({"product": "org.pku-lemonade.pagecue", "version": __version__}))
     subprocess.run([sys.executable, str(ROOT / "scripts/collect_notices.py")], check=True)
     subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
-                    str(ROOT / "bundle/pagecue.spec")], check=True)
-    print("Built", ROOT / "dist" / ("PageCue.app" if sys.platform == "darwin" else "PageCue"))
+                    str(ROOT / "bundle/presenteriyaki.spec")], check=True)
+    if sys.platform == "win32":
+        # Existing PageCue shortcuts keep working during an explicit in-place update.
+        folder = ROOT / "dist/Presenteriyaki"
+        shutil.copy2(folder / "Presenteriyaki.exe", folder / "PageCue.exe")
+    print("Built", ROOT / "dist" / ("Presenteriyaki.app" if sys.platform == "darwin" else "Presenteriyaki"))
 
 
 if __name__ == "__main__":

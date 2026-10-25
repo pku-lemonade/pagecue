@@ -3,6 +3,7 @@
 from pathlib import Path
 from PySide6.QtCore import QObject, QPointF, QRectF, QSettings, QTimer, Signal
 
+from . import STORAGE_NAME
 from .document import load_snapshot
 from .model import Ink, Navigation, Surface, TalkClock
 from .render import PdfImages
@@ -50,7 +51,7 @@ class Session(QObject):
         self.notes_layout = "auto"
         # The organization/application-only constructor always uses NativeFormat,
         # even after setDefaultFormat(). Honor explicit QA/portable overrides.
-        self.settings = QSettings(QSettings.defaultFormat(), QSettings.Scope.UserScope, "PageCue", "PageCue")
+        self.settings = QSettings(QSettings.defaultFormat(), QSettings.Scope.UserScope, STORAGE_NAME, STORAGE_NAME)
         self.tick = QTimer(self)
         self.tick.setInterval(250)
         self.tick.timeout.connect(self.changed)

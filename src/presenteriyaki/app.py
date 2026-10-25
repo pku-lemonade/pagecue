@@ -1,4 +1,4 @@
-"""Desktop entry point and user commands for PageCue."""
+"""Desktop entry point and user commands for Presenteriyaki."""
 
 import argparse
 import logging
@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, Q
                               QFileDialog, QFormLayout, QInputDialog, QLineEdit, QMainWindow,
                               QMessageBox, QSlider, QSpinBox, QStatusBar, QSystemTrayIcon)
 
-from . import __version__
+from . import __version__, STORAGE_NAME
 from .canvas import Canvas, WebCameraOverlay
 from .document import PasswordRequired
 from .media import Camera, MediaPlayer, Posters
@@ -29,7 +29,7 @@ class Application(QApplication):
         # requested before constructing QApplication (not when a link is clicked).
         QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
         super().__init__(arguments)
-        self.setWindowIcon(QIcon(str(Path(__file__).parent / "assets/pagecue.svg")))
+        self.setWindowIcon(QIcon(str(Path(__file__).parent / "assets/presenteriyaki.svg")))
 
     def event(self, event):
         if event.type() == QEvent.Type.FileOpen:
@@ -101,9 +101,9 @@ class Presenter(QObject):
         self.app = app
         self.session = Session()
         self.presenter = Window()
-        self.presenter.setWindowTitle("PageCue")
+        self.presenter.setWindowTitle("Presenteriyaki")
         self.audience = Window()
-        self.audience.setWindowTitle("PageCue · audience")
+        self.audience.setWindowTitle("Presenteriyaki · audience")
         self.view = Canvas(self.session, True)
         self.slide = Canvas(self.session, False)
         self.presenter.setCentralWidget(self.view)
@@ -222,8 +222,8 @@ class Presenter(QObject):
         self.auto_update_action.setCheckable(True)
         self.auto_update_action.setChecked(self.session.settings.value("check-updates", False, type=bool))
         self.auto_update_action.toggled.connect(lambda checked: self.session.settings.setValue("check-updates", checked))
-        action(help_menu, "About PageCue", lambda: QMessageBox.about(self.presenter, "PageCue",
-            f"PageCue {__version__}\nA minimalist Qt PDF presenter.\nIndependent implementation · MIT\n"
+        action(help_menu, "About Presenteriyaki", lambda: QMessageBox.about(self.presenter, "Presenteriyaki",
+            f"Presenteriyaki {__version__}\nA minimalist Qt PDF presenter.\nIndependent implementation · MIT\n"
             "In development: see the feature parity ledger."))
 
     def show(self):
@@ -251,10 +251,10 @@ class Presenter(QObject):
             return
         if not release.newer:
             if manual:
-                self.notify(f"PageCue {__version__} is up to date")
+                self.notify(f"Presenteriyaki {__version__} is up to date")
             return
         kind = " source update" if release.channel == "source" else ""
-        message = f"PageCue {release.version}{kind} is available (installed: {__version__})"
+        message = f"Presenteriyaki {release.version}{kind} is available (installed: {__version__})"
         if manual:
             answer = QMessageBox.question(self.presenter, "Update available", message + "\nOpen this version on GitHub?",
                                           QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Cancel)
@@ -262,7 +262,7 @@ class Presenter(QObject):
                 QDesktopServices.openUrl(QUrl(release.url))
         else:
             self.notify(message)
-            self.desktop_notification("PageCue update", message, release.url)
+            self.desktop_notification("Presenteriyaki update", message, release.url)
 
     def desktop_notification(self, title, message, url):
         """Request native delivery; Qt does not report whether the OS displayed it."""
@@ -324,7 +324,7 @@ class Presenter(QObject):
 
     def _opened(self):
         name = self.session.snapshot.path.name
-        self.presenter.setWindowTitle(f"{name} · PageCue")
+        self.presenter.setWindowTitle(f"{name} · Presenteriyaki")
         self.audience.setWindowTitle(f"{name} · audience")
         self.media.stop()
         self.view.media_image = self.slide.media_image = None
@@ -869,13 +869,13 @@ class Presenter(QObject):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PageCue — minimalist PDF presenter")
+    parser = argparse.ArgumentParser(description="Presenteriyaki — minimalist PDF presenter")
     parser.add_argument("pdf", nargs="?", type=Path)
     parser.add_argument("--page", "-p", type=int, default=None, help="Initial physical page (1-based)")
     parser.add_argument("--duration", "-d", type=float, default=0, help="Talk duration in minutes")
     parser.add_argument("--version", "-v", action="version", version=__version__)
     parser.add_argument("--icon", "-i", nargs="?", const="-", metavar="FILE",
-                        help="Export PageCue's PNG icon and exit (default: binary stdout)")
+                        help="Export Presenteriyaki's PNG icon and exit (default: binary stdout)")
     parser.add_argument("--direct-video", "--youtube", "-y", action="store_true", help="Open YouTube links directly for this session")
     parser.add_argument("--smoke-output", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--smoke-media", type=Path, help=argparse.SUPPRESS)
@@ -913,8 +913,9 @@ def main():
         QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
                           str((args.smoke_output or args.hardware_output or args.notification_output) / "settings"))
     app = Application(sys.argv[:1])
-    app.setApplicationName("PageCue")
-    app.setOrganizationName("PageCue")
+    app.setApplicationName(STORAGE_NAME)
+    app.setApplicationDisplayName("Presenteriyaki")
+    app.setOrganizationName(STORAGE_NAME)
     app.setApplicationVersion(__version__)
     app.setStyle("Fusion")
     presenter = Presenter(app)

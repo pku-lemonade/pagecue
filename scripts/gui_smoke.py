@@ -6,7 +6,7 @@ import sys
 
 from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtTest import QTest
-from pagecue.app import Application, Presenter
+from presenteriyaki.app import Application, Presenter
 
 
 def main():
@@ -14,8 +14,8 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(output / "settings"))
-    app = Application(["pagecue-smoke"])
-    app.setApplicationName("PageCue QA")
+    app = Application(["presenteriyaki-smoke"])
+    app.setApplicationName("Presenteriyaki QA")
     presenter = Presenter(app)
     presenter.show()
     if not presenter.open(path):

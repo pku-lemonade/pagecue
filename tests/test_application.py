@@ -7,10 +7,10 @@ from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtTest import QTest
 from PySide6.QtGui import QFileOpenEvent
 
-from pagecue.app import Presenter
-from pagecue.document import Media
-from pagecue.model import Surface
-from pagecue.services import Release
+from presenteriyaki.app import Presenter
+from presenteriyaki.document import Media
+from presenteriyaki.model import Surface
+from presenteriyaki.services import Release
 
 
 def test_native_file_open_ignores_launcher_arguments_and_accepts_extensionless_pdf(qapp, qtbot, deck, tmp_path):
@@ -29,7 +29,7 @@ def test_native_file_open_ignores_launcher_arguments_and_accepts_extensionless_p
 
 def test_update_notification_click_opens_current_release_once(qapp, qtbot, monkeypatch):
     # Simulated delivery: never enable OS notifications or open a real browser.
-    from pagecue import app as module
+    from presenteriyaki import app as module
     class Tray(QObject):
         messageClicked = Signal()
         isSystemTrayAvailable = staticmethod(lambda: True)
@@ -49,8 +49,8 @@ def test_update_notification_click_opens_current_release_once(qapp, qtbot, monke
     app = Presenter(qapp)
     qtbot.addWidget(app.presenter)
     qtbot.addWidget(app.audience)
-    first = Release("0.2.0", "https://github.com/pku-lemonade/pagecue/releases/tag/v0.2.0", True)
-    second = Release("0.3.0", "https://github.com/pku-lemonade/pagecue/releases/tag/v0.3.0", True)
+    first = Release("0.2.0", "https://github.com/pku-lemonade/presenteriyaki/releases/tag/v0.2.0", True)
+    second = Release("0.3.0", "https://github.com/pku-lemonade/presenteriyaki/releases/tag/v0.3.0", True)
     app._update_result(first, False)
     tray = app.update_tray
     tray.messageClicked.emit()
@@ -169,7 +169,7 @@ def test_audience_only_fullscreen_and_restore_on_two_screen_topology(qapp, qtbot
 
 
 def test_linked_gif_uses_actual_decoder(qapp, qtbot, tmp_path):
-    from pagecue.media import MediaPlayer
+    from presenteriyaki.media import MediaPlayer
     path = tmp_path / "colors.gif"
     Image.new("RGB", (64, 64), "red").save(path, save_all=True,
         append_images=[Image.new("RGB", (64, 64), "blue")], duration=150, loop=0)

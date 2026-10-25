@@ -9,11 +9,11 @@ diagnostic to CI or run it during an installation without explicit user approval
 Build the app, then run its executable with a PDF and an output directory:
 
 ```sh
-dist/PageCue.app/Contents/MacOS/PageCue qa/demo.pdf \
+dist/Presenteriyaki.app/Contents/MacOS/Presenteriyaki qa/demo.pdf \
   --hardware-output qa/hardware-check --hardware-camera
 ```
 
-On Windows use the built `dist/PageCue/PageCue.exe` executable and equivalent
+On Windows use the built `dist/Presenteriyaki/Presenteriyaki.exe` executable and equivalent
 arguments. Omit `--hardware-camera` for display-only checks. The camera flag is
 an explicit opt-in, not a substitute for obtaining the user's authorization.
 The OS may also require the user to approve its camera prompt.
@@ -61,7 +61,7 @@ The user also confirmed the rebuilt app's native Mac file picker (Command+O,
 `qa/demo.pdf`) and Finder Open With (`qa/native-open-check.pdf`, a new two-page
 original fixture) both loaded correctly, without changing the default PDF app.
 This is direct user acceptance, not a simulated QFileOpenEvent claim. The
-Computer Use service could not access Finder or PageCue's windows, so it did not
+Computer Use service could not access Finder or Presenteriyaki's windows, so it did not
 perform or capture these interactions.
 
 ## Desktop notification observation
@@ -70,27 +70,30 @@ A freshly built executable can request a clearly labeled notification using the
 same sender as update alerts, with isolated application preferences:
 
 ```sh
-dist/PageCue.app/Contents/MacOS/PageCue qa/demo.pdf \
+dist/Presenteriyaki.app/Contents/MacOS/Presenteriyaki qa/demo.pdf \
   --notification-output qa/notification-check
 ```
 
-On Windows use the corresponding `PageCue.exe`. The diagnostic is opt-in and is
+On Windows use the corresponding `Presenteriyaki.exe`. The diagnostic is opt-in and is
 never part of CI or ordinary installation checks. It does not enable background
 update checks, activate a camera, or change OS notification permissions. It sends
 one test alert, records whether Qt accepted the request and whether its click
 signal arrived, then exits after a click or 90 seconds. Clicking the test alert
-opens the public PageCue repository. `requested: true` is **not** proof of delivery;
+opens the public Presenteriyaki repository. `requested: true` is **not** proof of delivery;
 observe the OS alert and the resulting page. An OS permission prompt must be
 approved by the user before accepting it.
 
-On 2026-10-25, an isolated Mac bundle built under
+On 2026-10-25, before the rename, an isolated bundle under
 `qa/notification-build/dist/PageCue.app` passed strict signature verification and
-requested the notification. Computer Use access was working again and observed
-the actual “PageCue Notifications” permission prompt with Allow/Don't Allow
-actions. Permission approval and notification delivery were still pending at
-this checkpoint. The user's existing `dist/PageCue.app` process was preserved.
-Local metadata is under `qa/notification-live/`; no camera or video frames were
-captured by this check.
+requested the notification. Computer Use observed the actual “PageCue
+Notifications” permission prompt. The user then approved notifications; the
+PageCue switch in macOS Settings was changed from off to on, and a fresh
+“PageCue notification test” banner was observed in the native notification UI.
+Delivery on this Mac is verified. The banner expired before its click could be
+verified; simulated click-routing tests still pass. Local metadata is under
+`qa/notification-live/` and `qa/notification-live-enabled/`. The diagnostic's
+`clicked` value remains false and is not presented as a successful click check.
+The existing PageCue bundle was preserved. No camera or video frames were captured.
 
 ## Still to verify
 

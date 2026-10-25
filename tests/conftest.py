@@ -22,7 +22,7 @@ def unexpected_modal_warning(monkeypatch):
 
 @pytest.fixture(scope="session")
 def qapp_cls():
-    from pagecue.app import Application
+    from presenteriyaki.app import Application
     return Application
 
 
@@ -41,7 +41,7 @@ def deck(tmp_path):
         painter.rect(0, 0, 960, 540, fill=1, stroke=0)
         painter.setFillColor("white")
         painter.setFont("Helvetica", 42)
-        painter.drawString(65, 420, f"PageCue · test page {number + 1}")
+        painter.drawString(65, 420, f"Presenteriyaki · test page {number + 1}")
         painter.setFont("Helvetica", 22)
         painter.drawString(65, 350, "A clear slide. Notes stay on the presenter screen.")
         painter.circle(750, 180, 85, fill=0, stroke=1)

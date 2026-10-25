@@ -1,4 +1,4 @@
-# PageCue implementation instructions
+# Presenteriyaki implementation instructions
 
 The active objective is a Qt/PySide rewrite of Présentation with its minimalist
 style/basic layout and **no dropped features**. `docs/FEATURES.md` is the parity

@@ -1,8 +1,9 @@
-# PageCue
+# Presenteriyaki
 
 A Qt/PySide rewrite of the PDF-presentation workflow, preserving a minimalist
 presenter view and a separate audience screen. Independently implemented; no
-Présentation source or artwork is included. PageCue is a working name.
+Présentation source or artwork is included. Formerly named PageCue; Presenteriyaki
+blends *presenTER* and *TERiyaki*, sharing “TER”.
 
 **In development. Feature parity is not yet achieved.**
 See [the feature ledger](docs/FEATURES.md) for implementation and verification status.
@@ -11,7 +12,7 @@ Development setup (Python 3.12–3.14 and [uv](https://docs.astral.sh/uv/)):
 
 ```sh
 uv sync
-uv run pagecue /path/to/slides.pdf
+uv run presenteriyaki /path/to/slides.pdf
 uv run pytest
 ```
 
@@ -45,8 +46,8 @@ Individual animation buttons remain available on timed slides.
 
 Command-line options include `-p/--page` (1-based), `-d/--duration` (minutes),
 `-y/--youtube/--direct-video`, `-v/--version`, and `-i/--icon [FILE]`.
-For example, `uv run pagecue -p 2 -d 20 slides.pdf` starts on page two with a
-20-minute timer. `uv run pagecue --icon icon.png` exports PageCue's own PNG icon
+For example, `uv run presenteriyaki -p 2 -d 20 slides.pdf` starts on page two with a
+20-minute timer. `uv run presenteriyaki --icon icon.png` exports Presenteriyaki's own PNG icon
 without opening a window. Omitting the filename writes binary PNG to stdout;
 use a filename with the packaged Windows GUI executable, which has no console.
 
@@ -55,7 +56,7 @@ versioned source tags. Source updates open the corresponding GitHub version for
 the same agent-based installation workflow. Background notifications are opt-in.
 See [source versions](docs/SOURCE_RELEASES.md).
 
-PageCue's original code is MIT licensed. Qt/PySide and other dependencies retain
+Presenteriyaki's original code is MIT licensed. Qt/PySide and other dependencies retain
 their own licenses. Binary distribution must include the applicable notices and
 Qt library source/replacement information. Packaging is still in development.
 
@@ -63,8 +64,8 @@ Qt library source/replacement information. Packaging is still in development.
 
 Give an agent this instruction:
 
-> Install https://github.com/pku-lemonade/pagecue for my user. Read README.md,
-> AGENTS.md and docs/DISTRIBUTION.md. Build PageCue using the
+> Install https://github.com/pku-lemonade/presenteriyaki for my user. Read README.md,
+> AGENTS.md and docs/DISTRIBUTION.md. Build Presenteriyaki using the
 > pinned environment, run the checks, then install it for my user. Preserve my
 > existing Présentation apps, PDF associations, slides and notes. Report actual
 > results and any untested platform/device features.
@@ -74,7 +75,7 @@ The resulting application includes its Python/Qt runtime. Launching it does not
 require activating a Python environment. A public binary release is not ready yet.
 
 For a versioned source preview, use
-[`v0.1.0`](https://github.com/pku-lemonade/pagecue/tree/v0.1.0). Agents should check
+[`v0.1.0`](https://github.com/pku-lemonade/presenteriyaki/tree/v0.1.0). Agents should check
 `git --version` and `uv --version` first. If uv is missing, use a per-user method
 from its [official installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 The command below selects Python 3.13, the version used in CI; uv can download a
@@ -87,16 +88,16 @@ No TeX or FFmpeg command-line installation is needed to run the committed tests.
    PDF/video fixtures when `pdflatex` or `ffmpeg` is unavailable; no decoder tests
    are skipped merely because fixture-generation tools are absent.
 2. Run `uv run python scripts/build_app.py` on the target OS.
-3. On macOS, run `uv run python scripts/install_app.py dist/PageCue.app`.
-   On Windows, run `uv run python scripts/install_app.py dist/PageCue`.
-   Close PageCue before installing an update. The same command updates an existing
-   identified PageCue app; it refuses unrelated applications at the destination.
+3. On macOS, run `uv run python scripts/install_app.py dist/Presenteriyaki.app`.
+   On Windows, run `uv run python scripts/install_app.py dist/Presenteriyaki`.
+   Close Presenteriyaki before installing an update. The same command updates an existing
+   identified Presenteriyaki app; it refuses unrelated applications at the destination.
 4. Run `uv run python scripts/install_app.py --check`, then launch the installed
    app with an original test PDF. Check both windows, notes and navigation.
 
-Default destinations are `~/Applications/PageCue.app` on macOS and
-`%LOCALAPPDATA%\Programs\PageCue` on Windows. Use `--destination PATH` to override.
-On Windows use the PageCue Start Menu shortcut, or launch `PageCue.exe` inside
+Default destinations are `~/Applications/Presenteriyaki.app` on macOS and
+`%LOCALAPPDATA%\Programs\Presenteriyaki` on Windows. Use `--destination PATH` to override.
+On Windows use the Presenteriyaki Start Menu shortcut, or launch `Presenteriyaki.exe` inside
 that directory. `--no-shortcut` leaves Start Menu entries untouched for portable
 or secondary installations. Existing shortcuts for another installation are
 preserved; the installer will report the conflict rather than replace them.
@@ -111,6 +112,13 @@ To remove the installed app, run `uv run python scripts/install_app.py --uninsta
 The installer never changes the default PDF viewer. It uses no administrator rights.
 See [distribution notes](docs/DISTRIBUTION.md) for signing and dependency details.
 
+Existing PageCue preferences and notification permissions are reused. New installs
+use the Presenteriyaki name and leave old PageCue app directories and shortcuts
+in place. The `pagecue` command remains an alias; Windows packages also retain a
+`PageCue.exe` launcher for old shortcuts. To check or remove an identified old
+installation, use `--legacy-pagecue --check` or `--legacy-pagecue --uninstall` with
+the installer. Shared preferences and documents remain. See [rename compatibility](docs/RENAMING.md).
+
 ## Native build verification
 
 The GitHub Actions workflow targets Windows x64, Mac arm64 and Mac Intel. It runs
@@ -120,7 +128,7 @@ test reports and screenshots for review, without publishing an unaudited binary.
 The presence of the workflow is not proof that any particular run/platform passed;
 inspect the run's logs and evidence. Physical display/camera testing is separate.
 
-The [verified source preview](https://github.com/pku-lemonade/pagecue/actions/runs/40183195653)
+The [verified source preview](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40183195653)
 passes 85 tests plus six native interaction checks on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
 PDF/media/web execution and Unicode-path installation checks. Windows shortcut lifecycle
 checks, CLI page/duration/direct-video settings and PNG icon export also pass.
@@ -128,7 +136,7 @@ Windows evidence is from a
 Windows Server 2025 runner, not a Windows 11 laptop with a projector. Full parity
 and hardware acceptance remain incomplete; see the feature ledger for details.
 
-The subsequent [main-branch check](https://github.com/pku-lemonade/pagecue/actions/runs/40190588667)
+The subsequent [main-branch check](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40190588667)
 passes 94 tests and 15 native interaction checks on all three targets. It includes
 cropped/rotated PDF geometry, pausing timed slides that contain animations, and
 camera composition above web content. Camera checks use synthetic images only.

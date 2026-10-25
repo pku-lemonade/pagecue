@@ -11,9 +11,9 @@ from pypdf.generic import (ArrayObject, DecodedStreamObject, DictionaryObject,
                           NameObject, NumberObject, TextStringObject)
 from PySide6.QtTest import QTest
 
-from pagecue.app import Presenter
-from pagecue.document import Media, load_snapshot
-from pagecue.media import MediaPlayer, Posters
+from presenteriyaki.app import Presenter
+from presenteriyaki.document import Media, load_snapshot
+from presenteriyaki.media import MediaPlayer, Posters
 
 
 def pdf_object(value):

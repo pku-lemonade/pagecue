@@ -1,20 +1,26 @@
 """Real command-line exports must work without initializing a GUI platform."""
 
 from io import BytesIO
+from pathlib import Path
 import os
 import subprocess
 import sys
 
 from PIL import Image
 
-from pagecue import __version__
+from presenteriyaki import __version__
 
 
 def test_cli_version_and_original_icon_export(tmp_path):
     environment = dict(os.environ, QT_QPA_PLATFORM="invalid-headless-check")
-    command = [sys.executable, "-m", "pagecue.app"]
+    command = [sys.executable, "-m", "presenteriyaki.app"]
     version = subprocess.run(command + ["-v"], env=environment, check=True, capture_output=True, timeout=20)
     assert version.stdout.decode().strip() == __version__
+    for name in ("presenteriyaki", "pagecue"):
+        launcher = Path(sys.executable).parent / (name + (".exe" if os.name == "nt" else ""))
+        result = subprocess.run([str(launcher), "--version"], env=environment,
+                                check=True, capture_output=True, timeout=20)
+        assert result.stdout.decode().strip() == __version__
     exported = subprocess.run(command + ["-i"], env=environment, check=True, capture_output=True, timeout=20)
     image = Image.open(BytesIO(exported.stdout))
     assert image.format == "PNG" and image.size == (256, 256)

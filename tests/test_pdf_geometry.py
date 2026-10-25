@@ -10,7 +10,7 @@ from reportlab.pdfgen import canvas
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtTest import QTest
 
-from pagecue.app import Presenter
+from presenteriyaki.app import Presenter
 
 
 @pytest.mark.parametrize("rotation", [0, 90, 180, 270])

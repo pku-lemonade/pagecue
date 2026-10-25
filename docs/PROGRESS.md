@@ -1,8 +1,10 @@
 # Implementation checkpoint
 
-The rewrite remains active and incomplete, at `code/pagecue` and the public
-repository https://github.com/pku-lemonade/pagecue. The existing wrapper repository/
-application are unchanged. PageCue is a working name. No binary release is claimed.
+The rewrite remains active and incomplete. The user chose **Presenteriyaki**
+(presenTER + TERiyaki); PageCue was its previous name. The existing local checkout
+remains at `code/pagecue` to preserve paths, and the canonical repository
+is https://github.com/pku-lemonade/presenteriyaki. The original wrapper repository/
+application are unchanged. No public binary release is claimed.
 
 ## Current implementation
 
@@ -44,14 +46,37 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
+The Presenteriyaki rename is implemented as version 0.2.0 across the Python
+project/module, visible UI, CLI, bundle/executable names, installer defaults,
+Windows shortcuts, updater URLs and documentation. The public repository was
+renamed to `pku-lemonade/presenteriyaki`; both old and new API paths resolve to
+repository ID 1432882141. The v0.1.0 tag remains unchanged.
+The stable bundle/product ID and PageCue storage namespace preserve existing
+settings. Both console names work; new Windows bundles include a PageCue.exe
+compatibility launcher, and explicit legacy install/check/removal is available.
+See RENAMING.md. The original generated fixtures keep their source hashes.
+**97 tests pass locally**, including old-preference reuse, both CLI names,
+side-by-side legacy preservation and explicit in-place update. The renamed Mac
+package also passes actual Unicode-path install/update/remove, icon, PDF/media/
+web and camera-composition checks under `qa/presenteriyaki-package/`. Its metadata
+records display name Presenteriyaki and internal application name PageCue.
+Fresh cross-platform verification of the rename is pending.
+
+The ink-scaling audit now uses an actual GUI selection and wheel event on a
+zoomed/letterboxed slide. It checks a stationary cursor anchor, visibly extended
+ink, unchanged unselected ink and inverse scaling. Offscreen/native Cocoa pass;
+the native capture under `qa/ink-scale-native/` was inspected. This closes a
+coverage gap in the earlier movement/deletion tests without changing ink behavior.
+
 Native Computer Use access is available again. A fresh isolated Mac bundle now
 offers an opt-in `--notification-output` diagnostic that uses the same desktop
 notification sender as update alerts, without enabling periodic update checks or
 changing normal application preferences. The bundle passes strict signature
 verification and the existing 94 tests pass after factoring the sender.
-The native UI actually presented PageCue's notification permission prompt;
-approval was requested, so delivery/click acceptance remains pending. A Qt request
-returning successfully is not treated as delivery evidence. See
+The native UI presented PageCue's notification permission prompt. The user
+approved it; the macOS notification switch was enabled and a fresh test banner
+was observed. Actual click acceptance and Windows delivery remain pending. A Qt
+request returning successfully is not treated as delivery evidence. See
 HARDWARE_ACCEPTANCE.md. The user's existing PageCue process/bundle is unchanged.
 
 The latest geometry/control audit passes **94 tests** locally. Page metadata used
@@ -72,7 +97,7 @@ It passes offscreen and native Cocoa. Keyboard help now includes previously
 unlisted playback/stepping/section/expansion/hide controls; normal and minimum
 scrolled captures under `qa/parity-help-layout/` were inspected.
 Commit `43c08989aabf3c546ed2207b869f2575e82160c9` passes on Windows x64, Mac arm64
-and Mac Intel in [run 40190588667](https://github.com/pku-lemonade/pagecue/actions/runs/40190588667):
+and Mac Intel in [run 40190588667](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40190588667):
 **94 tests, 15 native interaction checks**, and actual packaged execution plus
 installation/update/removal. Downloaded Windows JUnit reports confirm no failures
 or skips; the rotated/cropped native capture and minimum scrolled help capture
@@ -87,7 +112,7 @@ then passed for inset/half-opacity composition, resize, expansion, web input hit
 testing and clearing. The synthetic capture under `qa/web-camera-fixed/` was
 inspected; no physical camera was activated. The packaged smoke now requires this
 check on each native CI target. Corrected commit `30c30aa` passes on Windows x64,
-Mac arm64 and Mac Intel in [run 40185694176](https://github.com/pku-lemonade/pagecue/actions/runs/40185694176):
+Mac arm64 and Mac Intel in [run 40185694176](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40185694176):
 85 tests, six native interaction checks and packaged install/update/remove plus
 PDF/media/web/camera-composition checks. Windows and Mac arm64 synthetic web-camera
 captures were downloaded and inspected. This postdates the immutable v0.1.0 tag;
@@ -233,7 +258,7 @@ camera was activated or photographed by these checks. Windows minimum/scrolled
 and Intel Mac minimum captures were also inspected from the CI artifacts.
 The verified implementation commit **`a09a0c1`** passes **80 tests without skips on
 Windows x64, Mac arm64 and Mac Intel**, plus all three packaged executable checks:
-[native run 40179834045](https://github.com/pku-lemonade/pagecue/actions/runs/40179834045).
+[native run 40179834045](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40179834045).
 The additional six native-window/font interaction checks also pass on all targets.
 The native Python/FFmpeg notice collector and installed-notice hash checks postdate
 that app revision and pass on all three platforms in run 40181248779. Local
@@ -285,7 +310,7 @@ Offscreen/native Cocoa captures are local under `qa/` (ignored):
   `result.json` reports frozen=true and all PDF/media/web checks passing. The
   installation was updated, verified and removed; original fixture/source files
   and built application remained. This is not a separate clean-machine test.
-- `windows-ci/`: downloaded evidence from [native run 40167752910](https://github.com/pku-lemonade/pagecue/actions/runs/40167752910).
+- `windows-ci/`: downloaded evidence from [native run 40167752910](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40167752910).
   The Windows Server 2025 AMD64 packaged executable reports Qt 6.12, frozen=true,
   PDF/navigation/reload, media decode, web load and Escape all passing. Installation,
   update, verification and removal passed from a Unicode path. Presenter (including
@@ -294,7 +319,7 @@ Offscreen/native Cocoa captures are local under `qa/` (ignored):
   Mac arm64 and Intel also completed the workflow successfully. Downloaded runner
   evidence is under `mac-arm-ci/` and `mac-intel-ci/`. These earlier artifacts
   remain distinct from the final successful run listed above.
-- [Second native run 40168249300](https://github.com/pku-lemonade/pagecue/actions/runs/40168249300):
+- [Second native run 40168249300](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40168249300):
   all 52 application tests and both Mac packages passed. Windows packaging built,
   but the new shortcut helper failed before the runtime smoke. Do not present that
   revision's Windows installer as fully validated. A native Unicode API replacement
@@ -376,7 +401,8 @@ locally with TeX/FFmpeg excluded from PATH.
 
 ## Required remaining work
 
-1. Validate OS update notification delivery and real privacy-video playback.
+1. Complete actual notification-click/Windows delivery and real privacy-video playback.
+   The user-approved Mac notification test now has native banner observation.
    The v0.1.0 source update channel is published and live-checked; release/source
    parsing, cancellation, routing and public HTTPS service calls have coverage.
    A fresh live Qt check on 2026-10-25 resolved the public directory to

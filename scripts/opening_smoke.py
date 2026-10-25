@@ -14,8 +14,8 @@ from PySide6.QtCore import QMimeData, QPoint, QPointF, QSettings, Qt, QTimer, QU
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QFileOpenEvent
 from PySide6.QtWidgets import QFileDialog
 
-from pagecue.app import Application, Presenter
-from pagecue.session import Session
+from presenteriyaki.app import Application, Presenter
+from presenteriyaki.session import Session
 
 
 def main():

@@ -10,7 +10,7 @@ from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequ
 
 from . import __version__
 
-REPOSITORY = "pku-lemonade/pagecue"
+REPOSITORY = "pku-lemonade/presenteriyaki"
 RELEASES_URL = f"https://github.com/{REPOSITORY}/releases"
 RELEASE_API = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
 SOURCE_TAGS_API = f"https://api.github.com/repos/{REPOSITORY}/tags?per_page=100"
@@ -92,7 +92,7 @@ class JsonRequests(QObject):
 
     def get(self, url, callback):
         request = QNetworkRequest(QUrl(url))
-        request.setRawHeader(b"User-Agent", f"PageCue/{__version__}".encode())
+        request.setRawHeader(b"User-Agent", f"Presenteriyaki/{__version__}".encode())
         request.setRawHeader(b"Accept", b"application/json")
         request.setTransferTimeout(10000)
         reply = self.manager.get(request)

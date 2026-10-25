@@ -1,19 +1,19 @@
 # Binary distribution and dependency sources
 
-PageCue's original application code is MIT licensed. The application uses
+Presenteriyaki's original application code is MIT licensed. The application uses
 unmodified dynamic libraries with their own licenses; the app license does not
 replace those terms. `licenses/dependencies` includes installed package notices
 and exact package/version metadata. The GPL text is included as part of the LGPL
-terms; its presence does not relicense PageCue's original code.
+terms; its presence does not relicense Presenteriyaki's original code.
 
 ## Source and replacement
 
-Qt/PySide libraries are dynamically bundled, not statically linked into PageCue.
+Qt/PySide libraries are dynamically bundled, not statically linked into Presenteriyaki.
 The source tree, lockfile and build specification allow rebuilding the app against
 modified compatible libraries. Replacing native libraries in a Mac app may require
 re-signing the resulting local bundle; ad-hoc signing needs no paid account.
 No restriction on reverse engineering for debugging modified LGPL components is
-imposed by PageCue.
+imposed by Presenteriyaki.
 
 Corresponding upstream source locations for the pinned unmodified libraries:
 
@@ -50,7 +50,7 @@ and the official GitHub mirror's newest tag was `v6.140.0-rc` at
 This identifies an available source candidate; it does **not** prove that the
 wheel was built from it. The public WebEngine licensing page also currently
 redirects to development snapshots. A fresh direct `chrome://credits` load via
-QWebEngineView returned `loadFinished(false)`; it was not rejected by PageCue's URL
+QWebEngineView returned `loadFinished(false)`; it was not rejected by Presenteriyaki's URL
 filter. Runtime correspondence and third-party notices remain unresolved.
 The RC's Chromium submodule is commit
 `39352427a3245a19fb395547b3aa38be9d091ec4`. Its `chromium/chrome/VERSION` contains
@@ -80,12 +80,12 @@ The public-binary audit remains open.
 
 PyInstaller 6.22.3's installed `COPYING.txt` was also inspected. Its bootloader
 exception permits combining the unmodified bootloader with differently licensed
-applications; using it does not require relicensing PageCue under GPL. The
+applications; using it does not require relicensing Presenteriyaki under GPL. The
 [official license explanation](https://pyinstaller.org/en/stable/license.html)
 also says generated applications need not include PyInstaller's license or credit.
 Its runtime hooks/additional runtime modules are identified separately as
 Apache-2.0 in COPYING.txt. None of this replaces the Qt, Python or other dependency
-audit above. PageCue does not modify PyInstaller's source or bootloader.
+audit above. Presenteriyaki does not modify PyInstaller's source or bootloader.
 
 ## Build and test
 
@@ -109,7 +109,7 @@ replace real camera and physical-display validation.
 `scripts/install_app.py` uses Python's standard library. Install the built Mac app
 or Windows directory; the script chooses the per-user location documented in
 README.md. It copies into a sibling staging directory and validates the staged
-identity/executable (and Mac code signature) before replacing an existing PageCue
+identity/executable (and Mac code signature) before replacing an existing Presenteriyaki
 installation. Unknown apps and directory symlinks are rejected. A failed final
 rename restores the old app; a failed restoration retains an explicit recovery
 path. Close running instances before updating, especially on Windows.

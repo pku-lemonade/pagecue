@@ -7,7 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QPoint, QPointF, QSettings, Qt, QTimer
 from PySide6.QtGui import QColor, QImage, QPainter, QWheelEvent
 
-from pagecue.app import Application, Presenter
+from presenteriyaki.app import Application, Presenter
 
 
 def main():

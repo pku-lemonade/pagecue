@@ -8,10 +8,10 @@ from pypdf.generic import FloatObject, NameObject
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
 
-from pagecue.canvas import Canvas
-from pagecue.app import Presenter
-from pagecue.document import load_snapshot
-from pagecue.session import Session
+from presenteriyaki.canvas import Canvas
+from presenteriyaki.app import Presenter
+from presenteriyaki.document import load_snapshot
+from presenteriyaki.session import Session
 
 
 def test_real_beamer_notes_exclude_slide_miniature_and_hidden_text(tmp_path):

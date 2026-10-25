@@ -6,14 +6,16 @@ from pathlib import Path
 import tempfile
 import uuid
 
-DESCRIPTION = "PageCue PDF presenter (org.pku-lemonade.pagecue)"
+DESCRIPTION = "Presenteriyaki PDF presenter (org.pku-lemonade.pagecue)"
+LEGACY_DESCRIPTION = "PageCue PDF presenter (org.pku-lemonade.pagecue)"
 
 
-def default_shortcut():
+def default_shortcut(legacy=False):
     roaming = os.environ.get("APPDATA")
     if not roaming:
         raise ValueError("APPDATA is not set; use --no-shortcut for a portable installation")
-    return Path(roaming) / "Microsoft/Windows/Start Menu/Programs/PageCue.lnk"
+    name = "PageCue.lnk" if legacy else "Presenteriyaki.lnk"
+    return Path(roaming) / "Microsoft/Windows/Start Menu/Programs" / name
 
 
 def _shell_link(path, target=None):
@@ -79,12 +81,12 @@ def _shell_link(path, target=None):
 
 def verify_shortcut(path, target):
     if path.is_symlink() or not path.is_file():
-        raise ValueError(f"Not a PageCue shortcut: {path}")
+        raise ValueError(f"Not a Presenteriyaki shortcut: {path}")
     info = _shell_link(path)
     # Shell links can expand an 8.3 parent (RUNNER~1) to its long directory name.
     # Resolve existing ancestors even after uninstall removes the executable.
     if (not info["target"] or Path(info["target"]).resolve() != target.resolve()
-            or info["arguments"] or info["description"] != DESCRIPTION):
+            or info["arguments"] or info["description"] not in (DESCRIPTION, LEGACY_DESCRIPTION)):
         raise ValueError(f"Refusing to replace an unrelated shortcut: {path}; "
                          f"stored target={info['target']!r}, expected={str(target)!r}, "
                          f"arguments={info['arguments']!r}, description={info['description']!r}")
@@ -95,11 +97,13 @@ def check_destination(path, target):
         verify_shortcut(path, target)
 
 
-def create_shortcut(path, target):
-    check_destination(path, target)
+def create_shortcut(path, target, previous_target=None):
+    # An explicit installer update can change the executable's name. Ownership
+    # and the exact old target must still match before replacing that link.
+    check_destination(path, previous_target if previous_target is not None else target)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix=".pagecue-link-", dir=path.parent) as temporary:
-        staged = Path(temporary) / "PageCue.lnk"
+    with tempfile.TemporaryDirectory(prefix=".presenteriyaki-link-", dir=path.parent) as temporary:
+        staged = Path(temporary) / "Presenteriyaki.lnk"
         _shell_link(staged, target)
         verify_shortcut(staged, target)
         os.replace(staged, path)

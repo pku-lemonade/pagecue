@@ -1,7 +1,8 @@
 from pathlib import Path
 from PySide6.QtCore import QSettings, Qt
-from pagecue.canvas import Canvas
-from pagecue.session import Session
+from presenteriyaki.canvas import Canvas
+from presenteriyaki.session import Session
+from presenteriyaki.app import Presenter
 
 
 def test_settings_override_and_recent_page_are_isolated(qtbot, deck, tmp_path):
@@ -19,6 +20,29 @@ def test_settings_override_and_recent_page_are_isolated(qtbot, deck, tmp_path):
     assert restored.page == 0
     session.close()
     restored.close()
+
+
+def test_rename_reuses_existing_pagecue_preferences(qapp, qtbot, deck):
+    legacy = QSettings(QSettings.defaultFormat(), QSettings.Scope.UserScope, "PageCue", "PageCue")
+    legacy.setValue("recent/" + str(deck.resolve()), 2)
+    legacy.setValue("camera/width", .24)
+    legacy.setValue("camera/opacity", .65)
+    legacy.setValue("camera/position", "top-left")
+    legacy.setValue("check-updates", True)
+    legacy.sync()
+    app = Presenter(qapp)
+    qtbot.addWidget(app.presenter)
+    qtbot.addWidget(app.audience)
+    app.open(deck)
+    assert app.session.settings.fileName() == legacy.fileName()
+    assert app.session.page == 2
+    assert app.slide.camera_width == .24 and app.slide.camera_opacity == .65
+    assert app.slide.camera_position == "top-left"
+    assert app.auto_update_action.isChecked()
+    assert app.presenter.windowTitle().endswith(" · Presenteriyaki")
+    assert not app.camera.active
+    app.session.close()
+    app.media.close()
 
 
 def test_qt_renders_real_pdf_and_two_views(qtbot, deck, tmp_path):

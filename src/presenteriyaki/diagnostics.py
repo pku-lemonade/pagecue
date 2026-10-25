@@ -93,6 +93,8 @@ class SmokeCheck(QObject):
         self.media = Path(media).resolve() if media else None
         self.web = web
         self.results = {"version": __version__, "qt": qVersion(), "platform": platform.platform(),
+                        "application_name": presenter.app.applicationName(),
+                        "display_name": presenter.app.applicationDisplayName(),
                         "python": platform.python_version(), "pyside": pyside_version, "qt_build": QLibraryInfo.build(),
                         "architecture": platform.machine(), "frozen": bool(getattr(sys, "frozen", False)), "passed": False}
         self.done = False
@@ -172,7 +174,7 @@ class SmokeCheck(QObject):
         self.results.update(qt_webengine=qWebEngineVersion(), chromium=qWebEngineChromiumVersion(),
                             chromium_security_patch=qWebEngineChromiumSecurityPatchVersion())
         html = self.output / "web-fixture.html"
-        html.write_text('<!doctype html><title>PageCue packaged web check</title>'
+        html.write_text('<!doctype html><title>Presenteriyaki packaged web check</title>'
                         '<body style="background:#18372b;color:white;font:24px sans-serif">'
                         '<h1>Packaged offline web content</h1></body>')
         p = self.presenter
@@ -195,7 +197,7 @@ class SmokeCheck(QObject):
         check_web_camera(p, self.output)
         self.results["web_camera_overlay"] = True
         def title(value):
-            if value != "PageCue packaged web check":
+            if value != "Presenteriyaki packaged web check":
                 self.finish("Unexpected packaged web document title")
                 return
             self.key(p.web.focusProxy() or p.web, Qt.Key.Key_Escape)

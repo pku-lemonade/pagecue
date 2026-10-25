@@ -5,8 +5,8 @@ from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QMouseEvent, QWheelEvent
 from PySide6.QtTest import QTest
 
-from pagecue.app import Presenter
-from pagecue.model import Surface
+from presenteriyaki.app import Presenter
+from presenteriyaki.model import Surface
 
 
 def wheel(qapp, canvas, point, delta, modifiers=Qt.KeyboardModifier.NoModifier):
@@ -154,3 +154,40 @@ def test_notes_zoom_reset_preserves_numeric_page_input(presenter):
     view_menu = next(action.menu() for action in app.presenter.menuBar().actions() if action.text() == "View")
     next(action for action in view_menu.actions() if action.text() == "Reset notes / web zoom").trigger()
     assert state.notes_scale == 1 and state.notes_scroll == 0
+
+
+def test_selected_ink_scales_about_cursor_without_changing_other_strokes(qapp, presenter, tmp_path):
+    app, state = presenter, presenter.session
+    view = app.slide
+    state.zoom, state.pan = 1.15, QPointF(.02, -.01)
+    view.repaint()
+    def position(x, y):
+        return view._from_page(QPointF(x, y)).toPoint()
+    def drag(start, end, modifier):
+        QTest.mousePress(view, Qt.MouseButton.LeftButton, modifier, start)
+        move(qapp, view, end)
+        QTest.mouseRelease(view, Qt.MouseButton.LeftButton, modifier, end)
+    drag(position(.25, .45), position(.45, .45), Qt.KeyboardModifier.ShiftModifier)
+    drag(position(.60, .70), position(.80, .70), Qt.KeyboardModifier.ShiftModifier)
+    selected, untouched = state.ink.visible(state.ink_pages)
+    original, other = list(selected.points), list(untouched.points)
+    drag(position(.20, .35), position(.50, .55), Qt.KeyboardModifier.AltModifier)
+    assert state.ink.selected == [selected]
+    state.pointer_visible = False
+    anchor = QPointF((original[0][0] + original[-1][0]) / 2, original[0][1])
+    extension = view._from_page(QPointF(original[0][0] - .02, original[0][1]))
+    before = view.grab().toImage()
+    wheel(qapp, view, view._from_page(anchor), 480)
+    after = view.grab().toImage()
+    assert selected.points[-1][0] - selected.points[0][0] > 1.4 * (original[-1][0] - original[0][0])
+    assert (selected.points[-1][0] + selected.points[0][0]) / 2 == pytest.approx(anchor.x())
+    assert untouched.points == other and state.page == 0
+    # Pixels beyond the old endpoint must now contain the enlarged yellow ink.
+    assert pixel(before, extension).red() < 100
+    color = pixel(after, extension)
+    assert color.red() > 200 and color.green() > 150 and color.blue() < 150
+    after.save(str(tmp_path / "scaled-selection.png"))
+    wheel(qapp, view, view._from_page(anchor), -480)
+    for actual, expected in zip(selected.points, original):
+        assert actual == pytest.approx(expected)
+    assert untouched.points == other

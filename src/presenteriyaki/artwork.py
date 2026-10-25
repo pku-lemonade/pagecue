@@ -1,4 +1,4 @@
-"""Render PageCue's original geometric artwork without opening a window."""
+"""Render Presenteriyaki's original geometric artwork without opening a window."""
 
 from pathlib import Path
 
@@ -10,9 +10,9 @@ from PySide6.QtSvg import QSvgRenderer
 def icon_png(size=256):
     # The bundled SVG contains only geometric shapes; no font database or GUI
     # application is needed to paint it into an image, including in CLI tools.
-    renderer = QSvgRenderer(str(Path(__file__).parent / "assets/pagecue.svg"))
+    renderer = QSvgRenderer(str(Path(__file__).parent / "assets/presenteriyaki.svg"))
     if not renderer.isValid():
-        raise RuntimeError("The bundled PageCue icon could not be read")
+        raise RuntimeError("The bundled Presenteriyaki icon could not be read")
     image = QImage(size, size, QImage.Format.Format_ARGB32)
     image.fill(0)
     painter = QPainter(image)
@@ -23,5 +23,5 @@ def icon_png(size=256):
     output = QBuffer()
     output.open(QIODevice.OpenModeFlag.WriteOnly)
     if not image.save(output, "PNG"):
-        raise RuntimeError("Could not encode the PageCue icon")
+        raise RuntimeError("Could not encode the Presenteriyaki icon")
     return bytes(output.data())

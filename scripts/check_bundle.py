@@ -20,9 +20,9 @@ def main():
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     platform = platform_name()
-    source = ROOT / "dist" / ("PageCue.app" if platform == "macos" else "PageCue")
+    source = ROOT / "dist" / ("Presenteriyaki.app" if platform == "macos" else "Presenteriyaki")
     validate(source, platform)
-    with tempfile.TemporaryDirectory(prefix="pagecue-安装 with spaces-") as directory:
+    with tempfile.TemporaryDirectory(prefix="presenteriyaki-安装 with spaces-") as directory:
         work = Path(directory)
         destination = work / source.name
         install(source, destination, platform)
@@ -36,7 +36,7 @@ def main():
         shortcut = None
         if platform == "windows":
             from windows_shortcut import create_shortcut, remove_shortcut, verify_shortcut
-            shortcut = work / "Start Menu 讲稿/PageCue.lnk"
+            shortcut = work / "Start Menu 讲稿/Presenteriyaki.lnk"
             create_shortcut(shortcut, executable(destination, platform))
             verify_shortcut(shortcut, executable(destination, platform))
             # An existing shortcut to another executable must remain untouched.
@@ -77,6 +77,14 @@ def main():
                 raise RuntimeError(f"Packaged check failed: {name}: {evidence}")
         if evidence.get("initial_page") != 2 or evidence.get("talk_duration_seconds") != 750 or evidence.get("video_routing") != "":
             raise RuntimeError(f"Packaged CLI options did not configure the session: {evidence}")
+        if evidence.get("display_name") != "Presenteriyaki" or evidence.get("application_name") != "PageCue":
+            raise RuntimeError(f"Renamed app did not preserve its storage identity: {evidence}")
+        if platform == "windows":
+            compatibility_icon = work / "legacy-command.png"
+            subprocess.run([str(destination / "PageCue.exe"), "--icon", str(compatibility_icon)],
+                           cwd=work, env=environment, check=True, timeout=30)
+            if compatibility_icon.read_bytes() != icon_path.read_bytes():
+                raise RuntimeError("The PageCue.exe compatibility launcher did not run the renamed app")
         for name in ("presenter", "audience", "media", "web", "web-camera"):
             if not (smoke / f"{name}.png").is_file():
                 raise RuntimeError(f"Missing {name} capture")

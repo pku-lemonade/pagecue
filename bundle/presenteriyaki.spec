@@ -6,7 +6,7 @@ from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
 root = Path(SPECPATH).parent
 version = json.loads((root / "build/bundle-identity.json").read_text())["version"]
-datas = collect_data_files("pagecue")
+datas = collect_data_files("presenteriyaki")
 for name in ("pypdf", "cryptography", "packaging"):
     datas += copy_metadata(name)
 datas += [(str(root / "LICENSE"), "licenses"),
@@ -18,16 +18,16 @@ a = Analysis([str(root / "bundle/entrypoint.py")], pathex=[str(root / "src")],
     excludes=["tkinter", "numpy", "scipy", "matplotlib", "IPython", "pytest", "reportlab"],
     noarchive=False)
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="PageCue", debug=False,
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="Presenteriyaki", debug=False,
     strip=False, upx=False, console=False,
     icon=str(root / "build/icon.png"),
     entitlements_file=str(root / "bundle/macos-entitlements.plist") if sys.platform == "darwin" else None)
-collection = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="PageCue")
+collection = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="Presenteriyaki")
 if sys.platform == "darwin":
-    app = BUNDLE(collection, name="PageCue.app", icon=str(root / "build/icon.png"),
+    app = BUNDLE(collection, name="Presenteriyaki.app", icon=str(root / "build/icon.png"),
         bundle_identifier="org.pku-lemonade.pagecue", version=version,
         info_plist={
-            "CFBundleDisplayName": "PageCue", "CFBundleShortVersionString": version,
+            "CFBundleDisplayName": "Presenteriyaki", "CFBundleShortVersionString": version,
             "LSMinimumSystemVersion": "14.0", "NSHighResolutionCapable": True,
             "NSCameraUsageDescription": "Show your camera as an optional inset in your presentation.",
             "NSCameraUseContinuityCameraDeviceType": True,

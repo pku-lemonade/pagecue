@@ -1,6 +1,6 @@
 # Source versions and update checks
 
-PageCue currently distributes source and an agent-oriented build/install runbook.
+Presenteriyaki (formerly PageCue) distributes source and an agent-oriented build/install runbook.
 Versioned Git tags provide reproducible source checkpoints. They do not imply a
 public binary release, completed hardware acceptance or notarization. The current
 0.x application remains a development preview; consult FEATURES.md for coverage.
@@ -10,17 +10,17 @@ GitHub returns 404 because no release exists, it reads the repository's 100 most
 recent source tags and chooses the highest recognizable version. Prerelease/dev
 tags and unrelated experiment tags are ignored. Source updates link to the
 canonical versioned tree in this repository. Network/rate-limit errors remain
-visible and do not masquerade as an up-to-date result. Closing PageCue cancels
+visible and do not masquerade as an up-to-date result. Closing Presenteriyaki cancels
 both the initial request and any pending source-tag lookup.
 
-Source tags are listed at <https://github.com/pku-lemonade/pagecue/tags>.
+Source tags are listed at <https://github.com/pku-lemonade/presenteriyaki/tags>.
 To install a particular published version, clone with `git clone --branch TAG
-https://github.com/pku-lemonade/pagecue.git`, substituting the published tag name,
+https://github.com/pku-lemonade/presenteriyaki.git`, substituting the published tag name,
 then follow README.md and AGENTS.md in that checkout.
 
 ## Maintainer procedure
 
-1. Keep the versions in `pyproject.toml` and `src/pagecue/__init__.py` consistent.
+1. Keep the versions in `pyproject.toml` and `src/presenteriyaki/__init__.py` consistent.
 2. Commit the exact source checkpoint and require the native CI workflow to pass
    on Windows x64, Mac arm64 and Mac Intel, including packaged execution.
 3. Create an annotated `vVERSION` tag on that verified commit and push that tag.
@@ -32,9 +32,9 @@ then follow README.md and AGENTS.md in that checkout.
 
 ## Published checkpoint
 
-[`v0.1.0`](https://github.com/pku-lemonade/pagecue/tree/v0.1.0) is a development
+[`v0.1.0`](https://github.com/pku-lemonade/presenteriyaki/tree/v0.1.0) is a development
 source preview at commit `8a5138aa3d48deae4844bcb4b5698fcc1fd60a90`.
-[CI run 40183195653](https://github.com/pku-lemonade/pagecue/actions/runs/40183195653)
+[CI run 40183195653](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40183195653)
 passed 85 tests, six native interaction checks and packaged execution on all three
 targets. The annotated tag object is `b0d435564d5bae457918e4a10f3954261036c908`.
 

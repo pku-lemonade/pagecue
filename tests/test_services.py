@@ -4,11 +4,11 @@ import threading
 
 import pytest
 
-from pagecue.services import HttpError, ReleaseChecker, VideoRouter, parse_release, parse_source_tags, video_url
+from presenteriyaki.services import HttpError, ReleaseChecker, VideoRouter, parse_release, parse_source_tags, video_url
 
 
 def test_release_versions_and_url_validation():
-    payload = {"tag_name": "v0.2.0", "html_url": "https://github.com/pku-lemonade/pagecue/releases/tag/v0.2.0"}
+    payload = {"tag_name": "v0.2.0", "html_url": "https://github.com/pku-lemonade/presenteriyaki/releases/tag/v0.2.0"}
     assert parse_release(payload, "0.1.0").newer
     assert not parse_release(payload, "0.2.1").newer
     with pytest.raises(ValueError):
@@ -32,7 +32,7 @@ def test_source_tags_choose_stable_version_and_canonical_url():
     release = parse_source_tags(tags, "0.9.0")
     assert release.version == "0.10.0" and release.newer
     assert release.channel == "source"
-    assert release.url == "https://github.com/pku-lemonade/pagecue/tree/v0.10.0"
+    assert release.url == "https://github.com/pku-lemonade/presenteriyaki/tree/v0.10.0"
     assert not parse_source_tags(tags, "0.10.0").newer
     with pytest.raises(ValueError, match="No versioned source tag"):
         parse_source_tags([{"name": "v1.0.0rc1"}], "0.1.0")
@@ -50,7 +50,7 @@ def release_server():
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             payload = ([{"name": "v0.3.0"}, {"name": "v0.2.0"}] if self.path == "/tags" else
-                       {"tag_name": "v0.2.0", "html_url": "https://github.com/pku-lemonade/pagecue/releases/tag/v0.2.0"})
+                       {"tag_name": "v0.2.0", "html_url": "https://github.com/pku-lemonade/presenteriyaki/releases/tag/v0.2.0"})
             self.wfile.write(json.dumps(payload).encode())
         def log_message(self, *args):
             pass

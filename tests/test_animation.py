@@ -7,11 +7,11 @@ from PySide6.QtCore import QPointF, QRectF, QSize, Qt
 from PySide6.QtTest import QTest
 from pypdf import PdfReader, PdfWriter
 
-from pagecue.animation import AnimationSpec, AnimationState, timing
-from pagecue.document import load_snapshot
-from pagecue.session import Session
-from pagecue.canvas import Canvas
-from pagecue.app import Presenter
+from presenteriyaki.animation import AnimationSpec, AnimationState, timing
+from presenteriyaki.document import load_snapshot
+from presenteriyaki.session import Session
+from presenteriyaki.canvas import Canvas
+from presenteriyaki.app import Presenter
 
 
 def pixel_at(view, point):

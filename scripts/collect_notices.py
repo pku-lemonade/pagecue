@@ -80,11 +80,11 @@ def collect_native_runtime():
         record(destination, url)
     credit = target_dir / "ATTRIBUTION.txt"
     credit.write_text("FFmpeg contains code based in part on the work of the Independent JPEG Group.\n"
-                      "PageCue makes no modifications to FFmpeg source; these libraries are supplied by the Qt/PySide wheels.\n"
+                      "Presenteriyaki makes no modifications to FFmpeg source; these libraries are supplied by the Qt/PySide wheels.\n"
                       "The runtime's reported license and configuration are recorded in native-runtime.json.\n"
                       "The accompanying COPYING files include upstream's optional license variants; their presence does not select them.\n",
                       encoding="utf-8")
-    record(credit, "PageCue attribution for the supplied FFmpeg libraries")
+    record(credit, "Presenteriyaki attribution for the supplied FFmpeg libraries")
     (OUT / "native-runtime.json").write_text(json.dumps({"python": python, "ffmpeg": ffmpeg, "files": files}, indent=2), encoding="utf-8")
 
 

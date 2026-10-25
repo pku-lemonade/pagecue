@@ -8,8 +8,8 @@ from PySide6.QtGui import QColor, QImage
 from PySide6.QtMultimedia import QCamera, QVideoFrame
 from PIL import Image, ImageChops
 
-from pagecue.app import Presenter
-from pagecue import media
+from presenteriyaki.app import Presenter
+from presenteriyaki import media
 
 
 @pytest.mark.parametrize("dimensions", [(400, 400), (640, 360), (300, 600)])

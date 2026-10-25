@@ -9,7 +9,7 @@ from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QWheelEvent
 from PySide6.QtTest import QTest
 
-from pagecue.app import Presenter
+from presenteriyaki.app import Presenter
 
 
 def test_long_deck_rapid_navigation_rail_and_render_budget(qapp, qtbot, tmp_path):

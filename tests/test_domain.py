@@ -1,8 +1,8 @@
 import json
 import pytest
 
-from pagecue.model import Ink, Navigation, Stroke, TalkClock
-from pagecue.notes import choose, decode
+from presenteriyaki.model import Ink, Navigation, Stroke, TalkClock
+from presenteriyaki.notes import choose, decode
 
 
 def test_navigation_keeps_physical_overlay_pages_and_history():

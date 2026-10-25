@@ -28,7 +28,7 @@ def create(path):
         for radius in (40, 70, 100):
             pdf.circle(780, 160, radius, fill=0, stroke=1)
         pdf.setFont("Helvetica", 14)
-        pdf.drawString(64, 48, f"PAGECUE     /     {number + 1:02}")
+        pdf.drawString(64, 48, f"PRESENTERIYAKI     /     {number + 1:02}")
         pdf.showPage()
     pdf.save()
     path.with_suffix(".pdfpc").write_text(json.dumps({"pdfpcFormat": 2, "pages": [

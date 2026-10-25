@@ -1,4 +1,4 @@
-"""Install/update/remove an already built PageCue bundle without administrator access.
+"""Install/update/remove an already built Presenteriyaki bundle without administrator access.
 
 Uses only Python's standard library. Does not change PDF associations or settings.
 """
@@ -13,7 +13,10 @@ import subprocess
 import sys
 import tempfile
 
+# Stable identity: renamed bundles are still the same application for ownership checks.
 PRODUCT = "org.pku-lemonade.pagecue"
+APP_NAME = "Presenteriyaki"
+LEGACY_NAME = "PageCue"
 
 
 def platform_name():
@@ -24,23 +27,28 @@ def platform_name():
     raise ValueError("Native installation currently targets macOS and Windows")
 
 
-def default_destination(platform):
+def default_destination(platform, legacy=False):
+    name = LEGACY_NAME if legacy else APP_NAME
     if platform == "macos":
-        return Path.home() / "Applications/PageCue.app"
+        return Path.home() / "Applications" / (name + ".app")
     local = os.environ.get("LOCALAPPDATA")
     if not local:
         raise ValueError("LOCALAPPDATA is not set; specify --destination")
-    return Path(local) / "Programs/PageCue"
+    return Path(local) / "Programs" / name
 
 
-def executable(bundle, platform):
-    return bundle / ("Contents/MacOS/PageCue" if platform == "macos" else "PageCue.exe")
+def executable(bundle, platform, legacy=False):
+    base = bundle / "Contents/MacOS" if platform == "macos" else bundle
+    suffix = "" if platform == "macos" else ".exe"
+    names = (LEGACY_NAME, APP_NAME) if legacy else (APP_NAME, LEGACY_NAME)
+    return next((base / (name + suffix) for name in names if (base / (name + suffix)).is_file()),
+                base / (names[0] + suffix))
 
 
 def identity(bundle, platform):
     # Do not follow an app-directory link when checking ownership for removal.
     if bundle.is_symlink() or not bundle.is_dir():
-        raise ValueError(f"Not a PageCue application directory: {bundle}")
+        raise ValueError(f"Not a Presenteriyaki application directory: {bundle}")
     relative = "Contents/Resources/bundle-identity.json" if platform == "macos" else "_internal/bundle-identity.json"
     marker = bundle / relative
     if not marker.resolve().is_relative_to(bundle.resolve()):
@@ -48,7 +56,7 @@ def identity(bundle, platform):
     try:
         info = json.loads(marker.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
-        raise ValueError(f"Missing or invalid PageCue identity: {bundle}") from error
+        raise ValueError(f"Missing or invalid Presenteriyaki identity: {bundle}") from error
     if not isinstance(info, dict) or info.get("product") != PRODUCT or not isinstance(info.get("version"), str):
         raise ValueError(f"Refusing to modify an unrelated application: {bundle}")
     return info
@@ -62,7 +70,7 @@ def validate(bundle, platform):
     if platform == "macos":
         with (bundle / "Contents/Info.plist").open("rb") as stream:
             plist = plistlib.load(stream)
-        if plist.get("CFBundleIdentifier") != PRODUCT or plist.get("CFBundleExecutable") != "PageCue":
+        if plist.get("CFBundleIdentifier") != PRODUCT or plist.get("CFBundleExecutable") != program.name:
             raise ValueError(f"Unexpected macOS bundle identity: {bundle}")
         if plist.get("CFBundleShortVersionString") != info["version"]:
             raise ValueError(f"The bundle version does not match its identity: {bundle}")
@@ -92,7 +100,7 @@ def install(source, destination, platform):
     destination.parent.mkdir(parents=True, exist_ok=True)
     # All renames stay on the destination volume. Keep the old app until the
     # complete staged copy verifies; restore it if the final rename fails.
-    temporary = Path(tempfile.mkdtemp(prefix=".pagecue-install-", dir=destination.parent))
+    temporary = Path(tempfile.mkdtemp(prefix=".presenteriyaki-install-", dir=destination.parent))
     preserve_recovery = False
     try:
         staging = temporary / destination.name
@@ -127,38 +135,45 @@ def uninstall(destination, platform):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("source", nargs="?", type=Path, help="Built PageCue.app (Mac) or PageCue directory (Windows)")
+    parser.add_argument("source", nargs="?", type=Path, help="Built Presenteriyaki.app (Mac) or Presenteriyaki directory (Windows)")
     parser.add_argument("--destination", type=Path, help="Override the per-user application location")
     parser.add_argument("--no-shortcut", action="store_true", help="Windows: leave Start Menu shortcuts untouched")
+    parser.add_argument("--legacy-pagecue", action="store_true",
+                        help="Use the old PageCue install location and shortcut for check, update or removal")
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument("--check", action="store_true", help="Verify the installed application without changing it")
-    actions.add_argument("--uninstall", action="store_true", help="Remove only the identified PageCue application")
+    actions.add_argument("--uninstall", action="store_true", help="Remove only the identified Presenteriyaki application")
     args = parser.parse_args()
     try:
         platform = platform_name()
-        target = destination_path(args.destination or default_destination(platform))
+        target = destination_path(args.destination or default_destination(platform, args.legacy_pagecue))
         shortcut = None
+        previous_shortcut_target = None
         if platform == "windows" and not args.no_shortcut:
             import windows_shortcut
-            shortcut = windows_shortcut.default_shortcut()
-            windows_shortcut.check_destination(shortcut, executable(target, platform))
+            shortcut = windows_shortcut.default_shortcut(args.legacy_pagecue)
+            previous_shortcut_target = executable(target, platform, args.legacy_pagecue)
+            windows_shortcut.check_destination(shortcut, previous_shortcut_target)
         if args.check:
             info = validate(target, platform)
             if shortcut:
-                windows_shortcut.verify_shortcut(shortcut, executable(target, platform))
-            print(f"Verified PageCue {info['version']}: {target}")
+                windows_shortcut.verify_shortcut(shortcut, executable(target, platform, args.legacy_pagecue))
+            print(f"Verified Presenteriyaki {info['version']}: {target}")
         elif args.uninstall:
             uninstall(target, platform)
             if shortcut:
-                windows_shortcut.remove_shortcut(shortcut, executable(target, platform))
+                windows_shortcut.remove_shortcut(shortcut, previous_shortcut_target)
             print(f"Removed {target}. Preferences and presentation files were preserved.")
         else:
             if args.source is None:
                 parser.error("specify the built application to install")
+            if platform == "windows" and args.legacy_pagecue and not (args.source / "PageCue.exe").is_file():
+                parser.error("A legacy update requires the PageCue.exe compatibility launcher")
             info = install(args.source, target, platform)
             if shortcut:
-                windows_shortcut.create_shortcut(shortcut, executable(target, platform))
-            print(f"Installed PageCue {info['version']}: {target}")
+                windows_shortcut.create_shortcut(shortcut, executable(target, platform, args.legacy_pagecue),
+                                                previous_target=previous_shortcut_target)
+            print(f"Installed Presenteriyaki {info['version']}: {target}")
             print(f"Executable: {executable(target, platform)}")
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"Installation error: {error}\n")
