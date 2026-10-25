@@ -150,6 +150,7 @@ class Presenter(QObject):
         action(view_menu, "Audience display…", self.choose_screen)
         action(view_menu, "Swap screens", self.swap)
         action(view_menu, "Notes layout…", self.choose_notes_layout)
+        action(view_menu, "Reset notes / web zoom", self.reset_text_zoom)
         action(view_menu, "Show audience window", self.audience.show)
         action(view_menu, "Show clock / timer", self.toggle_clock)
         action(view_menu, "Hide both windows", self.hide_all)
@@ -368,6 +369,8 @@ class Presenter(QObject):
                                else "frame" if ctrl else "page")
         elif key in (Qt.Key.Key_Home, Qt.Key.Key_End):
             state.go(0 if key == Qt.Key.Key_Home else state.navigation.count - 1)
+        elif key == Qt.Key.Key_0 and not ctrl and not state.digits:
+            self.reset_text_zoom()
         elif text.isdigit() and not ctrl:
             state.digits = (state.digits + text)[-7:]
         elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and state.digits:
@@ -756,6 +759,14 @@ class Presenter(QObject):
         if okay:
             self.session.notes_layout = {options[0]: "auto", options[1]: "off", options[2]: "right"}[value]
             self.reload()
+
+    def reset_text_zoom(self):
+        if self.session.surface == Surface.WEB and self.web:
+            self.web.setZoomFactor(1.0)
+        else:
+            self.session.notes_scale = 1.0
+            self.session.notes_scroll = 0.0
+        self.session.changed.emit()
 
     def quit(self):
         if self._closed:

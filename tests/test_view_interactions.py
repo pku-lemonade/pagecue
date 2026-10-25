@@ -128,3 +128,21 @@ def test_pointer_modes_size_timeout_and_blackout(qapp, qtbot, presenter, tmp_pat
     restored = view.grab().toImage()
     assert pixel(restored, outside).blue() == pixel(plain, outside).blue()
     assert state.page == 0
+
+
+def test_notes_zoom_reset_preserves_numeric_page_input(presenter):
+    app, state = presenter, presenter.session
+    QTest.keyClick(app.view, Qt.Key.Key_Plus)
+    assert state.notes_scale > 1
+    QTest.keyClick(app.view, Qt.Key.Key_0)
+    assert state.notes_scale == 1 and state.digits == ""
+    # Zero continues a page number already being entered.
+    QTest.keyClick(app.view, Qt.Key.Key_1)
+    QTest.keyClick(app.view, Qt.Key.Key_0)
+    assert state.digits == "10" and state.page == 0
+    QTest.keyClick(app.view, Qt.Key.Key_Return)
+    assert state.page == 2 and state.digits == ""  # clamped to this fixture's last page
+    state.notes_scale, state.notes_scroll = 2, 30
+    view_menu = next(action.menu() for action in app.presenter.menuBar().actions() if action.text() == "View")
+    next(action for action in view_menu.actions() if action.text() == "Reset notes / web zoom").trigger()
+    assert state.notes_scale == 1 and state.notes_scroll == 0

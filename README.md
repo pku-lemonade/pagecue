@@ -30,6 +30,8 @@ its screen while keeping the presenter windowed. **F5** selects general fullscre
 **Esc** returns both windows to their previous sizes. Hide/restore preserves the
 selected fullscreen mode. Ctrl/⌘ + wheel zooms around the cursor; Ctrl/⌘ + drag
 pans, and Ctrl/⌘ + 0 resets the slide or whiteboard view.
+Use **+ / −** for notes or web zoom and **0** to reset it. Zero still works inside
+a page number already being entered (for example, **1 0 Enter**).
 
 PageCue's original code is MIT licensed. Qt/PySide and other dependencies retain
 their own licenses. Binary distribution must include the applicable notices and
@@ -88,8 +90,8 @@ test reports and screenshots for review, without publishing an unaudited binary.
 The presence of the workflow is not proof that any particular run/platform passed;
 inspect the run's logs and evidence. Physical display/camera testing is separate.
 
-The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40173372590)
-passes 67 tests on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
+The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40174372319)
+passes 72 tests on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
 PDF/media/web execution and Unicode-path installation checks. Windows shortcut lifecycle
 checks also pass. Windows evidence is from a
 Windows Server 2025 runner, not a Windows 11 laptop with a projector. Full parity

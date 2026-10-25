@@ -14,7 +14,7 @@ HELP = [
     ("Alt + arrows", "history back / forward"), ("0–9 ↵", "go to physical page"),
     ("F5 / Esc", "fullscreen / windowed"), ("X", "swap screens"),
     ("T / Shift+T / Z", "timer / clock / reset"), ("[ ] / { }", "adjust talk duration"),
-    ("+ −", "notes text size"), ("R", "reload PDF and notes"),
+    ("+ − / 0", "text size / reset"), ("R", "reload PDF and notes"),
     (". / B", "blackout / whiteboard"), ("L / P", "pointer mode / size"),
     ("drag / Shift", "draw / draw immediately"), ("Alt + drag", "select ink"),
     ("Shift + drag", "move selected ink"), ("⌘/Ctrl + drag", "pan slide"),

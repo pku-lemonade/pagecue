@@ -28,6 +28,9 @@ def main():
         result["loaded"] = okay
         presenter.audience.resize(800, 500)
         def inspect():
+            presenter.web.setZoomFactor(1.5)
+            QTest.keyClick(presenter.view, Qt.Key.Key_0)
+            result["web_zoom_reset"] = presenter.web.zoomFactor() == 1.0
             result["web_geometry_matches"] = presenter.web.geometry() == presenter.slide.geometry()
             presenter.audience.grab().save(str(output / "audience.png"))
             def title(value):
@@ -43,7 +46,7 @@ def main():
     QTimer.singleShot(15000, app.quit)
     app.exec()
     presenter.quit()
-    if not result.get("loaded") or not result.get("escape_returns_slides"):
+    if not all(result.get(key) for key in ("loaded", "escape_returns_slides", "web_zoom_reset")):
         raise RuntimeError("Web integration smoke check failed or timed out")
 
 

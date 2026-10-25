@@ -109,6 +109,10 @@ class SmokeCheck(QObject):
 
     def _after_web(self):
         p = self.presenter
+        p.web.setZoomFactor(1.5)
+        self.key(p.view, Qt.Key.Key_0)
+        assert p.web.zoomFactor() == 1.0, "Web zoom reset failed"
+        self.results["web_zoom_reset"] = True
         p.audience.grab().save(str(self.output / "web.png"))
         def title(value):
             if value != "PageCue packaged web check":

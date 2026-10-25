@@ -43,7 +43,12 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **73 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **74 passed** on the development Mac at this checkpoint.
+Bare 0 now resets notes/web zoom unless a page number is already being entered;
+the View menu also exposes reset. Numeric input such as 10 remains intact. The
+native offline WebEngine check under `qa/web-zoom-reset/` confirms real zoom reset,
+geometry and Escape, and packaged diagnostics now check this behavior. Updated
+700×420 help rendering was captured/inspected under `qa/layout-reset/`.
 The new interaction checks also pass with the native Cocoa plugin. A simulated
 two-screen topology verifies audience-only fullscreen by double-click, mode
 switching with F5, Escape and hide/restore. This is not physical monitor evidence.
@@ -78,13 +83,16 @@ synthetic inset/expanded camera images; all five were visually inspected. The
 layout check confirms that scrolling help does not navigate the PDF. No physical
 camera was activated or photographed by these checks. Windows minimum/scrolled
 and Intel Mac minimum captures were also inspected from the CI artifacts.
-The verified implementation commit **`ab36d48`** passes **67 tests without skips on
+The verified implementation commit **`6e3537e`** passes **72 tests without skips on
 Windows x64, Mac arm64 and Mac Intel**, plus all three packaged executable checks:
-[native run 40173372590](https://github.com/pku-lemonade/pagecue/actions/runs/40173372590).
+[native run 40174372319](https://github.com/pku-lemonade/pagecue/actions/runs/40174372319).
+Windows downloaded reports under `qa/fullscreen-windows-ci/` confirm 72 tests,
+frozen executable PDF/media/web operation and install/update/remove/shortcut
+lifecycle. The run also completed both Mac jobs successfully. Long-deck and
+text/web reset work postdates this verified revision and needs fresh CI.
 Downloaded reports and opening results under `qa/animation-opening-ci/` confirm
 all 67 tests on each target, Unicode Qt widget-dialog selection, drag/drop,
 QFileOpenEvent handling, recent-page restoration and unchanged source PDFs.
-The fullscreen/zoom/pointer changes above postdate this run and need fresh CI.
 Windows additionally passes Unicode shell-link create/read/update/conflict/removal.
 Earlier downloaded JSON, JUnit reports and captures are under `qa/camera-windows-ci/`,
 `qa/camera-arm-ci/` and `qa/camera-intel-ci/`. Local rebuilt-bundle checks also pass
@@ -222,9 +230,9 @@ locally with TeX/FFmpeg excluded from PATH.
    implemented feature of the reference app.
    The 400-page synthetic-deck interaction/render check now passes. A renewed
    baseline help/CLI audit found explicit notes-size/web-zoom reset commands and
-   icon export still missing. Restore those capabilities using PageCue's own
-   artwork; add the original `-v` and `-y` aliases. The ledger now records these
-   gaps instead of treating adjustable zoom as proof of reset parity.
+   icon export missing. Notes/web reset is now restored and tested. Icon export
+   must use PageCue's own artwork; add the original `-v` and `-y` aliases. The
+   ledger records this remaining CLI gap.
 3. Audit camera permission/device lifecycle and test a real camera with deliberate
    user involvement. Camera frames are not captured automatically during QA.
    Width/opacity/position now have persisted controls. Permission callbacks are
