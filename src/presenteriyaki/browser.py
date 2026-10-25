@@ -95,10 +95,12 @@ class Browser(QWidget):
             return
         visible = (self.isVisible() and self.audience.isVisible() and
                    not self.audience.isMinimized() and self.canvas.camera_image is not None)
+        showing = visible and self.camera.isHidden()
         self.camera.setGeometry(QRect(self.mapToGlobal(QPoint(0, 0)), self.size()))
         self.camera.setVisible(visible)
         if visible:
-            self.camera.raise_()
+            if showing:
+                self.camera.raise_()
             self.camera.update()
 
     def eventFilter(self, watched, event):

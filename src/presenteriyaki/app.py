@@ -9,7 +9,7 @@ from PySide6.QtCore import QEvent, QObject, QPointF, QRect, Qt, QTimer, QUrl, Si
 from PySide6.QtGui import QAction, QColor, QDesktopServices, QIcon, QKeySequence
 from PySide6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, QDialogButtonBox,
                               QFileDialog, QFormLayout, QInputDialog, QLineEdit, QMainWindow,
-                              QMessageBox, QSlider, QSpinBox, QStatusBar, QSystemTrayIcon)
+                              QMessageBox, QSlider, QSpinBox, QStackedWidget, QStatusBar, QSystemTrayIcon)
 
 from . import __version__
 from .canvas import Canvas
@@ -106,7 +106,9 @@ class Presenter(QObject):
         self.view = Canvas(self.session, True)
         self.slide = Canvas(self.session, False)
         self.presenter.setCentralWidget(self.view)
-        self.audience.setCentralWidget(self.slide)
+        self.audience_stack = QStackedWidget()
+        self.audience_stack.addWidget(self.slide)
+        self.audience.setCentralWidget(self.audience_stack)
         self.presenter.resize(1180, 780)
         self.audience.resize(960, 540)
         self.presenter.setMinimumSize(700, 420)
@@ -151,7 +153,6 @@ class Presenter(QObject):
         self.audience.close_requested.connect(self.audience.hide)
         self.presenter.restored.connect(self.restore_all)
         self.audience.restored.connect(self.restore_all)
-        self.slide.installEventFilter(self)
         self.app.file_opened.connect(self.open)
         self.app.screenRemoved.connect(self._screen_removed)
         self.fullscreen = False
@@ -415,13 +416,6 @@ class Presenter(QObject):
         if self._hidden_fullscreen:
             self.toggle_fullscreen(audience_only=self._hidden_audience_only)
         self.view.setFocus()
-
-    def eventFilter(self, watched, event):
-        if self._closed:
-            return False
-        if watched is self.slide and event.type() == QEvent.Type.Resize and self.web:
-            self.web.setGeometry(self.slide.geometry())
-        return super().eventFilter(watched, event)
 
     def command(self, command):
         if isinstance(command, str):
@@ -746,9 +740,9 @@ class Presenter(QObject):
         if self.web is None:
             from .browser import Browser
             self.web = Browser(self.slide, self.audience)
+            self.audience_stack.addWidget(self.web)
             self.web.shortcut.connect(self._web_shortcut, Qt.ConnectionType.QueuedConnection)
             self.web.loadFinished.connect(lambda okay: None if okay else self.notify("Could not load web content"))
-        self.web.setGeometry(self.audience.centralWidget().geometry())
         self.web.load(url)
         self.session.surface = Surface.WEB
         self.session.changed.emit()
@@ -778,9 +772,7 @@ class Presenter(QObject):
                 self.seek.hide()
         if self.web:
             visible = self.session.surface == Surface.WEB
-            if visible and self.web.isHidden():
-                self.web.raise_()
-            self.web.setVisible(visible)
+            self.audience_stack.setCurrentWidget(self.web if visible else self.slide)
             self.web.update_camera()
 
     def _place(self, window, screen):
