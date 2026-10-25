@@ -15,6 +15,7 @@ from PySide6.QtWebView import QWebView, QWebViewLoadingInfo, QtWebView
 
 class CocoaKeys:
     def __init__(self, window, result):
+        from importlib.metadata import version
         import objc
         from AppKit import NSApp, NSEvent, NSKeyDown, NSKeyUp
         from Foundation import NSPoint
@@ -22,6 +23,7 @@ class CocoaKeys:
         self.NSApp, self.NSEvent, self.NSPoint = NSApp, NSEvent, NSPoint
         self.down, self.up = NSKeyDown, NSKeyUp
         self.window, self.result = window, result
+        result["pyobjc"] = version("pyobjc-framework-Cocoa")
         self.monitor = NSEvent.addLocalMonitorForEventsMatchingMask_handler_(
             (1 << NSKeyDown) | (1 << NSKeyUp), self.filter_event)
 

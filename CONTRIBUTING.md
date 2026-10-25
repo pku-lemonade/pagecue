@@ -88,9 +88,10 @@ This remains a browser compatibility limitation in the preview.
 without changing the app. Run it with `--capture --camera-overlay` on an unlocked
 test desktop to check H.264 decoding and translucent camera composition. The
 manual **Native browser feasibility check** workflow runs this on all three
-targets. Playback and static composition pass; keyboard routing, zoom, window
-lifecycle and packaged deployment still need integration checks before replacing
-WebEngine.
+targets. Playback, static composition and shortcut handling pass in isolated
+probes. Windows uses an experimental [WebView2 shortcut bridge](bundle/native-webview/README.md);
+Mac uses an application-local Cocoa handler. App integration, zoom, window
+lifecycle and packaged deployment still need checks before replacing WebEngine.
 
 The internal `PageCue` storage name and bundle identity are retained for existing
 preferences and OS permissions. Keep those compatibility identifiers stable.
