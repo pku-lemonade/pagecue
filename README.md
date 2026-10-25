@@ -5,6 +5,8 @@ A minimalist PDF presentation app for macOS and Windows.
 Show slides on one screen while keeping speaker notes, the next slide and a
 timer on the other. Use a single screen to rehearse.
 
+![Presenter window with slides, notes, timer and thumbnails](docs/images/presenter.png)
+
 ## Features
 
 - Presenter and audience windows with fullscreen and display switching
