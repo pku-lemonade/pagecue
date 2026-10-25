@@ -109,6 +109,8 @@ DMG and Setup files as `installer-*` artifacts. For an unsigned preview:
 gh workflow run native.yml -f upload_installers=true
 ```
 
-Wait for all platform checks, download those artifacts, and publish the three
-installers with a SHA-256 checksum file in a GitHub prerelease. Keep the release
-in draft until every installer is attached and verified.
+After all checks pass, create a draft prerelease targeting the tested commit.
+Run the **Stage unsigned preview** workflow with that native run ID and version.
+It transfers the installers within GitHub, adds `SHA256SUMS.txt`, and checks the
+uploaded-file digests. It refuses to alter a published release or mix source
+commits. Review the draft and its verification record before publishing.

@@ -1,0 +1,36 @@
+name: Stage unsigned preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      native_run:
+        description: Successful native workflow run ID
+        required: true
+      version:
+        description: Version of the existing draft prerelease
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Transfer installers and verify GitHub digests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_RUN: ${{ inputs.native_run }}
+          PREVIEW_VERSION: ${{ inputs.version }}
+        run: python scripts/stage_preview.py --repo "$GITHUB_REPOSITORY" --run "$NATIVE_RUN" --version "$PREVIEW_VERSION"
+      - name: Save verification record
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: preview-verification
+          path: build/release-assets/verification.json
+          if-no-files-found: error
