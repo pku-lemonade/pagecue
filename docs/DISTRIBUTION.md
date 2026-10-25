@@ -21,6 +21,18 @@ restriction on reverse engineering for debugging modified LGPL components.
 and the actual FFmpeg version, configuration, license texts and attribution.
 `native-runtime.json` records notice hashes, which the package check verifies.
 
+For source-based attribution inventories, verify the downloaded archive against
+Qt's published checksum, then run:
+
+```sh
+uv run python scripts/collect_qt_source_notices.py qtbase-everywhere-src-6.12.0.tar.xz \
+  --module qtbase --version 6.12.0 --output build/qtbase-notices.json
+```
+
+The output preserves attribution metadata, copyright files and referenced license
+texts with the archive hash. Review it against the packaged file inventory before
+adding notices to a release.
+
 The packaged file inventory is checked separately. Presenteriyaki uses Qt Widgets;
 its build omits the unused QML plugin tree, QML debugging tools and Qt Virtual
 Keyboard plugin. The check rejects accidental inclusion of unrelated Qt Charts,
