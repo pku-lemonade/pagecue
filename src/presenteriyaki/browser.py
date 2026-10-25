@@ -45,8 +45,10 @@ class Browser(QWidget):
         self.container.installEventFilter(self)
         self.native.loadingChanged.connect(self._loaded)
         self.camera = WebCameraOverlay(canvas, parent)
-        self.camera.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint |
-                                   Qt.WindowType.WindowTransparentForInput | Qt.WindowType.WindowDoesNotAcceptFocus)
+        camera_type = Qt.WindowType.Window if sys.platform == "darwin" else Qt.WindowType.Tool
+        self.camera.setWindowFlags(camera_type | Qt.WindowType.FramelessWindowHint |
+                                   Qt.WindowType.WindowTransparentForInput | Qt.WindowType.WindowDoesNotAcceptFocus |
+                                   Qt.WindowType.NoDropShadowWindowHint)
         self.camera.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.camera.setAttribute(Qt.WidgetAttribute.WA_NativeWindow)
         parent.installEventFilter(self)
@@ -95,6 +97,11 @@ class Browser(QWidget):
             return
         visible = (self.isVisible() and self.audience.isVisible() and
                    not self.audience.isMinimized() and self.canvas.camera_image is not None)
+        # Cocoa does not update a transient window's level when its owner enters
+        # our borderless fullscreen mode. Keep both windows at the same level.
+        if sys.platform == "darwin":
+            self.camera.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,
+                                      bool(self.audience.windowFlags() & Qt.WindowType.WindowStaysOnTopHint))
         showing = visible and self.camera.isHidden()
         self.camera.setGeometry(QRect(self.mapToGlobal(QPoint(0, 0)), self.size()))
         self.camera.setVisible(visible)

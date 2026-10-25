@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 import sys
 
-from PySide6.QtCore import QPoint, QRect, QSettings, QTimer, Qt
+from PySide6.QtCore import QElapsedTimer, QPoint, QRect, QSettings, QTimer, Qt
 from PySide6.QtGui import QColor, QImage, QWindow
 from PySide6.QtTest import QTest
 
@@ -102,9 +102,15 @@ video.requestVideoFrameCallback(frame);</script></body>''')
         assert p.web.camera.isVisible(), "Camera disappeared"
         assert p.web.camera.geometry() == QRect(p.web.mapToGlobal(QPoint()), p.web.size()), "Camera did not follow the audience"
         if not args.no_capture:
-            image, ratio = capture(name)
             point = p.web.mapTo(p.audience, QPoint(p.web.width() - 30, p.web.height() - 30))
-            pixel = image.pixelColor(round(point.x() * ratio), round(point.y() * ratio))
+            elapsed = QElapsedTimer()
+            elapsed.start()
+            while True:
+                image, ratio = capture(name)
+                pixel = image.pixelColor(round(point.x() * ratio), round(point.y() * ratio))
+                if abs(pixel.red() - 132) <= 3 and abs(pixel.green() - 92) <= 3 or elapsed.elapsed() > 5000:
+                    break
+                QTest.qWait(50)
             assert abs(pixel.red() - 132) <= 3 and abs(pixel.green() - 92) <= 3, f"Camera composition: {pixel.name()}"
         result[name] = True
 
