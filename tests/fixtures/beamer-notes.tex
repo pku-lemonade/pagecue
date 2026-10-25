@@ -1,0 +1,17 @@
+% Original fixture for combined slide/notes pages and overlays.
+\documentclass[aspectratio=169]{beamer}
+\usepackage{pgfpages}
+\setbeameroption{show notes on second screen=right}
+\setbeamertemplate{navigation symbols}{}
+\begin{document}
+\begin{frame}{A source slide title}
+First visible idea.
+\pause
+Second visible idea.
+\note{Detailed speaker transcript. This text belongs only to the presenter.}
+\end{frame}
+\begin{frame}{A second slide}
+An independent conclusion.
+\note{Final speaker transcript.}
+\end{frame}
+\end{document}

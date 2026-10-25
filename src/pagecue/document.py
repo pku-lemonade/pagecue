@@ -4,12 +4,16 @@ from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
 import mimetypes
+import re
 from urllib.parse import parse_qs, urlparse, unquote
+from functools import cached_property
+import hashlib
 
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import ArrayObject, NameObject
 
 from .notes import Notes, choose
+from .animation import AnimationSpec, extract as extract_animations
 
 
 class PasswordRequired(ValueError):
@@ -22,6 +26,12 @@ class Media:
     path: Path | None = None
     url: str | None = None
     data: bytes | None = None
+
+    @cached_property
+    def key(self):
+        if self.data is not None:
+            return "embedded:" + hashlib.sha256(self.data).hexdigest()
+        return "path:" + str(self.path) if self.path is not None else "url:" + str(self.url)
 
 
 @dataclass
@@ -50,6 +60,8 @@ class Snapshot:
     sections: list[int]
     original_bytes: bytes
     password: str = ""
+    animations: list[AnimationSpec] = field(default_factory=list)
+    animation_pdf: bytes | None = None
 
 
 def resolved(value):
@@ -205,14 +217,23 @@ def load_snapshot(path: Path, password: str = "", notes_layout: str = "auto") ->
         if text:
             annotation_notes[index] = "\n\n".join(text)
         if split:
-            extracted = []
+            fragments = []
             def visitor(text, cm, tm, font, size):
                 x = tm[4] * cm[0] + tm[5] * cm[2] + cm[4]
-                if x >= float(box.left) + float(box.width) / 2:
-                    extracted.append(text)
+                y = tm[4] * cm[1] + tm[5] * cm[3] + cm[5]
+                # Beamer hides unrevealed overlay text far outside the page.
+                if float(box.left) <= x <= float(box.right) and float(box.bottom) <= y <= float(box.top):
+                    fragments.append((text, x, y))
             try:
                 page.extract_text(visitor_text=visitor)
-                beamer_notes[index] = "".join(extracted).strip()
+                middle = float(box.left) + float(box.width) / 2
+                header_bottom = float(box.bottom) + float(box.height) * .75
+                slide_text = "\n".join(text.strip() for text, x, y in fragments if x < middle)
+                miniature = [text.strip() for text, x, y in fragments
+                             if x >= float(box.left) + float(box.width) * .875 and y >= header_bottom and text.strip()]
+                has_header = bool(miniature) and all(text in slide_text for text in miniature)
+                beamer_notes[index] = "".join(text for text, x, y in fragments
+                    if x >= middle and (not has_header or y < header_bottom)).strip()
             except Exception:
                 diagnostics.append(f"Could not extract notes-region text on page {index + 1}")
         pages.append(info)
@@ -227,6 +248,12 @@ def load_snapshot(path: Path, password: str = "", notes_layout: str = "auto") ->
         if text:
             notes.pages[page] = "\n\n".join(filter(None, [notes.pages.get(page), text]))
     notes = Notes(notes.pages, notes.source, notes.diagnostics + tuple(diagnostics))
+    animations, animation_pdf, animation_problems = extract_animations(reader, rectangle)
+    notes = Notes(notes.pages, notes.source, notes.diagnostics + tuple(animation_problems))
+    for animation in animations:
+        pages[animation.page].actions.append(Action(animation.rect, "animation", f"{animation.identifier}:Toggle", "Play/pause animation"))
+        for control in animation.controls:
+            pages[animation.page].actions.append(Action(control.rect, "animation", f"{animation.identifier}:{control.command}", control.command))
     sections = []
     for outline in reader.outline:
         if not isinstance(outline, list):
@@ -235,10 +262,17 @@ def load_snapshot(path: Path, password: str = "", notes_layout: str = "auto") ->
                 sections.append(number)
     # Remove comment annotations from the render-only copy, retaining the source.
     writer = PdfWriter(clone_from=reader)
+    animation_ids = {animation.identifier for animation in animations}
+    def keep_annotation(ref):
+        annotation = resolved(ref)
+        if annotation.get("/Subtype") == "/Text":
+            return False
+        name = str(annotation.get("/T", "")).removeprefix("btn@").replace("@", ".")
+        match = re.fullmatch(r"(?:anm)?(\d+)(?:\..+)?", name)
+        return not (match and int(match.group(1)) in animation_ids)
     for page in writer.pages:
         if "/Annots" in page:
-            page[NameObject("/Annots")] = ArrayObject(
-                ref for ref in page["/Annots"] if resolved(ref).get("/Subtype") != "/Text")
+            page[NameObject("/Annots")] = ArrayObject(ref for ref in page["/Annots"] if keep_annotation(ref))
     target = BytesIO()
     writer.write(target)
-    return Snapshot(path, target.getvalue(), pages, notes, sections, data, password)
+    return Snapshot(path, target.getvalue(), pages, notes, sections, data, password, animations, animation_pdf)

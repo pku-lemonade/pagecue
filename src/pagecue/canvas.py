@@ -13,7 +13,7 @@ HELP = [
     ("← → / click", "previous / next page"), ("Ctrl/⌘ + ← →", "previous / next frame"),
     ("Alt + arrows", "history back / forward"), ("0–9 ↵", "go to physical page"),
     ("F5 / Esc", "fullscreen / windowed"), ("X", "swap screens"),
-    ("T / Z", "pause timer / reset"), ("[ ] / { }", "adjust talk duration"),
+    ("T / Shift+T / Z", "timer / clock / reset"), ("[ ] / { }", "adjust talk duration"),
     ("+ −", "notes text size"), ("R", "reload PDF and notes"),
     (". / B", "blackout / whiteboard"), ("L / P", "pointer mode / size"),
     ("drag / Shift", "draw / draw immediately"), ("Alt + drag", "select ink"),
@@ -57,14 +57,18 @@ class Canvas(QWidget):
         self._scene = QRectF()
         self._crop = QRectF(0, 0, 1, 1)
         self.media_image = None
+        self.media_rect = None
+        self.posters = {}
         self.camera_image = None
         self.camera_position = "bottom-right"
         self.camera_large = False
+        self._animation_last = {}
 
     def _new_document(self):
         self.thumb_scroll = 0
         self._last_page = -1
         self._drag = None
+        self._animation_last.clear()
         self.update()
 
     def _text(self, painter, rect, text, size, color="#e5e5e5", flags=None):
@@ -207,7 +211,48 @@ class Canvas(QWidget):
             source = QRectF(crop.x() * image.width(), crop.y() * image.height(),
                             crop.width() * image.width(), crop.height() * image.height())
             painter.drawImage(scene, image, source)
+        for action in info.actions:
+            if action.kind == "media" and action.value.key in self.posters:
+                x, y, width, height = action.rect
+                target = QRectF(scene.x() + (x - crop.x()) / crop.width() * scene.width(),
+                                scene.y() + (y - crop.y()) / crop.height() * scene.height(),
+                                width / crop.width() * scene.width(), height / crop.height() * scene.height())
+                poster = self.posters[action.value.key]
+                painter.drawImage(fit_rect(target, poster.width(), poster.height()), poster)
+        self._paint_animations(painter, index, scene, crop)
         painter.restore()
+
+    def _paint_animations(self, painter, page, scene, crop):
+        def position(rect):
+            x, y, width, height = rect
+            return QRectF(scene.x() + (x - crop.x()) / crop.width() * scene.width(),
+                          scene.y() + (y - crop.y()) / crop.height() * scene.height(),
+                          width / crop.width() * scene.width(), height / crop.height() * scene.height())
+        for state in self.session.animations.values():
+            if state.spec.page != page:
+                continue
+            rect = position(state.spec.rect)
+            frame = self.session.animation_images.get(state.spec.frames[state.frame], rect.width(), rect.height(), self.devicePixelRatioF())
+            if frame is not None:
+                self._animation_last[state.spec.identifier] = frame
+            displayed = self._animation_last.get(state.spec.identifier)
+            if displayed is not None:
+                painter.drawImage(rect, displayed)
+            if state.direction:
+                next_index = (state.frame + state.direction) % len(state.spec.frames)
+                self.session.animation_images.get(state.spec.frames[next_index], rect.width(), rect.height(), self.devicePixelRatioF())
+            labels = {"EndLeft": "|◀", "EndRight": "▶|", "StepLeft": "◀", "StepRight": "▶",
+                      "Minus": "−", "Plus": "+", "Reset": "1×"}
+            for control in state.spec.controls:
+                area = position(control.rect)
+                painter.fillRect(area.adjusted(.5, .5, -.5, -.5), QColor("#ededed"))
+                painter.setPen(QPen(QColor("#777777"), .5))
+                painter.drawRect(area)
+                label = labels.get(control.command)
+                if label is None:
+                    direction = -1 if control.command.endswith("Left") else 1
+                    label = "Ⅱ" if state.direction == direction else "◀" if direction < 0 else "▶"
+                self._text(painter, area, label, max(8, area.height() * .58), "#252525", Qt.AlignmentFlag.AlignCenter)
 
     def _paint_current(self, painter):
         surface = self.session.surface
@@ -225,10 +270,19 @@ class Canvas(QWidget):
             painter.fillRect(self.current_box, QColor("black"))
             if self.presenter:
                 self._text(painter, self.current_box, "BLACKOUT", 13, "#646b76", Qt.AlignmentFlag.AlignCenter)
-        elif surface == Surface.MEDIA and self.media_image is not None:
-            rect = fit_rect(self.current_box, self.media_image.width(), self.media_image.height())
-            painter.fillRect(self.current_box, QColor("black"))
-            painter.drawImage(rect, self.media_image)
+        elif surface == Surface.MEDIA:
+            if self.media_rect is not None:
+                self._paint_pdf(painter, self.session.page, self.current_box, navigation=True)
+                source = QRectF(*self.media_rect)
+                target = QRectF(self._from_page(source.topLeft()), self._from_page(source.bottomRight()))
+            else:
+                target = self.current_box
+            painter.fillRect(target, QColor("black"))
+            if self.media_image is not None:
+                rect = fit_rect(target, self.media_image.width(), self.media_image.height())
+                painter.drawImage(rect, self.media_image)
+            else:
+                self._text(painter, target, "Loading media…", 13, "#a0a5af", Qt.AlignmentFlag.AlignCenter)
         elif surface == Surface.WEB:
             self._text(painter, self.current_box, "Web content on audience screen", 15,
                        "#9299a5", Qt.AlignmentFlag.AlignCenter)
@@ -380,6 +434,10 @@ class Canvas(QWidget):
 
     def mouseReleaseEvent(self, event):
         if self._drag == "click":
+            if self.session.surface == Surface.MEDIA:
+                self.command.emit("media-toggle")
+                self._drag = None
+                return
             point = self._to_page(event.position())
             action = next((action for action in self.session.snapshot.pages[self.session.page].actions
                            if QRectF(*action.rect).contains(point)), None)
@@ -397,7 +455,9 @@ class Canvas(QWidget):
         self.session.changed.emit()
 
     def mouseDoubleClickEvent(self, event):
-        if not self.presenter:
+        if self.session.surface == Surface.MEDIA:
+            self.command.emit("media-expand")
+        elif not self.presenter:
             self.command.emit("fullscreen")
 
     def wheelEvent(self, event):

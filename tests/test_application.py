@@ -25,6 +25,11 @@ def test_application_commands_and_state_preserving_reload(qapp, qtbot, deck):
     assert app.session.page == 2
     QTest.keyClick(app.view, Qt.Key.Key_T)
     assert app.session.clock.started is not None
+    QTest.keyClick(app.view, Qt.Key.Key_T, Qt.KeyboardModifier.ShiftModifier)
+    assert app.session.clock.show_wall
+    assert app.session.clock.started is not None
+    QTest.keyClick(app.view, Qt.Key.Key_T, Qt.KeyboardModifier.ShiftModifier)
+    assert not app.session.clock.show_wall
     app.reload()
     assert app.session.page == 2
     assert app.session.clock.started is not None
@@ -36,6 +41,20 @@ def test_application_commands_and_state_preserving_reload(qapp, qtbot, deck):
     assert app.slide.camera_position.startswith("top")
     app.session.tick.stop()
     app.media.close()
+
+
+def test_hide_restore_keeps_both_windows_available(qapp, qtbot, deck):
+    app = Presenter(qapp)
+    qtbot.addWidget(app.presenter)
+    qtbot.addWidget(app.audience)
+    app.show()
+    assert app.open(deck)
+    app.hide_all()
+    assert app.presenter.isMinimized() and app.audience.isMinimized()
+    app.presenter.showNormal()
+    qtbot.waitUntil(lambda: not app.audience.isMinimized())
+    assert not app._hidden
+    app.session.close()
 
 
 def test_linked_gif_uses_actual_decoder(qapp, qtbot, tmp_path):

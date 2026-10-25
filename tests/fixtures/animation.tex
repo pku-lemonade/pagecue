@@ -1,0 +1,16 @@
+% Original PageCue fixture. Build locally with pdflatex.
+\documentclass{article}
+\usepackage[paperwidth=160mm,paperheight=90mm,margin=10mm]{geometry}
+\usepackage{xcolor}
+\usepackage{animate}
+\pagestyle{empty}
+\begin{document}
+\noindent PageCue animation fixture\par\bigskip
+\begin{animateinline}[autoplay,loop,palindrome,controls]{4}
+\colorbox{red}{\rule{0pt}{25mm}\makebox[60mm]{\color{white}Frame one}}
+\newframe
+\colorbox{green}{\rule{0pt}{25mm}\makebox[60mm]{Frame two}}
+\newframe
+\colorbox{blue}{\rule{0pt}{25mm}\makebox[60mm]{\color{white}Frame three}}
+\end{animateinline}
+\end{document}

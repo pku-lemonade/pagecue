@@ -22,13 +22,16 @@ class PdfImages(QObject):
         self.buffer = None
 
     def open(self, snapshot: Snapshot):
+        self.open_data(snapshot.render_bytes, len(snapshot.pages))
+
+    def open_data(self, pdf_bytes, expected_pages=None):
         # Construct a new backend before retiring the old one.
         data = QBuffer(self)
-        data.setData(QByteArray(snapshot.render_bytes))
+        data.setData(QByteArray(pdf_bytes))
         data.open(QIODevice.OpenModeFlag.ReadOnly)
         document = QPdfDocument(self)
         document.load(data)
-        if document.status() != QPdfDocument.Status.Ready or document.pageCount() != len(snapshot.pages):
+        if document.status() != QPdfDocument.Status.Ready or (expected_pages is not None and document.pageCount() != expected_pages):
             error = document.error()
             document.deleteLater()
             data.deleteLater()
@@ -46,6 +49,18 @@ class PdfImages(QObject):
         generation = self.generation
         self.renderer.pageRendered.connect(
             lambda page, size, image, options, request: self._complete(generation, page, size, image, request))
+        self.cache.clear()
+        self.pending.clear()
+        self.cache_bytes = 0
+
+    def close(self):
+        self.generation += 1
+        if self.renderer:
+            self.renderer.setDocument(None)
+            self.renderer.deleteLater()
+            self.document.deleteLater()
+            self.buffer.deleteLater()
+        self.renderer = self.document = self.buffer = None
         self.cache.clear()
         self.pending.clear()
         self.cache_bytes = 0

@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from PySide6.QtCore import QEvent, QPointF, QRect, Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import QEvent, QObject, QPointF, QRect, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QColor, QKeySequence
 from PySide6.QtWidgets import (QApplication, QColorDialog, QFileDialog, QInputDialog,
                               QLineEdit, QMainWindow, QMessageBox, QSlider, QStatusBar)
@@ -12,13 +12,19 @@ from PySide6.QtWidgets import (QApplication, QColorDialog, QFileDialog, QInputDi
 from . import __version__
 from .canvas import Canvas
 from .document import PasswordRequired
-from .media import Camera, MediaPlayer
+from .media import Camera, MediaPlayer, Posters
 from .model import Surface
 from .session import Session
 
 
 class Application(QApplication):
     file_opened = Signal(str)
+
+    def __init__(self, arguments):
+        # WebEngine is created lazily, but its shared graphics context must be
+        # requested before constructing QApplication (not when a link is clicked).
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+        super().__init__(arguments)
 
     def event(self, event):
         if event.type() == QEvent.Type.FileOpen:
@@ -29,14 +35,22 @@ class Application(QApplication):
 
 class Window(QMainWindow):
     close_requested = Signal()
+    restored = Signal()
 
     def closeEvent(self, event):
         self.close_requested.emit()
         event.accept()
 
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.WindowStateChange:
+            if event.oldState() & Qt.WindowState.WindowMinimized and not self.isMinimized():
+                self.restored.emit()
 
-class Presenter:
+
+class Presenter(QObject):
     def __init__(self, app):
+        super().__init__(app)
         self.app = app
         self.session = Session()
         self.presenter = Window()
@@ -66,13 +80,17 @@ class Presenter:
         self.seek.hide()
         self.media = MediaPlayer()
         self.camera = Camera()
+        self.posters = Posters()
+        self.view.posters = self.slide.posters = self.posters.images
+        self.posters.changed.connect(self.session.changed)
+        self.media_source_rect = None
+        self.media_source_page = None
         self.media.frame.connect(self._media_frame)
         self.camera.frame.connect(self._camera_frame)
         self.media.error.connect(self.notify)
         self.camera.error.connect(self.notify)
         self.media.changed.connect(self._media_state)
-        self.seek.sliderMoved.connect(lambda value: self.media.player.setPosition(
-            round(value / 1000 * self.media.player.duration())))
+        self.seek.sliderMoved.connect(lambda value: self.media.seek(round(value / 1000 * self.media.duration)))
         self.web = None
         self.session.message.connect(self.notify)
         self.session.action_requested.connect(self.activate)
@@ -84,11 +102,16 @@ class Presenter:
         self.slide.files_dropped.connect(self.open)
         self.presenter.close_requested.connect(self.quit)
         self.audience.close_requested.connect(self.audience.hide)
+        self.presenter.restored.connect(self.restore_all)
+        self.audience.restored.connect(self.restore_all)
+        self.slide.installEventFilter(self)
         self.app.file_opened.connect(self.open)
         self.app.screenRemoved.connect(self._screen_removed)
         self.fullscreen = False
-        self.audience_screen = None
+        self.audience_screen = self.session.settings.value("audience-screen", None)
         self._windowed = None
+        self._hidden = False
+        self._hidden_fullscreen = False
         self._closed = False
         self._menus()
 
@@ -110,8 +133,11 @@ class Presenter:
         action(view_menu, "Swap screens", self.swap)
         action(view_menu, "Notes layout…", self.choose_notes_layout)
         action(view_menu, "Show audience window", self.audience.show)
+        action(view_menu, "Show clock / timer", self.toggle_clock)
+        action(view_menu, "Hide both windows", self.hide_all)
         media_menu = self.presenter.menuBar().addMenu("Media")
         action(media_menu, "Open video or audio…", self.pick_media)
+        action(media_menu, "Expand/restore media", self.expand_media)
         action(media_menu, "Choose camera…", lambda: self.toggle_camera(choose=True))
         action(media_menu, "Toggle camera", self.toggle_camera)
         help_menu = self.presenter.menuBar().addMenu("Help")
@@ -121,12 +147,20 @@ class Presenter:
             "In development: see the feature parity ledger."))
 
     def show(self):
+        for name, window in (("presenter", self.presenter), ("audience", self.audience)):
+            geometry = self.session.settings.value(f"geometry/{name}")
+            if geometry is not None:
+                window.restoreGeometry(geometry)
         self.presenter.show()
         self.audience.show()
         screens = self.app.screens()
         if len(screens) > 1:
-            self.audience_screen = screens[-1].name()
-            self._place(self.audience, screens[-1])
+            screen = next((s for s in screens if s.name() == self.audience_screen), screens[-1])
+            self.audience_screen = screen.name()
+            self._place(self.audience, screen)
+        for window in (self.presenter, self.audience):
+            if not any(screen.availableGeometry().intersects(window.frameGeometry()) for screen in screens):
+                self._place(window, self.app.primaryScreen())
         self.presenter.raise_()
         self.view.setFocus()
 
@@ -156,6 +190,10 @@ class Presenter:
         self.audience.setWindowTitle(f"{name} · audience")
         self.media.stop()
         self.view.media_image = self.slide.media_image = None
+        self.view.media_rect = self.slide.media_rect = None
+        self.media_source_rect = self.media_source_page = None
+        self.posters.reset(action.value for page in self.session.snapshot.pages
+                           for action in page.actions if action.kind == "media")
         self.view.setFocus()
 
     def reload(self):
@@ -173,10 +211,54 @@ class Presenter:
         self.session.show_help = not self.session.show_help
         self.session.changed.emit()
 
+    def toggle_clock(self):
+        self.session.clock.show_wall = not self.session.clock.show_wall
+        self.session.changed.emit()
+
+    def hide_all(self):
+        self._hidden_fullscreen = self.fullscreen
+        if self.fullscreen:
+            self.toggle_fullscreen()
+        self._hidden = True
+        self.presenter.showMinimized()
+        self.audience.showMinimized()
+
+    def restore_all(self):
+        if not self._hidden:
+            return
+        self._hidden = False
+        self.presenter.showNormal()
+        self.audience.showNormal()
+        if self._hidden_fullscreen:
+            self.toggle_fullscreen()
+        self.view.setFocus()
+
+    def eventFilter(self, watched, event):
+        if self._closed:
+            return False
+        if watched is self.slide and event.type() == QEvent.Type.Resize and self.web:
+            self.web.setGeometry(self.slide.geometry())
+        if self.web and self.session.surface == Surface.WEB and event.type() == QEvent.Type.KeyPress:
+            from PySide6.QtWidgets import QWidget
+            in_web = isinstance(watched, QWidget) and (watched is self.web or self.web.isAncestorOf(watched))
+            if in_web and event.key() == Qt.Key.Key_Escape:
+                self.session.surface = Surface.SLIDES
+                self.session.changed.emit()
+                self.slide.setFocus()
+                return True
+            if in_web and event.key() == Qt.Key.Key_F5:
+                self.toggle_fullscreen()
+                return True
+        return super().eventFilter(watched, event)
+
     def command(self, command):
         if isinstance(command, str):
             if command == "fullscreen":
                 self.toggle_fullscreen()
+            elif command == "media-toggle":
+                self.media.toggle()
+            elif command == "media-expand":
+                self.expand_media()
             return
         event = command
         key, text, mods = event.key(), event.text(), event.modifiers()
@@ -234,13 +316,16 @@ class Presenter:
         elif text.lower() == "x":
             self.swap()
         elif text.lower() == "h":
-            self.presenter.showMinimized()
-            self.audience.showMinimized()
+            self.hide_all()
+        elif key == Qt.Key.Key_T and shift:
+            self.toggle_clock()
         elif text.lower() == "t":
             state.clock.toggle()
         elif text == " ":
             if state.surface == Surface.MEDIA:
                 self.media.toggle()
+            elif state.animation_command("Toggle"):
+                pass
             elif state.snapshot.pages[state.page].duration:
                 state.auto_advance = not state.auto_advance
                 state._schedule()
@@ -275,7 +360,7 @@ class Presenter:
             state.pointer_mode = (state.pointer_mode + 1) % 3
             state.pointer_visible = True
         elif text in ("p", "P"):
-            state.pointer_size = min(.5, max(.005, state.pointer_size * (1.5 if text == "P" else 1 / 1.5)))
+            state.pointer_size = min(.5, max(.005, state.pointer_size * (1.5 if shift else 1 / 1.5)))
             state.stroke_width = state.pointer_size / 12
             state.pointer_visible = True
         elif text.lower() == "c":
@@ -286,12 +371,16 @@ class Presenter:
                 state.ink_opacity = color.alphaF()
         elif text.lower() == "e":
             state.ink.erase(state.ink_pages)
-        elif text == "V":
+        elif key == Qt.Key.Key_V and shift:
             self.view.camera_large = self.slide.camera_large = not self.slide.camera_large
         elif text.lower() == "v":
             self.toggle_camera()
+        elif key == Qt.Key.Key_M and shift:
+            self.expand_media()
         elif text.lower() == "m":
             if self.media.resource:
+                if self.session.page != self.media_source_page:
+                    self.view.media_rect = self.slide.media_rect = None
                 state.toggle_surface(Surface.MEDIA)
             else:
                 self.pick_media()
@@ -303,11 +392,17 @@ class Presenter:
                 if okay and url:
                     self.open_web(url)
         elif text in ("<", ">"):
-            self.media.step(1 if text == ">" else -1)
+            if state.surface == Surface.MEDIA:
+                self.media.step(1 if text == ">" else -1)
+            else:
+                state.animation_command("StepRight" if text == ">" else "StepLeft")
         state.changed.emit()
 
     def activate(self, action):
-        if action.kind == "page":
+        if action.kind == "animation":
+            identifier, command = str(action.value).split(":", 1)
+            self.session.animation_command(command, int(identifier))
+        elif action.kind == "page":
             self.session.go(int(action.value))
         elif action.kind == "named":
             name = action.value
@@ -318,14 +413,7 @@ class Presenter:
             elif name in ("/GoBack", "/GoForward"):
                 self.session.history(name == "/GoBack")
         elif action.kind == "media":
-            try:
-                self.media.load(action.value)
-                self.session.surface = Surface.MEDIA
-                self.status.show()
-                self.seek.show()
-                self.session.changed.emit()
-            except Exception as error:
-                self.notify(str(error))
+            self.play_media(action.value, action.rect)
         elif action.kind == "url":
             self.open_web(str(action.value))
 
@@ -333,26 +421,46 @@ class Presenter:
         from .document import Media
         path, _ = QFileDialog.getOpenFileName(self.presenter, "Open video/audio/GIF")
         if path:
-            try:
-                self.media.load(Media(Path(path).name, path=Path(path)))
-                self.session.surface = Surface.MEDIA
-                self.status.show()
-                self.seek.show()
-                self.session.changed.emit()
-            except Exception as error:
-                self.notify(str(error))
+            self.play_media(Media(Path(path).name, path=Path(path)))
+
+    def play_media(self, resource, rect=None):
+        previous = self.session.surface
+        self.media_source_rect = rect if rect and rect[3] >= .03 else None
+        self.media_source_page = self.session.page
+        self.view.media_rect = self.slide.media_rect = self.media_source_rect
+        self.view.media_image = self.slide.media_image = self.posters.images.get(resource.key)
+        self.session.surface = Surface.MEDIA
+        try:
+            self.media.load(resource)
+            self.status_timer.stop()
+            self.status.show()
+            self.status.showMessage("Click: play/pause · double-click or Shift+M: expand/restore · < >: step")
+            self.seek.show()
+        except Exception as error:
+            self.session.surface = previous
+            self.notify(str(error))
+        self.session.changed.emit()
+
+    def expand_media(self):
+        if self.session.surface != Surface.MEDIA:
+            return
+        rect = self.media_source_rect if self.slide.media_rect is None else None
+        self.view.media_rect = self.slide.media_rect = rect
+        self.session.changed.emit()
 
     def _media_frame(self, image):
         self.view.media_image = self.slide.media_image = image
         self.session.changed.emit()
 
     def _camera_frame(self, image):
+        if not self.camera.active:
+            return
         self.view.camera_image = self.slide.camera_image = image
         self.session.changed.emit()
 
     def _media_state(self):
-        if not self.seek.isSliderDown() and self.media.player.duration():
-            self.seek.setValue(round(self.media.player.position() / self.media.player.duration() * 1000))
+        if not self.seek.isSliderDown() and self.media.duration:
+            self.seek.setValue(round(self.media.position / self.media.duration * 1000))
 
     def toggle_camera(self, checked=False, choose=False):
         if self.camera.active and not choose:
@@ -394,11 +502,22 @@ class Presenter:
         if self.web is None:
             from PySide6.QtWebEngineWidgets import QWebEngineView
             self.web = QWebEngineView(self.audience)
+            self.web.installEventFilter(self)
             self.web.loadFinished.connect(lambda okay: None if okay else self.notify("Could not load web content"))
+            self.web.loadFinished.connect(lambda _: self._web_keyboard_filter())
         self.web.setGeometry(self.audience.centralWidget().geometry())
         self.web.load(url)
         self.session.surface = Surface.WEB
         self.session.changed.emit()
+
+    def _web_keyboard_filter(self):
+        # Limit Python event filtering to actual widgets. Filtering every Qt
+        # application event can re-enter Shiboken while WebEngine constructs
+        # private QObject wrappers, causing a native crash on macOS.
+        if self.web:
+            proxy = self.web.focusProxy()
+            if proxy:
+                proxy.installEventFilter(self)
 
     def _surface_changed(self):
         if self.web:
@@ -425,8 +544,14 @@ class Presenter:
         name, okay = QInputDialog.getItem(self.presenter, "Audience display", "Display:", names, 0, False)
         if okay:
             screen = screens[names.index(name)]
+            was_fullscreen = self.fullscreen
+            if was_fullscreen:
+                self.toggle_fullscreen()
             self.audience_screen = screen.name()
+            self.session.settings.setValue("audience-screen", self.audience_screen)
             self._place(self.audience, screen)
+            if was_fullscreen:
+                self.toggle_fullscreen()
 
     def toggle_fullscreen(self):
         if self.fullscreen:
@@ -464,6 +589,7 @@ class Presenter:
         self._place(self.audience, new_audience)
         self._place(self.presenter, old_audience)
         self.audience_screen = new_audience.name()
+        self.session.settings.setValue("audience-screen", self.audience_screen)
         if was_fullscreen:
             self.toggle_fullscreen()
 
@@ -486,8 +612,13 @@ class Presenter:
         if self._closed:
             return
         self._closed = True
+        if not self.fullscreen:
+            self.session.settings.setValue("geometry/presenter", self.presenter.saveGeometry())
+            self.session.settings.setValue("geometry/audience", self.audience.saveGeometry())
         self.session.save()
+        self.session.close()
         self.camera.stop()
+        self.posters.close()
         self.media.close()
         self.app.quit()
 

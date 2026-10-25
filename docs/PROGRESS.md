@@ -1,66 +1,97 @@
 # Implementation checkpoint
 
-The rewrite is active and incomplete. The project is local at `code/pagecue`;
-the existing wrapper repository/application were not changed by this implementation.
-PageCue is a working name. No binary release is claimed.
+The rewrite remains active and incomplete. The project is local at `code/pagecue`;
+the existing wrapper repository/application are unchanged. PageCue is a working
+name. No binary release or Windows validation is claimed.
 
 ## Current implementation
 
-- Original Qt Widgets presenter/audience canvases with current/next, thumbnails,
-  Unicode notes, clock, keyboard help and pointer/ink layers.
-- Independent PDF metadata/notes reader using pypdf; render-only PDF copy removes
-  note annotations; original file bytes remain unchanged.
-- Qt PDF asynchronous rendering with bounded image cache and generation checks.
-- Navigation/history, overlay grouping, section targets and recent-page storage.
-- PDF and notes reload prepares a new backend before replacing the live session.
-- Qt media player/audio/video sink plus GIF decoder, camera service, lazy web view.
-- Display/fullscreen controls, basic drawing selection/transforms and tablet events.
+- Original minimalist Qt presenter/audience canvases, notes, thumbnails and help.
+- Independent pypdf metadata/notes reading and Qt PDF queued rendering with bounded
+  caches. Sources stay unchanged; invalid reload retains the live deck.
+- Navigation/history, physical overlay groups, section targets, recent page,
+  clock/countdown/pause/reset, /Dur auto-advance and display controls.
+- Drawing, selection/movement/scaling, board, pointer/spotlight, zoom/pan.
+- LaTeX animate widget appearance extraction into an independent frame PDF;
+  Qt renders transparent frame images over the base slide. Timing is read from
+  recognized generated declarations without executing PDF JavaScript. Forward,
+  reverse, stepping, endpoints, autoplay, loop, palindrome and speed controls exist.
+- Linked/embedded Movie, Rendition and RichMedia playback, GIF/audio support,
+  sequential muted poster loading, media rectangles and full-slide expansion.
+- Camera service/device controls and a lazy native WebEngine content view.
+- Window hide/restore, persisted display preference/window geometry, safe shutdown.
 
-## Evidence at this checkpoint
+## Evidence
 
-- `uv run pytest -q`: **14 passed** on the development Mac.
-- Actual Qt PDF rendering checked with a synthetic three-page vector deck.
-- PDF annotation precedence, embedded/sidecar notes, Unicode, encrypted PDFs,
-  annotation rotation, physical-page navigation, timer and ink domain tests.
-- Full application keyboard navigation from both windows, board mode, timer,
-  reload retaining page/timer; actual two-frame GIF decoding.
-- Offscreen and native Cocoa smoke runs generated presenter/audience captures.
-  The native presenter capture and initial audience capture were visually opened.
-  Font spacing and help clipping found during QA were corrected and rechecked.
-- `qa/native-mac/smoke.json` records page-forward=1, audience-back=0, board mode,
-  timer running and reload preserving the timer. QA artifacts are local/ignored.
+`uv run pytest -q`: **29 passed** on the development Mac at this checkpoint.
 
-Reproduce:
+Tests include actual Qt PDF rendering, notes/annotations/encryption, original
+LaTeX animate and Beamer-generated fixtures, controlled PDF labels/outlines,
+/Dur event timing, GUI drawing/select/move/erase, and native media decoding.
+Video tests use generated H.264 in Movie/Rendition/RichMedia annotations and verify
+seeking, embedded/full-slide pixels, and forward/reverse stepping. A VFR fixture
+checks the final B-frame; a silent WAV verifies audio loading without audible sound.
+
+Offscreen/native Cocoa captures are local under `qa/` (ignored):
+
+- `native-mac/`: presenter layout and keyboard/timer/reload JSON from the first
+  checkpoint; presenter and audience captures were inspected.
+- `animation/`: three captured animation frames; the green audience frame was
+  inspected, while tests compare all three actual Qt-rendered frame colors.
+- `media/`: native embedded rectangle and expanded playback captures, both opened
+  for visual inspection; decoded-frame timestamp recorded in `result.json`.
+- `web-fixed/`: native local web-content capture inspected. `results.json` confirms
+  load/title, resize geometry and Escape returning to slides.
+
+Reproduce the common checks:
 
 ```sh
+uv run pytest -q
 uv run python scripts/make_demo.py qa/demo.pdf
 QT_QPA_PLATFORM=offscreen uv run python scripts/gui_smoke.py qa/demo.pdf qa/offscreen
 QT_QPA_PLATFORM=cocoa uv run python scripts/gui_smoke.py qa/demo.pdf qa/native-mac
+QT_QPA_PLATFORM=cocoa uv run python scripts/web_smoke.py qa/demo.pdf qa/web-fixed
 ```
 
-The Cocoa command is Mac-specific. Neither smoke run proves two physical screens,
-real camera permission/device capture, all movie codecs, or Windows support.
+The Cocoa commands require macOS. Tests generating LaTeX/video fixtures require
+`pdflatex` (animate/beamer packages) and `ffmpeg`; they explicitly skip if missing.
+Their sources are original fixtures in `tests/fixtures`, not upstream test copies.
 
-## Next implementation work (required, not optional)
+## Issues found and corrected
 
-1. Implement LaTeX animate extraction and frame rendering/control, with original
-   generated PDF fixtures. Cover old/new metadata, autoplay, reverse, loop,
-   palindrome and visible widget controls. `pdflatex` is available locally.
-2. Implement embedded-rectangle vs full-slide media playback, poster extraction,
-   and test linked/embedded Movie, Rendition and RichMedia formats. `ffmpeg` is
-   available locally; GIF playback alone is not video/audio validation.
-3. Finish lifecycle/HCI behavior: clock display switching, media seek/step accuracy,
-   audience keyboard events with web focus, web resize, camera controls/permissions,
-   window hide/unhide and preferences/display persistence.
-4. Exercise ink selection/movement/scaling, Beamer cropping, /Dur timing, page
-   labels/sections and action links with actual PDFs rather than only domain tests.
-5. Implement update/version check equivalent and configurable video proxy behavior.
-6. Produce reproducible per-user installers/packages with bundled Python/Qt,
-   notices and source/relink information. Test clean startup and installation.
-7. Run Windows builds/tests and physical-display/camera acceptance checks. Keep
-   unsupported/unavailable test environments explicitly unverified until tested.
+- Beamer initially exposed its miniature/header and off-page hidden overlay text
+  in notes. Extraction now checks page bounds and recognizes the miniature header.
+- Application-wide Python event filtering caused a native Shiboken/WebEngine crash
+  on macOS. Filters are now attached only to the relevant widgets/focus proxy.
+  `Application` also requests shared graphics contexts before QApplication setup.
+- Estimated-FPS seeking repeated/skipped video frames. Forward stepping now decodes
+  the actual next frame before pausing; reverse seeks just before the current frame.
+  Forward stepping can take the remaining frame duration, especially in VFR video.
+  Do not reintroduce a naive timestamp-plus-average-FPS shortcut.
+- Animation timing reader accepts current generated globals and older object
+  fields. Unknown timing produces a diagnostic/manual fallback; this is not proof
+  of full old-version compatibility.
 
-Known design issues to address: the full PySide6 dependency currently includes all
-add-on/WebEngine packages; release size has not been measured. Help is compact and
-needs resize/accessibility checks. Most GUI commands exist but have not all been
-exercised. No source-copying or license-clean-room certification is claimed.
+## Required remaining work
+
+1. Complete update/version checking and notifications, configurable privacy-video
+   routing/direct-link behavior, and an actual release channel.
+2. Expand action/link and animation coverage: a real older animate PDF, alternate
+   forms/layouts, multiple animations, click/keyboard controls and long decks.
+   Legacy timing has unit coverage but no compiled legacy integration fixture yet.
+3. Audit camera permission/device lifecycle and test a real camera with deliberate
+   user involvement. Camera frames are not captured automatically during QA.
+4. Finish interaction/visual edge cases: small windows, changing DPI, crop/pan/zoom,
+   selection scaling, persistent preferences, hide/fullscreen restoration and
+   actual physical display selection/swap/unplug behavior.
+5. Produce per-user installers/native packages with bundled Python/Qt, application
+   identity/icon, camera entitlements/usage text, notices and source/relink guidance.
+   Test clean startup, update/uninstall and executable paths containing Unicode.
+6. Run Windows builds/tests and both platforms' physical-device acceptance checks.
+   No Windows environment has been exercised yet. Keep these requirements open.
+7. Do a requirement-by-requirement completion audit against `FEATURES.md`; do not
+   substitute an unsupported-feature message for a feature's implementation.
+
+The full PySide6 distribution currently includes all add-on/WebEngine packages.
+Release size/startup/resource budgets remain unmeasured. No public repo for the new
+app, packaged release, clean-room certification or full parity claim exists yet.
