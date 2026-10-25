@@ -58,5 +58,6 @@ jobs:
             qa/packaged
             qa/layout
             qa/opening/result.json
+            qa/opening/picker.png
           retention-days: 14
           if-no-files-found: warn

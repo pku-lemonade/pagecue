@@ -32,6 +32,7 @@ def test_generated_timing_is_read_without_executing_functions():
 def test_older_object_metadata_and_no_loop():
     script = "a2={dt:1000/8,isPlaying:true,actnNext:function(){ pause(); }};"
     assert timing(script, 2) == (8, True, False, False)
+    assert timing("a2.dt=1000/(1e-6+Math.abs(-4));a2.isPlaying=false;", 2)[0] == pytest.approx(4)
 
 
 def test_timing_does_not_execute_expressions():
@@ -39,6 +40,8 @@ def test_timing_does_not_execute_expressions():
         timing("a0_fps=__import__('os').system('echo forbidden');", 0)
     with pytest.raises(ValueError):
         timing("a0_fps=condition ? doSomething() : 10;", 0)
+    with pytest.raises(ValueError):
+        timing("a0_fps=Math.abs(__import__('os').system('echo forbidden'));", 0)
 
 
 def test_legacy_constant_frame_rate_expression():
@@ -156,10 +159,10 @@ def test_merged_animated_decks_keep_distinct_playback_state(qtbot, tmp_path):
     session.close()
 
 
-@pytest.fixture(params=["current", "2018"])
+@pytest.fixture(params=["current", "2018", "2016", "2013"])
 def latex_animation(tmp_path, request):
-    if request.param == "2018":
-        return Path(__file__).parent / "fixtures/generated/animation-2018.pdf"
+    if request.param != "current":
+        return Path(__file__).parent / f"fixtures/generated/animation-{request.param}.pdf"
     engine = shutil.which("pdflatex")
     if engine is None:
         path = tmp_path / "animation.pdf"
@@ -177,7 +180,8 @@ def test_real_latex_frames_metadata_and_qt_rendering(qtbot, latex_animation):
     assert not snapshot.notes.diagnostics
     assert len(snapshot.animations) == 1
     spec = snapshot.animations[0]
-    assert (spec.fps, spec.autoplay, spec.loop, spec.palindrome) == (4, True, True, True)
+    assert spec.fps == pytest.approx(4)
+    assert (spec.autoplay, spec.loop, spec.palindrome) == (True, True, True)
     assert len(spec.frames) == 3
     assert {c.command for c in spec.controls} >= {"PlayPauseLeft", "PlayPauseRight", "StepRight", "EndLeft"}
     session = Session()

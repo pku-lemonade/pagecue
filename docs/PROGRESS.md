@@ -43,13 +43,17 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **65 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **67 passed** on the development Mac at this checkpoint.
 New work covers multiple animations, last/absent posters, reverse pause/resume,
 and duplicate source field names in merged PDFs. Native Cocoa captures of the
 poster and previously invisible first-frame states were inspected under
 `qa/animation-ui-check/`. `scripts/opening_smoke.py` passes Unicode drag/drop,
 Qt widget-dialog selection, QApplication QFileOpenEvent handling and recent-page
 restoration. Those checks do not simulate native OS dialog/event delivery.
+Older animation tests now compile actual 2013, 2016 and 2018 packages as well as
+the current one. The 2013 button-icon `/MK/I` format and object-style interval/
+scheduled-autoplay metadata, plus 2016 `/Names/AP` icons, render correctly through
+Qt. Source package/dependency versions and hashes are in the fixture manifest.
 The current changes add scrollable/wrapped help and camera permission/device
 lifecycle, plus persisted inset width/opacity/corner controls. Native macOS
 captures under `qa/layout-camera/` show minimum, scrolled and normal layouts and
@@ -144,6 +148,12 @@ locally with TeX/FFmpeg excluded from PATH.
   playback direction and resumes that direction instead of switching to forward.
 - Pixel checks now account for the captured widget's device pixel ratio; logical
   coordinates cannot index a Retina-resolution QImage directly.
+- The first opening-smoke CI attempt passed drag/drop and file events but failed
+  to select a filename in the dialog. Programmatic selectFile calls after showing
+  left the focused filename field empty. The check now uses the documented initial
+  filename parameter, waits for the real selection, captures the widget dialog,
+  accepts it and verifies the returned file. Offscreen and Cocoa runs pass locally;
+  the new native CI run must verify this correction.
 
 - Beamer initially exposed its miniature/header and off-page hidden overlay text
   in notes. Extraction now checks page bounds and recognizes the miniature header.
@@ -183,11 +193,12 @@ locally with TeX/FFmpeg excluded from PATH.
 
 1. Create an actual release channel; validate OS update notification delivery and
    real privacy-video service behavior. Release parsing/routing now have coverage.
-2. Expand animation coverage: alternate forms/layouts and long decks. Multiple
-   animations, posters and click/keyboard controls now have integration coverage.
-   Current and compiled 2018 widget output
-   are covered; older object-style timing still has unit coverage only. A 2016
-   package probe needs its historical `animfp.sty` dependency before compilation.
+2. Complete the remaining rendering/long-deck audit. Current and compiled
+   2013/2016/2018 animation output now cover widget and named-icon forms, original
+   object-style timing, independent animations, posters and click/keyboard controls.
+   The baseline implementation's widget/fixed-timing boundary was rechecked and
+   recorded in FEATURES.md; general OCG/arbitrary JavaScript playback was not an
+   implemented feature of the reference app.
 3. Audit camera permission/device lifecycle and test a real camera with deliberate
    user involvement. Camera frames are not captured automatically during QA.
    Width/opacity/position now have persisted controls. Permission callbacks are

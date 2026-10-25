@@ -34,6 +34,7 @@ def main():
         paths[name] = path
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(output / "settings"))
+    Application.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs, True)
     app = Application([])
     presenter = Presenter(app)
     presenter.show()
@@ -61,16 +62,33 @@ def main():
         results["file_event"] = True
         original_picker = QFileDialog.getOpenFileName
         def widget_picker(parent, caption, directory, filters):
-            return original_picker(parent, caption, str(output), filters,
-                                   options=QFileDialog.Option.DontUseNativeDialog)
+            # Use QFileDialog's documented initial-file selection. Calling
+            # selectFile after showing can leave the focused filename editor
+            # unchanged, so it is not a reliable simulated user selection.
+            selected = original_picker(parent, caption, str(paths["picker"]), filters,
+                                       options=QFileDialog.Option.DontUseNativeDialog)
+            results["picker_returned"] = selected[0]
+            return selected
         QFileDialog.getOpenFileName = widget_picker
         def select_file():
-            dialog = app.activeModalWidget()
-            if isinstance(dialog, QFileDialog):
-                dialog.selectFile(str(paths["picker"]))
+            dialog = next((widget for widget in app.topLevelWidgets()
+                           if isinstance(widget, QFileDialog) and widget.isVisible()), None)
+            if dialog is not None:
+                # QFileSystemModel loads directories asynchronously. Do not
+                # accept until the dialog actually reports the intended file.
+                QTimer.singleShot(150, lambda: accept_selection(dialog))
+            else:
+                results["picker_windows"] = [(widget.metaObject().className(), widget.isVisible())
+                                             for widget in app.topLevelWidgets()]
+                QTimer.singleShot(50, select_file)
+        def accept_selection(dialog):
+            selected = dialog.selectedFiles()
+            results["picker_selected"] = selected
+            if selected and Path(selected[0]).resolve() == paths["picker"]:
+                dialog.grab().save(str(output / "picker.png"))
                 dialog.accept()
             else:
-                QTimer.singleShot(50, select_file)
+                QTimer.singleShot(100, select_file)
         try:
             QTimer.singleShot(100, select_file)
             presenter.pick()

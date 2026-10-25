@@ -31,8 +31,8 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | CAMERA-01 | Device choice, permission, inset, resize, position, opacity | Permission cancellation/device lifecycle; persisted width/opacity/corner controls and expansion implemented | Simulated permission cancellation/denial/device loss, stale-frame rejection and shutdown tests pass; synthetic compositing captures inspected; physical camera and OS permission flow pending |
 | WEB-01 | In-app external web/local content and zoom | Implemented | Native Mac local content, resize and Escape check; capture inspected |
 | WEB-02 | Configurable privacy video proxy/direct-link option | Direct/custom/automatic routing and persisted setting implemented | URL/instance-resolution tests; navigation/reload/view/Escape cancel stale callbacks; live instance availability varies |
-| ANIM-01 | LaTeX animate frames, widget controls, frame stepping | Implemented for recognized widget-frame animations, including initial posters | Current/2018 and multiple-animation PDFs; rendered poster-last/poster-none, clicked controls, keyboard stepping, merged PDFs with duplicate source IDs pass; native Mac captures inspected |
-| ANIM-02 | Autoplay, forward/reverse, loop, palindrome, old/new metadata | Implemented for recognized metadata | Current/2018 generated fixtures verify autoplay/loop/palindrome; reverse pause/resume, speed, independent controls and page timer lifecycle pass; broader formats pending |
+| ANIM-01 | LaTeX animate frames, widget controls, frame stepping | Widget and named-icon frame formats, including initial posters | Compiled 2013/2016/2018/current output; rendered colors, poster-last/poster-none, clicked controls, keyboard stepping and merged widget PDFs pass; native Mac captures inspected |
+| ANIM-02 | Autoplay, forward/reverse, loop, palindrome, old/new metadata | Implemented for supported generated metadata | Compiled object-style interval, dotted and modern timing; autoplay/loop/palindrome; reverse pause/resume, speed, independent controls and page timer lifecycle pass |
 | APP-01 | Menus, help, about, version/update check and notifications | Implemented; actual release channel pending | Real local HTTP/QtNetwork version and missing-release tests; OS notification delivery pending |
 | APP-02 | Per-user installation, reproducible packages, update/uninstall | Native bundle recipe, staged installer and Windows Start Menu support | Windows x64 and Mac arm64/Intel CI install/update/remove and packaged execution pass; Windows Unicode shortcut lifecycle passes; OS first-launch approval flow pending |
 | APP-03 | Windows/macOS support, fonts, mixed DPI, input devices | Windows x64 and Mac arm64/Intel packages run in CI | Windows presenter/Chinese notes capture inspected; mixed DPI and physical device acceptance pending |
@@ -40,3 +40,12 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 No native code/toolkit choice proves media/animation parity. Keep actual fixture
 evidence for each format and control. Do not mark “unsupported” as completion.
 Platform-specific HCI may differ, but each user capability needs an equivalent.
+
+Reference animation scope was rechecked in the installed 3.4.0 source (same hash
+above): `prepare_animations` at lines 733–766 selects named frame widgets;
+`advance_animation` at 776–827 uses a fixed FPS/loop/direction state. The baseline
+does not provide general OCG-frame or arbitrary JavaScript playback. PageCue also
+supports older named-icon frames as an addition. The author's
+[feature description](https://iihm.imag.fr/blanch/software/osx-presentation/) explicitly
+excludes fancy page-transition effects; PDF duration-based page advance remains
+in scope and is implemented.

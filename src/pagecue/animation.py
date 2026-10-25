@@ -157,6 +157,10 @@ def _number(expression):
             return operations[type(node.op)](evaluate(node.left), evaluate(node.right))
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
             return evaluate(node.operand) * (-1 if isinstance(node.op, ast.USub) else 1)
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name) and node.func.value.id == "Math"
+                and node.func.attr == "abs" and len(node.args) == 1 and not node.keywords):
+            return abs(evaluate(node.args[0]))
         raise ValueError("Not a numeric literal/expression")
     if len(list(ast.walk(tree))) > 32:
         raise ValueError("Expression too complex")
@@ -180,29 +184,36 @@ def timing(script, identifier):
     top = script
     for start, end in reversed(spans):
         top = top[:start] + "{}" + top[end + 1:]
-    match = re.search(rf"\b{prefix}_fps\s*=\s*([^;]+)", top)
+    match = re.search(rf"\b{prefix}[_.]fps\s*=\s*([^;]+)", top)
     fps = _number(match.group(1)) if match else None
     legacy = re.search(rf"\b{prefix}\s*=\s*\{{", top)
     scope = top[legacy.end():_matching_brace(top, legacy.end() - 1)] if legacy else top
     if fps is None:
-        interval = re.search(rf"(?:\b{prefix}\.dt\s*=|\bdt\s*:)\s*([0-9.+*/ ()-]+)", scope)
+        interval = re.search(rf"(?:\b{prefix}\.dt\s*=|\bdt\s*:)\s*([^;,}}]+)", scope)
         if interval:
             fps = 1000 / _number(interval.group(1))
     if fps is None or not 0 < fps <= 240:
         raise ValueError("Unrecognized or out-of-range animation frame rate")
-    initial = re.search(rf"\b{prefix}_playing\s*=\s*(true|false|1|0)", top)
+    initial = re.search(rf"\b{prefix}[_.]playing\s*=\s*(true|false|1|0)", top)
     old_initial = re.search(rf"(?:\b{prefix}\.isPlaying\s*=|\bisPlaying\s*:)\s*(true|false|1|0)", scope)
     autoplay = bool((initial and initial.group(1) in ("true", "1")) or
                     (old_initial and old_initial.group(1) in ("true", "1")) or
-                    re.search(rf"\b{prefix}_(?:playFwd|playBwd|playRight|playLeft)\s*\(", top))
-    next_body = functions.get(prefix + "_gotoNext", functions.get(prefix + ".actnNext", functions.get("actnNext", "")))
-    loop = bool(re.search(r"\b(?:\w+_playing|isPlaying|\w+\.isPlaying)\b", next_body))
-    palindrome = bool(re.search(r"playLeft|playBwd|playsRight\s*=\s*false", next_body))
+                    re.search(rf"\b{prefix}[_.](?:playFwd|playBwd|playRight|playLeft)\s*\(", top) or
+                    re.search(rf"setTimeOut\s*\(\s*['\"]{prefix}\.actnPlay(?:Right|Left)\(\)['\"]", top))
+    next_body = next((functions[name] for name in (prefix + "_gotoNext", prefix + ".gotoNext",
+                                                  prefix + ".actnNext", "actnNext") if name in functions), "")
+    loop = bool(re.search(r"\b(?:\w+[_.]playing|isPlaying|\w+\.isPlaying)\b", next_body))
+    palindrome = bool(re.search(r"playLeft|playBwd|playsRight\s*=\s*false", next_body, re.IGNORECASE))
     return fps, autoplay, loop, palindrome
 
 
 def _appearance_page(writer, annotation, rotation):
-    appearance = _object(_object(annotation["/AP"])["/N"])
+    appearance = _object(_object(annotation.get("/AP", {})).get("/N"))
+    if appearance is None:
+        # Older push-button widgets specify their icon in /MK/I instead of /AP/N.
+        appearance = _object(_object(annotation.get("/MK", {})).get("/I"))
+    if appearance is None:
+        raise ValueError("Animation frame has no appearance or button icon")
     if not hasattr(appearance, "get_data"):
         appearance = _object(appearance.get(annotation.get("/AS"), next(iter(appearance.values()))))
     bounds = [float(v) for v in appearance["/BBox"]]
@@ -230,10 +241,32 @@ def _appearance_page(writer, annotation, rotation):
     return len(writer.pages) - 1
 
 
+def _named_appearances(reader):
+    """Read the standard PDF appearance name tree used by older animate icons."""
+    root = _object(reader.trailer["/Root"])
+    catalog_names = _object(root.get("/Names", {}))
+    pending = [catalog_names.get("/AP", {})] if isinstance(catalog_names, dict) else []
+    names, visited = {}, set()
+    while pending:
+        node = _object(pending.pop())
+        if not isinstance(node, dict) or id(node) in visited:
+            continue
+        visited.add(id(node))
+        pairs = _object(node.get("/Names", []))
+        if isinstance(pairs, list):
+            for i in range(0, len(pairs) - 1, 2):
+                names[str(pairs[i])] = pairs[i + 1]
+        children = _object(node.get("/Kids", []))
+        if isinstance(children, list):
+            pending.extend(children)
+    return names
+
+
 def extract(reader, rect_converter):
     """Return animation specs, a PDF containing their frames, and diagnostics."""
     writer = PdfWriter()
     specs, problems = [], []
+    icons = _named_appearances(reader)
     for page_index, page in enumerate(reader.pages):
         annotations = [_object(ref) for ref in page.get("/Annots", [])]
         fields = {str(a.get("/T", "")): a for a in annotations}
@@ -245,7 +278,14 @@ def extract(reader, rect_converter):
             candidates = sorted((int(key.split(".")[1]), annotation) for key, annotation in fields.items()
                                 if re.fullmatch(rf"{identifier}\.\d+", key))
             if not candidates:
-                problems.append(f"Animation {identifier} has no readable widget frames")
+                # animate's older default method stores reusable frame forms in
+                # /Names/AP and displays their icons on the container widget.
+                candidates = sorted((int(key.split(".")[1]), {
+                    "/Rect": container["/Rect"], "/AP": {"/N": appearance}, "/F": 2,
+                }) for key, appearance in icons.items()
+                    if re.fullmatch(r"\d+\.\d+", key) and int(key.split(".")[0]) == identifier)
+            if not candidates:
+                problems.append(f"Animation {identifier} has no readable widget or icon frames")
                 continue
             settings = None
             for owner in [container] + annotations:
