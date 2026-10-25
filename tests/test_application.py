@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from PIL import Image
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
@@ -7,6 +8,32 @@ from PySide6.QtTest import QTest
 from pagecue.app import Presenter
 from pagecue.document import Media
 from pagecue.model import Surface
+
+
+@pytest.mark.parametrize("interrupt", ["navigate", "reload", "board", "escape"])
+def test_delayed_video_link_does_not_interrupt_new_context(qapp, qtbot, deck, monkeypatch, interrupt):
+    app = Presenter(qapp)
+    qtbot.addWidget(app.presenter)
+    qtbot.addWidget(app.audience)
+    app.open(deck)
+    app.video_mode = "auto"
+    callbacks, resolved = [], []
+    monkeypatch.setattr(app.video_router.requests, "get", lambda url, callback: callbacks.append(callback))
+    app.video_router.resolved.connect(resolved.append)
+    app.open_web("https://youtu.be/test")
+    if interrupt == "navigate":
+        app.session.navigate(1)
+    elif interrupt == "reload":
+        app.reload()
+    elif interrupt == "board":
+        app.session.toggle_surface(Surface.BOARD)
+    else:
+        QTest.keyClick(app.view, Qt.Key.Key_Escape)
+    callbacks[0]([["video.example", {"api": True}]], None)
+    assert resolved == []
+    assert app.web is None
+    app.session.close()
+    app.media.close()
 
 
 def test_application_commands_and_state_preserving_reload(qapp, qtbot, deck):

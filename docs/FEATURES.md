@@ -30,11 +30,11 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | MEDIA-03 | Embedded-rectangle and full-slide playback | Implemented | Embedded/expanded pixel assertions and native Mac captures inspected |
 | CAMERA-01 | Device choice, permission, inset, resize, position, opacity | Initial implementation | Physical camera and permission flow pending |
 | WEB-01 | In-app external web/local content and zoom | Implemented | Native Mac local content, resize and Escape check; capture inspected |
-| WEB-02 | Configurable privacy video proxy/direct-link option | Pending | Pending |
+| WEB-02 | Configurable privacy video proxy/direct-link option | Direct/custom/automatic routing and persisted setting implemented | URL/instance-resolution tests; navigation/reload/view/Escape cancel stale callbacks; live instance availability varies |
 | ANIM-01 | LaTeX animate frames, widget controls, frame stepping | Implemented for recognized widget-frame animations | Actual LaTeX animate PDF frames and controls rendered; older PDFs pending |
 | ANIM-02 | Autoplay, forward/reverse, loop, palindrome, old/new metadata | Implemented for recognized metadata | Real current fixture autoplay/loop/palindrome; reverse/speed/legacy metadata unit tests |
-| APP-01 | Menus, help, about, version/update check and notifications | Partial; update checking pending | Menus/help/about present; lifecycle tests pending |
-| APP-02 | Per-user installation, reproducible packages, update/uninstall | Pending | Clean machines pending |
+| APP-01 | Menus, help, about, version/update check and notifications | Implemented; actual release channel pending | Real local HTTP/QtNetwork version and missing-release tests; OS notification delivery pending |
+| APP-02 | Per-user installation, reproducible packages, update/uninstall | Native bundle recipe and staged per-user installer implemented | Mac arm64 bundle signature and installed executable smoke pass; Unicode install/update/check/remove exercised; Windows/clean machines pending |
 | APP-03 | Windows/macOS support, fonts, mixed DPI, input devices | Native Mac development launch works | Windows and physical device acceptance pending |
 
 No native code/toolkit choice proves media/animation parity. Keep actual fixture

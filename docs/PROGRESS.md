@@ -20,10 +20,17 @@ name. No binary release or Windows validation is claimed.
   sequential muted poster loading, media rectangles and full-slide expansion.
 - Camera service/device controls and a lazy native WebEngine content view.
 - Window hide/restore, persisted display preference/window geometry, safe shutdown.
+- Async version check, opt-in background notification, configurable direct/custom/
+  automatic privacy-video routing. Delayed routing is cancelled on context changes
+  and Escape. No release exists at the configured GitHub endpoint yet.
+- Original SVG app icon, PyInstaller native bundle recipe and runtime notices.
+  Standard-library installer stages and verifies copies, checks app identity,
+  restores the previous app on failed commit, and preserves a recovery copy if
+  restoration also fails. Removal leaves preferences/documents intact.
 
 ## Evidence
 
-`uv run pytest -q`: **29 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **42 passed** on the development Mac at this checkpoint.
 
 Tests include actual Qt PDF rendering, notes/annotations/encryption, original
 LaTeX animate and Beamer-generated fixtures, controlled PDF labels/outlines,
@@ -31,6 +38,9 @@ LaTeX animate and Beamer-generated fixtures, controlled PDF labels/outlines,
 Video tests use generated H.264 in Movie/Rendition/RichMedia annotations and verify
 seeking, embedded/full-slide pixels, and forward/reverse stepping. A VFR fixture
 checks the final B-frame; a silent WAV verifies audio loading without audible sound.
+New coverage exercises real QtNetwork HTTP release responses, stale URL callbacks,
+and installation/update/removal/rollback boundaries in temporary directories.
+Windows-shaped installer fixture tests on a Mac are not Windows execution evidence.
 
 Offscreen/native Cocoa captures are local under `qa/` (ignored):
 
@@ -42,6 +52,14 @@ Offscreen/native Cocoa captures are local under `qa/` (ignored):
   for visual inspection; decoded-frame timestamp recorded in `result.json`.
 - `web-fixed/`: native local web-content capture inspected. `results.json` confirms
   load/title, resize geometry and Escape returning to slides.
+- `bundle-mac/`: actual frozen macOS executable; PDF/navigation/reload, H.264 and
+  local WebEngine checks all pass. Presenter, embedded media and web captures were
+  inspected. `codesign --verify --deep --strict` passes for the ad-hoc signed app.
+- `installed-mac/`: rebuilt executable installed into a path with spaces/Chinese
+  characters, launched from `/tmp` with PYTHONPATH/PYTHONHOME/VIRTUAL_ENV removed.
+  `result.json` reports frozen=true and all PDF/media/web checks passing. The
+  installation was updated, verified and removed; original fixture/source files
+  and built application remained. This is not a separate clean-machine test.
 
 Reproduce the common checks:
 
@@ -71,11 +89,16 @@ Their sources are original fixtures in `tests/fixtures`, not upstream test copie
 - Animation timing reader accepts current generated globals and older object
   fields. Unknown timing produces a diagnostic/manual fallback; this is not proof
   of full old-version compatibility.
+- Parent asynchronous network service roots to QCoreApplication (or Presenter):
+  short-lived unparented test services caused native deferred-destruction crashes.
+- Cancel an outstanding automatic video URL lookup before aborting replies: Qt
+  can emit completion inline. Late replies must not open web content after the
+  presenter navigates, reloads, switches views, or presses Escape.
 
 ## Required remaining work
 
-1. Complete update/version checking and notifications, configurable privacy-video
-   routing/direct-link behavior, and an actual release channel.
+1. Create an actual release channel; validate OS update notification delivery and
+   real privacy-video service behavior. Release parsing/routing now have coverage.
 2. Expand action/link and animation coverage: a real older animate PDF, alternate
    forms/layouts, multiple animations, click/keyboard controls and long decks.
    Legacy timing has unit coverage but no compiled legacy integration fixture yet.
@@ -84,14 +107,17 @@ Their sources are original fixtures in `tests/fixtures`, not upstream test copie
 4. Finish interaction/visual edge cases: small windows, changing DPI, crop/pan/zoom,
    selection scaling, persistent preferences, hide/fullscreen restoration and
    actual physical display selection/swap/unplug behavior.
-5. Produce per-user installers/native packages with bundled Python/Qt, application
-   identity/icon, camera entitlements/usage text, notices and source/relink guidance.
-   Test clean startup, update/uninstall and executable paths containing Unicode.
+5. Complete Windows packaging/Start Menu integration and the binary dependency/
+   source/notice audit. Mac bundled Python/Qt, identity/icon, camera entitlements,
+   usage text and staged installer exist. Clean-machine startup remains pending;
+   local Mac Unicode-path install/update/uninstall and startup checks pass.
 6. Run Windows builds/tests and both platforms' physical-device acceptance checks.
    No Windows environment has been exercised yet. Keep these requirements open.
 7. Do a requirement-by-requirement completion audit against `FEATURES.md`; do not
    substitute an unsupported-feature message for a feature's implementation.
 
-The full PySide6 distribution currently includes all add-on/WebEngine packages.
-Release size/startup/resource budgets remain unmeasured. No public repo for the new
-app, packaged release, clean-room certification or full parity claim exists yet.
+The Mac development app occupies approximately 562 MiB (`du -sh`); it includes
+WebEngine for original web-view parity. Startup/resource budgets remain unmeasured.
+No public repo for the new app, public packaged release, clean-room certification
+or full parity claim exists yet. `docs/DISTRIBUTION.md` explicitly records the
+remaining dependency-notice/source audit before public binary distribution.

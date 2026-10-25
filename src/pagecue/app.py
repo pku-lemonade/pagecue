@@ -5,9 +5,9 @@ from pathlib import Path
 import sys
 
 from PySide6.QtCore import QEvent, QObject, QPointF, QRect, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QAction, QColor, QKeySequence
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QIcon, QKeySequence
 from PySide6.QtWidgets import (QApplication, QColorDialog, QFileDialog, QInputDialog,
-                              QLineEdit, QMainWindow, QMessageBox, QSlider, QStatusBar)
+                              QLineEdit, QMainWindow, QMessageBox, QSlider, QStatusBar, QSystemTrayIcon)
 
 from . import __version__
 from .canvas import Canvas
@@ -15,6 +15,7 @@ from .document import PasswordRequired
 from .media import Camera, MediaPlayer, Posters
 from .model import Surface
 from .session import Session
+from .services import ReleaseChecker, VideoRouter, video_url
 
 
 class Application(QApplication):
@@ -25,6 +26,7 @@ class Application(QApplication):
         # requested before constructing QApplication (not when a link is clicked).
         QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
         super().__init__(arguments)
+        self.setWindowIcon(QIcon(str(Path(__file__).parent / "assets/pagecue.svg")))
 
     def event(self, event):
         if event.type() == QEvent.Type.FileOpen:
@@ -113,6 +115,15 @@ class Presenter(QObject):
         self._hidden = False
         self._hidden_fullscreen = False
         self._closed = False
+        self.video_mode = str(self.session.settings.value("video-routing", ""))
+        self.video_router = VideoRouter(self)
+        self.video_router.resolved.connect(self._open_web_url)
+        self.video_router.message.connect(self.notify)
+        self._video_context = (id(self.session.snapshot), self.session.page, self.session.surface)
+        self.updates = ReleaseChecker(self)
+        self.updates.checked.connect(self._update_result)
+        self.updates.failed.connect(lambda message, manual: self.notify(message) if manual and not self._closed else None)
+        self.update_tray = None
         self._menus()
 
     def _menus(self):
@@ -140,8 +151,14 @@ class Presenter(QObject):
         action(media_menu, "Expand/restore media", self.expand_media)
         action(media_menu, "Choose camera…", lambda: self.toggle_camera(choose=True))
         action(media_menu, "Toggle camera", self.toggle_camera)
+        action(media_menu, "Video link routing…", self.configure_video_routing)
         help_menu = self.presenter.menuBar().addMenu("Help")
         action(help_menu, "Keyboard help", self.toggle_help)
+        action(help_menu, "Check for updates…", lambda: self.updates.check(manual=True))
+        self.auto_update_action = action(help_menu, "Notify about new versions", lambda: None)
+        self.auto_update_action.setCheckable(True)
+        self.auto_update_action.setChecked(self.session.settings.value("check-updates", False, type=bool))
+        self.auto_update_action.toggled.connect(lambda checked: self.session.settings.setValue("check-updates", checked))
         action(help_menu, "About PageCue", lambda: QMessageBox.about(self.presenter, "PageCue",
             f"PageCue {__version__}\nA minimalist Qt PDF presenter.\nIndependent implementation · MIT\n"
             "In development: see the feature parity ledger."))
@@ -163,6 +180,49 @@ class Presenter(QObject):
                 self._place(window, self.app.primaryScreen())
         self.presenter.raise_()
         self.view.setFocus()
+        if self.auto_update_action.isChecked():
+            QTimer.singleShot(2000, lambda: self.updates.check(manual=False) if not self._closed else None)
+
+    def _update_result(self, release, manual):
+        if self._closed:
+            return
+        if not release.newer:
+            if manual:
+                self.notify(f"PageCue {__version__} is up to date")
+            return
+        message = f"PageCue {release.version} is available (installed: {__version__})"
+        if manual:
+            answer = QMessageBox.question(self.presenter, "Update available", message + "\nOpen the release page?",
+                                          QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Cancel)
+            if answer == QMessageBox.StandardButton.Open:
+                QDesktopServices.openUrl(QUrl(release.url))
+        else:
+            self.notify(message)
+            if QSystemTrayIcon.isSystemTrayAvailable() and QSystemTrayIcon.supportsMessages():
+                if self.update_tray is None:
+                    self.update_tray = QSystemTrayIcon(self.app.windowIcon(), self)
+                    self.update_tray.show()
+                self.update_tray.showMessage("PageCue update", message)
+
+    def configure_video_routing(self):
+        options = ["Direct YouTube links", "Find an Invidious instance automatically", "Use my Invidious instance"]
+        current = 1 if self.video_mode == "auto" else 2 if self.video_mode else 0
+        choice, okay = QInputDialog.getItem(self.presenter, "Video link routing", "YouTube links:", options, current, False)
+        if not okay:
+            return
+        mode = "auto" if choice == options[1] else ""
+        if choice == options[2]:
+            mode, okay = QInputDialog.getText(self.presenter, "Invidious instance", "HTTPS base URL:",
+                                            text=self.video_mode if self.video_mode != "auto" else "")
+            if not okay:
+                return
+            try:
+                video_url("https://www.youtube.com/watch?v=test", mode)
+            except ValueError as error:
+                self.notify(str(error))
+                return
+        self.video_mode = mode
+        self.session.settings.setValue("video-routing", mode)
 
     def pick(self):
         path, _ = QFileDialog.getOpenFileName(self.presenter, "Open presentation", "", "PDF documents (*.pdf)")
@@ -203,6 +263,8 @@ class Presenter(QObject):
             self.notify(f"Reload failed; kept the current presentation. {error}")
 
     def notify(self, message):
+        if self._closed:
+            return
         self.status.show()
         self.status.showMessage(message)
         self.status_timer.start(10000)
@@ -273,6 +335,7 @@ class Presenter(QObject):
             self.toggle_fullscreen()
             return
         if key == Qt.Key.Key_Escape:
+            self.video_router.cancel()
             if self.fullscreen:
                 self.toggle_fullscreen()
             return
@@ -499,6 +562,15 @@ class Presenter(QObject):
         if url.scheme() not in ("https", "http", "file"):
             self.notify("Only web URLs and local document links can open here")
             return
+        try:
+            self.video_router.route(url.toString(), self.video_mode)
+        except ValueError as error:
+            self.notify(str(error))
+
+    def _open_web_url(self, value):
+        if self._closed:
+            return
+        url = QUrl(value)
         if self.web is None:
             from PySide6.QtWebEngineWidgets import QWebEngineView
             self.web = QWebEngineView(self.audience)
@@ -520,6 +592,10 @@ class Presenter(QObject):
                 proxy.installEventFilter(self)
 
     def _surface_changed(self):
+        context = (id(self.session.snapshot), self.session.page, self.session.surface)
+        if context != self._video_context:
+            self.video_router.cancel()
+            self._video_context = context
         if self.web:
             self.web.setVisible(self.session.surface == Surface.WEB)
             if self.session.surface == Surface.WEB:
@@ -617,6 +693,10 @@ class Presenter(QObject):
             self.session.settings.setValue("geometry/audience", self.audience.saveGeometry())
         self.session.save()
         self.session.close()
+        self.video_router.cancel()
+        self.updates.requests.close()
+        if self.update_tray:
+            self.update_tray.hide()
         self.camera.stop()
         self.posters.close()
         self.media.close()
@@ -629,15 +709,30 @@ def main():
     parser.add_argument("--page", "-p", type=int, default=None, help="Initial physical page (1-based)")
     parser.add_argument("--duration", "-d", type=float, default=0, help="Talk duration in minutes")
     parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("--direct-video", "--youtube", action="store_true", help="Open YouTube links directly for this session")
+    parser.add_argument("--smoke-output", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument("--smoke-media", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument("--smoke-web", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.smoke_output and not args.pdf:
+        parser.error("The packaged smoke check requires a PDF")
+    if args.smoke_output:
+        from PySide6.QtCore import QSettings
+        QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+        QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(args.smoke_output / "settings"))
     app = Application(sys.argv[:1])
     app.setApplicationName("PageCue")
     app.setOrganizationName("PageCue")
     app.setApplicationVersion(__version__)
     app.setStyle("Fusion")
     presenter = Presenter(app)
+    if args.direct_video:
+        presenter.video_mode = ""
     presenter.session.clock.duration = max(0, args.duration * 60)
     presenter.show()
+    if args.smoke_output:
+        from .diagnostics import SmokeCheck
+        presenter.smoke = SmokeCheck(presenter, args.smoke_output, args.smoke_media, args.smoke_web)
     if args.pdf:
         QTimer.singleShot(0, lambda: presenter.open(args.pdf, page=args.page - 1 if args.page else None))
     app.aboutToQuit.connect(presenter.quit)
