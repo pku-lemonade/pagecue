@@ -7,7 +7,7 @@ import shutil
 import sys
 
 from PySide6.QtCore import QPoint, QRect, QSettings, QTimer, Qt
-from PySide6.QtGui import QColor, QImage
+from PySide6.QtGui import QColor, QImage, QWindow
 from PySide6.QtTest import QTest
 
 from presenteriyaki.app import Application, Presenter
@@ -86,6 +86,19 @@ video.requestVideoFrameCallback(frame);</script></body>''')
         assert abs(width - expected) <= 2, f"Rendered ruler width: {width}, expected {expected}"
 
     def camera_check(name):
+        result[name + "_geometry"] = {
+            label: [widget.geometry().x(), widget.geometry().y(), widget.width(), widget.height()]
+            for label, widget in (("audience", p.audience), ("browser", p.web),
+                                  ("container", p.web.container), ("native", p.web.native),
+                                  ("camera", p.web.camera))
+        }
+        if sys.platform == "darwin":
+            import objc
+            foreign = p.web.native.findChild(QWindow)
+            view = objc.objc_object(c_void_p=int(foreign.winId()))
+            result[name + "_native_frame"] = str(view.frame())
+            result[name + "_camera_level"] = objc.objc_object(c_void_p=int(p.web.camera.winId())).window().level()
+            result[name + "_audience_level"] = view.window().level()
         assert p.web.camera.isVisible(), "Camera disappeared"
         assert p.web.camera.geometry() == QRect(p.web.mapToGlobal(QPoint()), p.web.size()), "Camera did not follow the audience"
         if not args.no_capture:
