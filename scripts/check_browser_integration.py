@@ -38,10 +38,6 @@ video.requestVideoFrameCallback(frame);</script></body>''')
     app = Application([sys.argv[0]])
     p = Presenter(app)
     p.show()
-    if not p.open(args.deck.resolve()):
-        raise RuntimeError("Could not open test deck")
-    p.audience.raise_()
-    p.audience.activateWindow()
     result = {"passed": False, "captures_checked": not args.no_capture, "native_shortcuts": []}
     app.file_opened.connect(lambda path: result.setdefault("file_events", []).append(path))
     done = False
@@ -204,9 +200,16 @@ video.requestVideoFrameCallback(frame);</script></body>''')
         result["escape_returns_slides"] = True
         finish()
 
-    p.open_web(str(html))
-    p.web.shortcut.connect(lambda key: result["native_shortcuts"].append(key))
-    p.web.loadFinished.connect(lambda okay: later(ready) if okay else finish("HTML failed to load"))
+    def start():
+        if not p.open(args.deck.resolve()):
+            raise RuntimeError("Could not open test deck")
+        p.audience.raise_()
+        p.audience.activateWindow()
+        p.open_web(str(html))
+        p.web.shortcut.connect(lambda key: result["native_shortcuts"].append(key))
+        p.web.loadFinished.connect(lambda okay: later(ready) if okay else finish("HTML failed to load"))
+
+    QTimer.singleShot(0, lambda: guard(start))
     QTimer.singleShot(30000, lambda: finish("Browser integration timed out"))
     app.exec()
     print(json.dumps(result, indent=2))
