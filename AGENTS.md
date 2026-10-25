@@ -5,7 +5,7 @@ on the app's features, installation and use. Put contributor instructions in
 CONTRIBUTING.md; keep conversation history and local QA logs out of app docs.
 
 - Preserve the minimalist interface and existing capabilities.
-- Use Qt Widgets/custom painting for the main UI; WebEngine is for web content.
+- Use Qt Widgets/custom painting for the main UI and Qt WebView's native backends for web content.
 - Set up with `uv sync --frozen --python 3.13 --managed-python`; run relevant tests with `uv run pytest`.
 - Use original synthetic fixtures. Keep PDFs and notes unmodified during use.
 - Visually check GUI changes with the rendering scripts and fixtures under `scripts/`.

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, Q
                               QMessageBox, QSlider, QSpinBox, QStatusBar, QSystemTrayIcon)
 
 from . import __version__
-from .canvas import Canvas, WebCameraOverlay
+from .canvas import Canvas
 from .document import PasswordRequired
 from .media import Camera, MediaPlayer, Posters
 from .model import Surface
@@ -24,9 +24,9 @@ class Application(QApplication):
     file_opened = Signal(str)
 
     def __init__(self, arguments):
-        # WebEngine is created lazily, but its shared graphics context must be
-        # requested before constructing QApplication (not when a link is clicked).
         QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+        from .browser import initialize
+        initialize()
         super().__init__(arguments)
         self.setWindowIcon(QIcon(str(Path(__file__).parent / "assets/presenteriyaki.svg")))
 
@@ -139,7 +139,6 @@ class Presenter(QObject):
         self.media.changed.connect(self._media_state)
         self.seek.sliderMoved.connect(lambda value: self.media.seek(round(value / 1000 * self.media.duration)))
         self.web = None
-        self.web_camera = None
         self.session.message.connect(self.notify)
         self.session.action_requested.connect(self.activate)
         self.session.document_changed.connect(self._opened)
@@ -422,18 +421,6 @@ class Presenter(QObject):
             return False
         if watched is self.slide and event.type() == QEvent.Type.Resize and self.web:
             self.web.setGeometry(self.slide.geometry())
-            self.web_camera.setGeometry(self.slide.geometry())
-        if self.web and self.session.surface == Surface.WEB and event.type() == QEvent.Type.KeyPress:
-            from PySide6.QtWidgets import QWidget
-            in_web = isinstance(watched, QWidget) and (watched is self.web or self.web.isAncestorOf(watched))
-            if in_web and event.key() == Qt.Key.Key_Escape:
-                self.session.surface = Surface.SLIDES
-                self.session.changed.emit()
-                self.slide.setFocus()
-                return True
-            if in_web and event.key() == Qt.Key.Key_F5:
-                self.toggle_fullscreen()
-                return True
         return super().eventFilter(watched, event)
 
     def command(self, command):
@@ -757,25 +744,25 @@ class Presenter(QObject):
             return
         url = QUrl(value)
         if self.web is None:
-            from PySide6.QtWebEngineWidgets import QWebEngineView
-            self.web = QWebEngineView(self.audience)
-            self.web_camera = WebCameraOverlay(self.slide, self.audience)
-            self.web.installEventFilter(self)
+            from .browser import Browser
+            self.web = Browser(self.slide, self.audience)
+            self.web.shortcut.connect(self._web_shortcut, Qt.ConnectionType.QueuedConnection)
             self.web.loadFinished.connect(lambda okay: None if okay else self.notify("Could not load web content"))
-            self.web.loadFinished.connect(lambda _: self._web_keyboard_filter())
         self.web.setGeometry(self.audience.centralWidget().geometry())
         self.web.load(url)
         self.session.surface = Surface.WEB
         self.session.changed.emit()
 
-    def _web_keyboard_filter(self):
-        # Limit Python event filtering to actual widgets. Filtering every Qt
-        # application event can re-enter Shiboken while WebEngine constructs
-        # private QObject wrappers, causing a native crash on macOS.
-        if self.web:
-            proxy = self.web.focusProxy()
-            if proxy:
-                proxy.installEventFilter(self)
+    def _web_shortcut(self, key):
+        if self._closed or self.session.surface != Surface.WEB:
+            return
+        if key == Qt.Key.Key_Escape:
+            self.session.surface = Surface.SLIDES
+            self.session.changed.emit()
+            self.slide.setFocus()
+        elif key == Qt.Key.Key_F5:
+            self.toggle_fullscreen()
+            self.audience.activateWindow()
 
     def _surface_changed(self):
         self.automatic_action.setChecked(self.session.auto_advance)
@@ -793,11 +780,8 @@ class Presenter(QObject):
             visible = self.session.surface == Surface.WEB
             if visible and self.web.isHidden():
                 self.web.raise_()
-                self.web_camera.raise_()
             self.web.setVisible(visible)
-            self.web_camera.setGeometry(self.slide.geometry())
-            self.web_camera.setVisible(visible and self.slide.camera_image is not None)
-            self.web_camera.update()
+            self.web.update_camera()
 
     def _place(self, window, screen):
         window.winId()
@@ -919,6 +903,8 @@ class Presenter(QObject):
         self.camera.stop()
         self.posters.close()
         self.media.close()
+        if self.web:
+            self.web.shutdown()
         self.app.quit()
 
 

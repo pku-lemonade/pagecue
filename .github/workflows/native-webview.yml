@@ -55,6 +55,16 @@ jobs:
         timeout-minutes: 2
         if: runner.os == 'Windows'
         run: uv run python scripts/check_native_web_keys.py
+      - name: Generate the original integration deck
+        run: uv run python scripts/make_demo.py qa/demo.pdf
+      - name: Check the Mac app browser and window lifecycle
+        if: runner.os == 'macOS'
+        timeout-minutes: 2
+        run: uv run --with pyobjc-framework-Cocoa==12.2.2 python scripts/check_browser_integration.py qa/demo.pdf qa/browser-integration
+      - name: Check the Windows app browser and window lifecycle
+        if: runner.os == 'Windows'
+        timeout-minutes: 2
+        run: uv run python scripts/check_browser_integration.py qa/demo.pdf qa/browser-integration
       - name: Upload browser result
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -65,5 +75,6 @@ jobs:
             qa/native-webview/window.png
             qa/native-webkeys/result.json
             qa/native-webkeys/tracking-escape-*.png
+            qa/browser-integration
             build/native-webview/result.json
           if-no-files-found: warn

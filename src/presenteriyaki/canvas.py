@@ -38,7 +38,7 @@ def fit_rect(box: QRectF, width: float, height: float) -> QRectF:
 
 
 class WebCameraOverlay(QWidget):
-    """Paint above the sibling WebEngine view without intercepting its input."""
+    """Paint the camera above web content without intercepting its input."""
 
     def __init__(self, canvas, parent):
         super().__init__(parent)
