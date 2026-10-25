@@ -114,9 +114,11 @@ class Browser(QWidget):
             return False
         if watched is self.audience and event.type() in (
             QEvent.Type.Move, QEvent.Type.Resize, QEvent.Type.Show, QEvent.Type.Hide,
-            QEvent.Type.WindowStateChange, QEvent.Type.WinIdChange,
+            QEvent.Type.WindowStateChange, QEvent.Type.WinIdChange, QEvent.Type.ZOrderChange,
         ):
             self.update_camera()
+            if event.type() == QEvent.Type.ZOrderChange and self.camera.isVisible():
+                self.camera.raise_()
         if (watched is self.native or watched is self.container) and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
             if self.isVisible() and event.key() in SHORTCUTS:
                 if event.type() == QEvent.Type.KeyPress and not event.isAutoRepeat():
