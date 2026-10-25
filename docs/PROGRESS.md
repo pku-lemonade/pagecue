@@ -43,7 +43,7 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **72 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **73 passed** on the development Mac at this checkpoint.
 The new interaction checks also pass with the native Cocoa plugin. A simulated
 two-screen topology verifies audience-only fullscreen by double-click, mode
 switching with F5, Escape and hide/restore. This is not physical monitor evidence.
@@ -53,6 +53,14 @@ and keyboard zoom keep the cursor's content point stationary, including on the
 board and a notes-cropped PDF. Actual painted laser/spotlight, pointer resizing,
 blackout and pointer timeout checks pass; native captures are under
 `qa/view-interactions-native/` and the two spotlight captures were inspected.
+A newly authored 400-page PDF exercises rapid navigation, varying aspect ratios,
+thumbnail rail scroll/click, notes alignment and return to page one. Source hashes
+remain unchanged. Offscreen and native Cocoa checks pass; the last-page capture
+under `qa/long-deck-native/` was inspected. Sampled native raster-cache usage was
+12–43 MiB, within its 96 MiB budget; this measures that image cache, not process
+memory, and the simple generated deck is not an image-heavy performance benchmark.
+The native test recorded approximately 0.11 seconds to its first rendered page on
+this development Mac. These timings are observations, not release performance gates.
 New work covers multiple animations, last/absent posters, reverse pause/resume,
 and duplicate source field names in merged PDFs. Native Cocoa captures of the
 poster and previously invisible first-frame states were inspected under
@@ -212,6 +220,11 @@ locally with TeX/FFmpeg excluded from PATH.
    The baseline implementation's widget/fixed-timing boundary was rechecked and
    recorded in FEATURES.md; general OCG/arbitrary JavaScript playback was not an
    implemented feature of the reference app.
+   The 400-page synthetic-deck interaction/render check now passes. A renewed
+   baseline help/CLI audit found explicit notes-size/web-zoom reset commands and
+   icon export still missing. Restore those capabilities using PageCue's own
+   artwork; add the original `-v` and `-y` aliases. The ledger now records these
+   gaps instead of treating adjustable zoom as proof of reset parity.
 3. Audit camera permission/device lifecycle and test a real camera with deliberate
    user involvement. Camera frames are not captured automatically during QA.
    Width/opacity/position now have persisted controls. Permission callbacks are

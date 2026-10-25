@@ -34,7 +34,7 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --frozen
       - name: Exercise PDF rendering, animations, media, and application logic
-        run: uv run pytest -q --junitxml=qa/tests.xml
+        run: uv run pytest -q --junitxml=qa/tests.xml --basetemp=qa/tests
       - name: Exercise Windows Unicode shell links
         if: runner.os == 'Windows'
         run: uv run python scripts/check_windows_shortcut.py
@@ -55,6 +55,8 @@ jobs:
           name: evidence-${{ matrix.os }}
           path: |
             qa/tests.xml
+            qa/tests/test_*/*.png
+            qa/tests/test_long_deck_*/result.json
             qa/packaged
             qa/layout
             qa/opening/result.json
