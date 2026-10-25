@@ -3,18 +3,16 @@
 import argparse
 import json
 import os
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import shutil
-import threading
+import sys
 
 # QWebView otherwise prefers WebEngine when both plugins are installed.
 os.environ["QT_WEBVIEW_PLUGIN"] = "native"
 
 from PySide6.QtCore import QLibraryInfo, QPluginLoader, QPoint, QTimer, QUrl, Qt, qVersion
 from PySide6.QtWidgets import QApplication, QWidget
-from PySide6.QtWebView import QWebView, QWebViewLoadingInfo, QtWebView
+from PySide6.QtWebView import QWebView, QWebViewLoadingInfo, QWebViewSettings, QtWebView
 
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = """JSON.stringify((() => {
@@ -24,11 +22,6 @@ SAMPLE = """JSON.stringify((() => {
             userAgent: navigator.userAgent,
             mp4: video.canPlayType('video/mp4; codecs="avc1.42E01E"')};
 })())"""
-
-
-class Handler(SimpleHTTPRequestHandler):
-    def log_message(self, *args):
-        pass
 
 
 def main():
@@ -42,15 +35,16 @@ def main():
     (output / "player.html").write_text('''<!doctype html><title>Native browser video probe</title>
 <body style="background:#222;color:white;font:24px sans-serif"><h1>Original video fixture</h1>
 <video id="video" controls autoplay muted loop width="640" src="colors.mp4"></video></body>''')
-    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(Handler, directory=str(output)))
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
     QtWebView.initialize()
     app = QApplication([])
+    app.setApplicationName("PresenteriyakiNativeBrowserProbe")
     window = QWidget()
     window.setWindowTitle("Presenteriyaki native browser video probe")
     window.resize(800, 600)
     web = QWebView()
+    web.settings().setAttribute(QWebViewSettings.WebAttribute.AllowFileAccess, True)
+    if sys.platform == "darwin":
+        web.settings().setAttribute(QWebViewSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
     container = QWidget.createWindowContainer(web, window)
     container.setGeometry(0, 0, 800, 600)
     overlay = QWidget(window)
@@ -121,14 +115,9 @@ def main():
     window.show()
     window.raise_()
     window.activateWindow()
-    web.setUrl(QUrl(f"http://127.0.0.1:{server.server_port}/player.html"))
+    web.setUrl(QUrl.fromLocalFile(str(output / "player.html")))
     QTimer.singleShot(20000, lambda: finish("Native browser probe timed out"))
-    try:
-        app.exec()
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
+    app.exec()
     print(json.dumps(result, indent=2))
     if not result["passed"]:
         raise SystemExit(1)
