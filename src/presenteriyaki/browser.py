@@ -45,8 +45,7 @@ class Browser(QWidget):
         self.container.installEventFilter(self)
         self.native.loadingChanged.connect(self._loaded)
         self.camera = WebCameraOverlay(canvas, parent)
-        camera_type = Qt.WindowType.Window if sys.platform == "darwin" else Qt.WindowType.Tool
-        self.camera.setWindowFlags(camera_type | Qt.WindowType.FramelessWindowHint |
+        self.camera.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint |
                                    Qt.WindowType.WindowTransparentForInput | Qt.WindowType.WindowDoesNotAcceptFocus |
                                    Qt.WindowType.NoDropShadowWindowHint)
         self.camera.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
