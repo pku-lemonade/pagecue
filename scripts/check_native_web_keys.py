@@ -13,9 +13,8 @@ from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtWebView import QWebView, QWebViewLoadingInfo, QtWebView
 
 
-class CocoaKeys(QAbstractNativeEventFilter):
+class CocoaKeys:
     def __init__(self, window, result):
-        super().__init__()
         import objc
         from AppKit import NSApp, NSEvent, NSKeyDown, NSKeyUp
         from Foundation import NSPoint
@@ -23,23 +22,25 @@ class CocoaKeys(QAbstractNativeEventFilter):
         self.NSApp, self.NSEvent, self.NSPoint = NSApp, NSEvent, NSPoint
         self.down, self.up = NSKeyDown, NSKeyUp
         self.window, self.result = window, result
+        self.monitor = NSEvent.addLocalMonitorForEventsMatchingMask_handler_(
+            (1 << NSKeyDown) | (1 << NSKeyUp), self.filter_event)
 
-    def nativeEventFilter(self, kind, pointer):
-        if bytes(kind) != b"mac_generic_NSEvent":
-            return False, 0
-        event = self.objc.objc_object(c_void_p=int(pointer))
+    def close(self):
+        self.NSEvent.removeMonitor_(self.monitor)
+
+    def filter_event(self, event):
         if event.type() not in (self.down, self.up):
-            return False, 0
+            return event
         native = self.objc.objc_object(c_void_p=int(self.window.winId())).window()
         if event.window() != native:
-            return False, 0
+            return event
         self.result["native_events"].append({"key": int(event.keyCode()), "type": int(event.type())})
         command = {53: "escape", 96: "fullscreen"}.get(event.keyCode())
         if command:
             if event.type() == self.down:
                 self.result["shortcuts"].append(command)
-            return True, 0
-        return False, 0
+            return None
+        return event
 
     def send(self, chars, code):
         native = self.objc.objc_object(c_void_p=int(self.window.winId())).window()
@@ -175,7 +176,8 @@ def main():
     container.setGeometry(0, 0, 600, 400)
     result = {"native_events": [], "qt_events": [], "shortcuts": [], "passed": False}
     keys = CocoaKeys(window, result) if sys.platform == "darwin" else WindowsKeys(window, result)
-    app.installNativeEventFilter(keys)
+    if sys.platform == "win32":
+        app.installNativeEventFilter(keys)
     done = False
 
     def finish(error=None):
@@ -236,6 +238,8 @@ def main():
                  'document.addEventListener("keydown",e=>keys.push(e.key));</script>')
     QTimer.singleShot(15000, lambda: finish("Keyboard probe timed out"))
     app.exec()
+    if sys.platform == "darwin":
+        keys.close()
     print(json.dumps(result, indent=2))
     if not result["passed"]:
         raise SystemExit(1)

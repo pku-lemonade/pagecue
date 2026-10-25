@@ -3,6 +3,11 @@ name: Native browser feasibility check
 on:
   workflow_dispatch:
     inputs:
+      target:
+        description: Platform to check
+        type: choice
+        options: [all, windows-2025, macos-15, macos-15-intel]
+        default: all
       patched_windows:
         description: Build the experimental WebView2 shortcut bridge
         type: boolean
@@ -20,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2025, macos-15, macos-15-intel]
+        os: ${{ inputs.target == 'all' && fromJSON('["windows-2025", "macos-15", "macos-15-intel"]') || fromJSON(format('["{0}"]', inputs.target)) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
