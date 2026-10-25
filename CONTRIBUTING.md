@@ -76,6 +76,14 @@ checks are separate from automated tests.
 The Windows installer check runs only on fresh CI runners because it creates
 an uninstall entry and Start Menu shortcut.
 
+Test browser video separately from native media. The pinned WebEngine build
+decodes VP9/WebM but reports no H.264 support through `HTMLMediaElement.canPlayType`;
+an MP4 `<video>` fails with `DEMUXER_ERROR_NO_SUPPORTED_STREAMS`. Native Qt
+Multimedia MP4 decoding passes. Loading an HTML page alone does not establish
+browser video playback: check decoded frame progress and media errors too.
+Qt documents the required [WebEngine codec build option](https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs).
+This remains a browser compatibility limitation in the preview.
+
 The internal `PageCue` storage name and bundle identity are retained for existing
 preferences and OS permissions. Keep those compatibility identifiers stable.
 

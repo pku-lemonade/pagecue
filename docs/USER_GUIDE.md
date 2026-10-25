@@ -61,3 +61,12 @@ select a device.
 On a timed slide, **Space** pauses automatic playback. **View → Automatic playback**
 controls timed page changes and autoplay animations. Individual animation controls
 are also available on the slide.
+
+## Web content
+
+Web links open in the audience window. Press **Esc** to return to slides.
+
+The preview's embedded browser supports WebM video, but cannot play H.264/MP4
+inside web pages. For those videos, open the site in your regular browser, or
+open a local video file through **Media → Open video or audio**. The app's native
+media player supports H.264/MP4.
