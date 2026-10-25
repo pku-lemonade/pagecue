@@ -65,6 +65,7 @@ class WindowsKeys(QAbstractNativeEventFilter):
         self.user32.IsChild.argtypes = [wintypes.HWND, wintypes.HWND]
         self.user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
         self.user32.MapVirtualKeyW.argtypes = [wintypes.UINT, wintypes.UINT]
+        self.user32.GetForegroundWindow.restype = wintypes.HWND
         self.window, self.result = window, result
 
     def nativeEventFilter(self, kind, pointer):
@@ -99,28 +100,44 @@ class WindowsKeys(QAbstractNativeEventFilter):
         self.user32.EnumChildWindows.argtypes = [self.types.HWND, callback_type, self.types.LPARAM]
         self.user32.EnumChildWindows(int(self.window.winId()), callback_type(child), 0)
         self.result["children"] = children
-        renderer = next(c for c in children if c["class"] == "Chrome_RenderWidgetHostHWND")
-        target = renderer["hwnd"]
-        current_thread = ctypes.WinDLL("kernel32").GetCurrentThreadId()
-        self.user32.AttachThreadInput.argtypes = [self.types.DWORD, self.types.DWORD, self.types.BOOL]
-        self.user32.SetFocus.argtypes = [self.types.HWND]
-        self.user32.SetFocus.restype = self.types.HWND
-        attached = self.user32.AttachThreadInput(current_thread, renderer["thread"], True)
-        try:
-            self.user32.SetFocus(target)
-        finally:
-            if attached:
-                self.user32.AttachThreadInput(current_thread, renderer["thread"], False)
-        # Target the embedded renderer, never the system foreground window.
+        class KeyboardInput(ctypes.Structure):
+            _fields_ = [("vk", self.types.WORD), ("scan", self.types.WORD),
+                        ("flags", self.types.DWORD), ("time", self.types.DWORD), ("extra", ctypes.c_size_t)]
+        class MouseInput(ctypes.Structure):
+            _fields_ = [("dx", self.types.LONG), ("dy", self.types.LONG), ("data", self.types.DWORD),
+                        ("flags", self.types.DWORD), ("time", self.types.DWORD), ("extra", ctypes.c_size_t)]
+        class InputData(ctypes.Union):
+            _fields_ = [("keyboard", KeyboardInput), ("mouse", MouseInput)]
+        class Input(ctypes.Structure):
+            _fields_ = [("type", self.types.DWORD), ("data", InputData)]
+        self.user32.SendInput.argtypes = [self.types.UINT, ctypes.POINTER(Input), ctypes.c_int]
+        owner = int(self.window.winId())
+        self.user32.SetForegroundWindow.argtypes = [self.types.HWND]
+        self.user32.SetForegroundWindow(owner)
+        if self.user32.GetForegroundWindow() != owner:
+            raise RuntimeError("Probe is not foreground; no input sent")
+        point = self.types.POINT(20, 18)
+        self.user32.ClientToScreen.argtypes = [self.types.HWND, ctypes.POINTER(self.types.POINT)]
+        self.user32.ClientToScreen(owner, ctypes.byref(point))
+        self.user32.SetCursorPos(point.x, point.y)
+        clicks = (Input * 2)(Input(0, InputData(mouse=MouseInput(0, 0, 0, 2, 0, 0))),
+                             Input(0, InputData(mouse=MouseInput(0, 0, 0, 4, 0, 0))))
+        if self.user32.SendInput(2, clicks, ctypes.sizeof(Input)) != 2:
+            raise RuntimeError(f"Probe input focus failed: {ctypes.get_last_error()}")
+
         def send(key, character=None):
-            key_data = (self.user32.MapVirtualKeyW(key, 0) << 16) | 1
-            self.user32.PostMessageW(target, 0x100, key, key_data)
-            if character:
-                self.user32.PostMessageW(target, 0x102, ord(character), 1)
-            self.user32.PostMessageW(target, 0x101, key, key_data | 0xC0000000)
-        send(0x41, "a")
-        QTimer.singleShot(200, lambda: send(0x74))
-        QTimer.singleShot(400, lambda: send(0x1B))
+            # Synthetic input is confined to the probe on a disposable CI desktop.
+            if self.user32.GetForegroundWindow() != int(self.window.winId()):
+                self.result["input_error"] = "Probe lost foreground focus; no input sent"
+                return
+            scan = self.user32.MapVirtualKeyW(key, 0)
+            events = (Input * 2)(Input(1, InputData(keyboard=KeyboardInput(key, scan, 0, 0, 0))),
+                                 Input(1, InputData(keyboard=KeyboardInput(key, scan, 2, 0, 0))))
+            if self.user32.SendInput(2, events, ctypes.sizeof(Input)) != 2:
+                self.result["input_error"] = f"SendInput failed: {ctypes.get_last_error()}"
+        QTimer.singleShot(200, lambda: send(0x41))
+        QTimer.singleShot(400, lambda: send(0x74))
+        QTimer.singleShot(600, lambda: send(0x1B))
 
 
 class QtKeys(QObject):
@@ -153,6 +170,7 @@ def main():
     window = QWidget()
     window.resize(600, 400)
     web = QWebView()
+    web.setProperty("presenteriyakiShortcuts", True)
     container = QWidget.createWindowContainer(web, window)
     container.setGeometry(0, 0, 600, 400)
     result = {"native_events": [], "qt_events": [], "shortcuts": [], "passed": False}
