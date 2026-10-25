@@ -45,7 +45,8 @@ class Browser(QWidget):
         self.container.installEventFilter(self)
         self.native.loadingChanged.connect(self._loaded)
         self.camera = WebCameraOverlay(canvas, parent)
-        self.camera.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint |
+        camera_type = Qt.WindowType.Window if sys.platform == "darwin" else Qt.WindowType.Tool
+        self.camera.setWindowFlags(camera_type | Qt.WindowType.FramelessWindowHint |
                                    Qt.WindowType.WindowTransparentForInput | Qt.WindowType.WindowDoesNotAcceptFocus |
                                    Qt.WindowType.NoDropShadowWindowHint)
         self.camera.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -115,9 +116,10 @@ class Browser(QWidget):
         if watched is self.audience and event.type() in (
             QEvent.Type.Move, QEvent.Type.Resize, QEvent.Type.Show, QEvent.Type.Hide,
             QEvent.Type.WindowStateChange, QEvent.Type.WinIdChange, QEvent.Type.ZOrderChange,
+            QEvent.Type.WindowActivate,
         ):
             self.update_camera()
-            if event.type() == QEvent.Type.ZOrderChange and self.camera.isVisible():
+            if event.type() in (QEvent.Type.ZOrderChange, QEvent.Type.WindowActivate) and self.camera.isVisible():
                 self.camera.raise_()
         if (watched is self.native or watched is self.container) and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
             if self.isVisible() and event.key() in SHORTCUTS:

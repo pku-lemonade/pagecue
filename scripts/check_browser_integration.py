@@ -177,6 +177,34 @@ video.requestVideoFrameCallback(frame);</script></body>''')
 
     def fullscreen():
         camera_check("camera_moved_resized")
+        if not args.no_capture:
+            p.presenter.setGeometry(p.audience.geometry())
+            p.presenter.raise_()
+            p.presenter.activateWindow()
+            later(presenter_front, 300)
+        else:
+            enter_fullscreen()
+
+    def presenter_front():
+        with_camera, ratio = capture("presenter-front-camera")
+        point = p.web.mapTo(p.audience, QPoint(p.web.width() - 30, p.web.height() - 30))
+        color = with_camera.pixelColor(round(point.x() * ratio), round(point.y() * ratio))
+        frame = p.slide.camera_image
+        p.slide.camera_image = None
+        p.session.changed.emit()
+        def compare():
+            without_camera, ratio = capture("presenter-front")
+            background = without_camera.pixelColor(round(point.x() * ratio), round(point.y() * ratio))
+            assert color == background, "Audience camera covered the foreground presenter window"
+            result["camera_behind_presenter"] = True
+            p.slide.camera_image = frame
+            p.session.changed.emit()
+            p.audience.raise_()
+            p.audience.activateWindow()
+            later(enter_fullscreen, 300)
+        later(compare, 300)
+
+    def enter_fullscreen():
         send_key(Qt.Key.Key_F5)
         later(fullscreen_check, 600)
 
