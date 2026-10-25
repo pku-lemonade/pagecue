@@ -1,0 +1,33 @@
+name: Native browser feasibility check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-15, macos-15-intel]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.12.12'
+          python-version: '3.13'
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Decode original H.264 video through the native browser
+        run: uv run python scripts/check_native_webview.py
+      - name: Upload browser result
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-webview-${{ matrix.os }}
+          path: qa/native-webview/result.json
+          if-no-files-found: warn
