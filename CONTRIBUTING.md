@@ -84,6 +84,14 @@ browser video playback: check decoded frame progress and media errors too.
 Qt documents the required [WebEngine codec build option](https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs).
 This remains a browser compatibility limitation in the preview.
 
+`scripts/check_native_webview.py` probes Qt's native WebKit/WebView2 backends
+without changing the app. Run it with `--capture --camera-overlay` on an unlocked
+test desktop to check H.264 decoding and translucent camera composition. The
+manual **Native browser feasibility check** workflow runs this on all three
+targets. Playback and static composition pass; keyboard routing, zoom, window
+lifecycle and packaged deployment still need integration checks before replacing
+WebEngine.
+
 The internal `PageCue` storage name and bundle identity are retained for existing
 preferences and OS permissions. Keep those compatibility identifiers stable.
 
