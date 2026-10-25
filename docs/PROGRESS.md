@@ -43,7 +43,13 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **55 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **61 passed** on the development Mac at this checkpoint.
+The current changes add scrollable/wrapped help and camera permission/device
+lifecycle, plus persisted inset width/opacity/corner controls. Native macOS
+captures under `qa/layout-camera/` show minimum, scrolled and normal layouts and
+synthetic inset/expanded camera images; all five were visually inspected. The
+layout check confirms that scrolling help does not navigate the PDF. No physical
+camera was activated or photographed by these checks. CI rerun is pending.
 The current implementation commit **`0bc2f83`** passes **55 tests without skips on
 Windows x64, Mac arm64 and Mac Intel**, plus all three packaged executable checks:
 [native run 40168937506](https://github.com/pku-lemonade/pagecue/actions/runs/40168937506).
@@ -160,14 +166,17 @@ locally with TeX/FFmpeg excluded from PATH.
    package probe needs its historical `animfp.sty` dependency before compilation.
 3. Audit camera permission/device lifecycle and test a real camera with deliberate
    user involvement. Camera frames are not captured automatically during QA.
-   Source review found fixed inset opacity/size rather than adjustment controls,
-   a permission callback lacking cancellation/close protection, and no explicit
-   stale-inset clearing on device loss. Correct these before hardware acceptance.
+   Width/opacity/position now have persisted controls. Permission callbacks are
+   cancelled on stop/switch/quit; device loss clears both views, and each capture
+   generation has its own sink to reject late frames. Six simulated lifecycle/
+   preference tests pass. Actual OS permission prompts and real capture remain
+   required. The Mac bundle opts into the Continuity Camera device type.
 4. Finish interaction/visual edge cases: small windows, changing DPI, crop/pan/zoom,
    selection scaling, persistent preferences, hide/fullscreen restoration and
    actual physical display selection/swap/unplug behavior.
-   `qa/resize/minimum.png` shows overlapping help text at 700×420; the full shortcut
-   list needs a readable compact/scrollable presentation at that size.
+   The overlapping help at 700×420 is corrected: rows wrap at readable sizes and
+   the panel scrolls. `qa/layout-camera/minimum.png` and `minimum-scrolled.png`
+   show the correction; native Windows/Intel resize captures are added to CI.
 5. Complete native package verification and the binary dependency/source/notice
    audit. Mac bundled Python/Qt, identity/icon, camera entitlements,
    usage text and staged installer exist. Fresh CI runner startup passes; ordinary

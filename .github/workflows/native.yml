@@ -40,6 +40,8 @@ jobs:
         run: uv run python scripts/check_windows_shortcut.py
       - name: Generate original demo deck
         run: uv run python scripts/make_demo.py qa/demo.pdf
+      - name: Check responsive layouts using synthetic camera frames
+        run: uv run python scripts/layout_smoke.py qa/demo.pdf qa/layout
       - name: Build native app with bundled Python and Qt
         run: uv run python scripts/build_app.py
       - name: Install, launch, update and remove the actual native package
@@ -52,5 +54,6 @@ jobs:
           path: |
             qa/tests.xml
             qa/packaged
+            qa/layout
           retention-days: 14
           if-no-files-found: warn

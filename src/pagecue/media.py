@@ -5,7 +5,7 @@ import tempfile
 import bisect
 from collections import deque
 
-from PySide6.QtCore import QObject, QUrl, Signal, QTimer, Qt
+from PySide6.QtCore import QCameraPermission, QCoreApplication, QObject, QUrl, Signal, QTimer, Qt
 from PySide6.QtGui import QImage, QMovie
 from PySide6.QtMultimedia import QAudioOutput, QCamera, QMediaCaptureSession, QMediaDevices, QMediaPlayer, QVideoSink
 
@@ -273,14 +273,19 @@ class Posters(QObject):
 class Camera(QObject):
     frame = Signal(QImage)
     error = Signal(str)
+    changed = Signal()
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(parent if parent is not None else QCoreApplication.instance())
         self.capture = QMediaCaptureSession(self)
-        self.sink = QVideoSink(self)
-        self.capture.setVideoSink(self.sink)
-        self.sink.videoFrameChanged.connect(self._frame)
+        self.sink = None
         self.camera = None
+        self.requested = False
+        self._device_id = None
+        self._generation = 0
+        self.device_monitor = QMediaDevices(self)
+        self.device_monitor.videoInputsChanged.connect(self._devices_changed)
+        QCoreApplication.instance().aboutToQuit.connect(self.stop)
 
     @property
     def active(self):
@@ -292,19 +297,79 @@ class Camera(QObject):
 
     def start(self, device):
         self.stop()
-        if self.camera:
-            self.camera.deleteLater()
+        self.requested = True
+        self._device_id = bytes(device.id())
+        generation = self._generation
+        self.changed.emit()
+        application = QCoreApplication.instance()
+        permission = QCameraPermission()
+        status = application.checkPermission(permission)
+        def authorized(status):
+            if generation != self._generation or not self.requested:
+                return
+            if status != Qt.PermissionStatus.Granted:
+                self.stop()
+                self.error.emit("Camera access was not granted. Check camera permissions in system settings.")
+                return
+            current = next((candidate for candidate in self.devices() if bytes(candidate.id()) == self._device_id), None)
+            if current is None:
+                self.stop()
+                self.error.emit("The selected camera is no longer available")
+                return
+            self._start_device(current, generation)
+        if status == Qt.PermissionStatus.Undetermined:
+            application.requestPermission(permission, lambda result: authorized(result.status()))
+        else:
+            authorized(status)
+
+    def _start_device(self, device, generation):
+        # A fresh sink also keeps late frames from the previous device/session
+        # from appearing after a switch. Each callback belongs to one generation.
+        self.sink = QVideoSink(self)
+        self.capture.setVideoSink(self.sink)
+        self.sink.videoFrameChanged.connect(lambda frame: self._frame(frame, generation))
         self.camera = QCamera(device, self)
-        self.camera.errorOccurred.connect(lambda error, text: self.error.emit(text))
+        self.camera.errorOccurred.connect(lambda error, text: self._failed(generation, text)
+                                          if error != QCamera.Error.NoError else None)
+        self.camera.activeChanged.connect(lambda active: self._active_changed(generation, active))
         self.capture.setCamera(self.camera)
         self.camera.start()
 
-    def _frame(self, frame):
-        if frame.isValid():
+    def _active_changed(self, generation, active):
+        if generation != self._generation:
+            return
+        if not active:
+            self.stop()
+        else:
+            self.changed.emit()
+
+    def _failed(self, generation, text):
+        if generation == self._generation:
+            self.stop()
+            self.error.emit(text or "Camera capture failed")
+
+    def _devices_changed(self):
+        if self.requested and not any(bytes(device.id()) == self._device_id for device in self.devices()):
+            self.stop()
+            self.error.emit("Camera disconnected")
+
+    def _frame(self, frame, generation):
+        if generation == self._generation and self.active and frame.isValid():
             image = frame.toImage()
             if not image.isNull():
                 self.frame.emit(image)
 
     def stop(self):
-        if self.camera:
-            self.camera.stop()
+        self._generation += 1
+        self.requested = False
+        self._device_id = None
+        camera, sink = self.camera, self.sink
+        self.camera = self.sink = None
+        self.capture.setCamera(None)
+        self.capture.setVideoSink(None)
+        if camera:
+            camera.stop()
+            camera.deleteLater()
+        if sink:
+            sink.deleteLater()
+        self.changed.emit()

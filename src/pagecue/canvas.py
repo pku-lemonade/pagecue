@@ -2,7 +2,7 @@
 
 import math
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen, QRadialGradient, QTextDocument
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPainterPath, QPen, QRadialGradient, QTextDocument
 from PySide6.QtWidgets import QWidget, QToolTip
 
 from .model import Stroke, Surface
@@ -46,6 +46,8 @@ class Canvas(QWidget):
         self.current_box = QRectF()
         self.notes_box = QRectF()
         self.next_box = QRectF()
+        self.help_box = QRectF()
+        self.help_scroll = 0.0
         self.rail = QRectF()
         self.thumb_rects = {}
         self.thumb_scroll = 0.0
@@ -62,6 +64,8 @@ class Canvas(QWidget):
         self.camera_image = None
         self.camera_position = "bottom-right"
         self.camera_large = False
+        self.camera_width = .28
+        self.camera_opacity = .8
         self._animation_last = {}
         self._cursor_context = None
 
@@ -90,6 +94,7 @@ class Canvas(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         painter.fillRect(self.rect(), QColor("#101113") if self.presenter else QColor("black"))
         if self.session.snapshot is None:
             self._text(painter, QRectF(self.rect()), "Drop a PDF to begin\n⌘/Ctrl O to open", 22,
@@ -131,18 +136,41 @@ class Canvas(QWidget):
             self._text(painter, QRectF(self.next_box.x(), self.next_box.bottom() + 6,
                                       self.next_box.width(), 22), f"NEXT  ·  {next_page + 1}", 9, "#777c86")
         self._paint_notes(painter)
+        self.help_box = QRectF()
         if self.session.show_help:
-            y = self.next_box.bottom() + 48
-            available = height - y - 20
-            line_height = min(22, available / len(HELP))
-            font_size = max(9, min(12, line_height * .62))
-            for key, description in HELP:
-                split = min(110, self.next_box.width() * .40)
-                self._text(painter, QRectF(self.next_box.x(), y, split, line_height), key, font_size, "#adb3bf")
-                self._text(painter, QRectF(self.next_box.x() + split, y, self.next_box.width() - split, line_height),
-                           description, font_size, "#858a94")
-                y += line_height
+            self._paint_help(painter)
         self._paint_thumbnails(painter)
+
+    def _paint_help(self, painter):
+        top = self.next_box.bottom() + 54
+        self.help_box = QRectF(self.next_box.x(), top, self.next_box.width(), max(0, self.height() - top - 16))
+        font_size = min(12, max(10, self.help_box.width() / 22))
+        metrics = QFontMetricsF(ui_font(font_size))
+        split = min(110, self.help_box.width() * .40)
+        widths = (split - 8, self.help_box.width() - split - 7)
+        flags = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap
+        rows = []
+        for key, description in HELP:
+            height = max(metrics.boundingRect(QRectF(0, 0, width, 1000), int(flags), text).height()
+                         for width, text in zip(widths, (key, description))) + 6
+            rows.append((key, description, height))
+        maximum = max(0, sum(row[2] for row in rows) - self.help_box.height())
+        self.help_scroll = min(maximum, max(0, self.help_scroll))
+        self._text(painter, QRectF(self.help_box.x(), top - 23, self.help_box.width(), 18),
+                   "SHORTCUTS · SCROLL" if maximum else "SHORTCUTS", 9, "#777c86")
+        painter.save()
+        painter.setClipRect(self.help_box)
+        y = self.help_box.top() - self.help_scroll
+        for key, description, height in rows:
+            self._text(painter, QRectF(self.help_box.x(), y, widths[0], height), key, font_size, "#adb3bf", flags)
+            self._text(painter, QRectF(self.help_box.x() + split, y, widths[1], height),
+                       description, font_size, "#858a94", flags)
+            y += height
+        painter.restore()
+        if maximum:
+            painter.fillRect(QRectF(self.help_box.right() - 2,
+                                   self.help_box.top() + self.help_scroll / maximum * (self.help_box.height() - 24),
+                                   2, 24), QColor("#656b77"))
 
     def _paint_notes(self, painter):
         text = self.session.snapshot.notes.pages.get(self.session.page, "")
@@ -322,12 +350,13 @@ class Canvas(QWidget):
         if self.camera_image is not None:
             box = self.current_box.adjusted(16, 16, -16, -16)
             if not self.camera_large:
-                width = min(240, box.width() * .28)
-                height = width * self.camera_image.height() / self.camera_image.width()
+                size = fit_rect(QRectF(0, 0, box.width() * self.camera_width, box.height()),
+                                self.camera_image.width(), self.camera_image.height()).size()
+                width, height = size.width(), size.height()
                 x = box.left() if "left" in self.camera_position else box.right() - width
                 y = box.top() if "top" in self.camera_position else box.bottom() - height
                 box = QRectF(x, y, width, height)
-            painter.setOpacity(1 if self.camera_large else .8)
+            painter.setOpacity(self.camera_opacity)
             painter.drawImage(fit_rect(box, self.camera_image.width(), self.camera_image.height()), self.camera_image)
         painter.restore()
 
@@ -485,6 +514,9 @@ class Canvas(QWidget):
             self.update()
         elif self.presenter and self.notes_box.contains(event.position()):
             self.session.notes_scroll -= delta / 3
+            self.update()
+        elif self.presenter and self.help_box.contains(event.position()):
+            self.help_scroll -= delta / 3
             self.update()
         elif event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier):
             field = "board_zoom" if self.session.surface == Surface.BOARD else "zoom"

@@ -10,7 +10,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 
 | ID | Capability | Implementation | Verification |
 |---|---|---|---|
-| UI-01 | Minimal dark layout: clock, current/next, notes, thumbnail rail, help | Implemented | Native Mac presenter capture inspected; resize cases pending |
+| UI-01 | Minimal dark layout: clock, current/next, notes, thumbnail rail, help | Implemented; help wraps and scrolls in small windows | Native Mac minimum/normal/scrolled captures inspected; help scrolling preserves page; other-platform resize captures pending CI |
 | UI-02 | Two independently resizable windows, single-screen rehearsal | Implemented | Two-window Qt/Cocoa smoke; physical screens pending |
 | UI-03 | Display selection, swap, fullscreen, hide/unhide, unplug recovery | Implemented controls; hardware validation pending | Hide/restore unit integration passes; physical displays pending |
 | DOC-01 | PDF picker, file arguments, drag/drop, OS file-open events | Implemented | Programmatic open tested; picker/drop/OS events pending |
@@ -28,7 +28,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | MEDIA-01 | Local linked video/audio/GIF, poster, play/pause/seek/step | Implemented | Qt GIF/H.264/WAV decoding; seeking; CFR/VFR stepping tests pass |
 | MEDIA-02 | Movie, Screen/Rendition, RichMedia embedded PDF media | Implemented | Movie/Rendition/RichMedia PDFs decoded through Qt |
 | MEDIA-03 | Embedded-rectangle and full-slide playback | Implemented | Embedded/expanded pixel assertions and native Mac captures inspected |
-| CAMERA-01 | Device choice, permission, inset, resize, position, opacity | Initial implementation | Physical camera and permission flow pending |
+| CAMERA-01 | Device choice, permission, inset, resize, position, opacity | Permission cancellation/device lifecycle; persisted width/opacity/corner controls and expansion implemented | Simulated permission cancellation/denial/device loss, stale-frame rejection and shutdown tests pass; synthetic compositing captures inspected; physical camera and OS permission flow pending |
 | WEB-01 | In-app external web/local content and zoom | Implemented | Native Mac local content, resize and Escape check; capture inspected |
 | WEB-02 | Configurable privacy video proxy/direct-link option | Direct/custom/automatic routing and persisted setting implemented | URL/instance-resolution tests; navigation/reload/view/Escape cancel stale callbacks; live instance availability varies |
 | ANIM-01 | LaTeX animate frames, widget controls, frame stepping | Implemented for recognized widget-frame animations | Current and animate 2018/02/28 PDFs: actual Qt-rendered frame colors, controls and stepping pass; other methods/multiple animations pending |

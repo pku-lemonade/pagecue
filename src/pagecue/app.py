@@ -7,8 +7,9 @@ from urllib.parse import quote, urlsplit, urlunsplit
 
 from PySide6.QtCore import QEvent, QObject, QPointF, QRect, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QColor, QDesktopServices, QIcon, QKeySequence
-from PySide6.QtWidgets import (QApplication, QColorDialog, QFileDialog, QInputDialog,
-                              QLineEdit, QMainWindow, QMessageBox, QSlider, QStatusBar, QSystemTrayIcon)
+from PySide6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, QDialogButtonBox,
+                              QFileDialog, QFormLayout, QInputDialog, QLineEdit, QMainWindow,
+                              QMessageBox, QSlider, QSpinBox, QStatusBar, QSystemTrayIcon)
 
 from . import __version__
 from .canvas import Canvas
@@ -82,7 +83,7 @@ class Presenter(QObject):
         self.status.addPermanentWidget(self.seek)
         self.seek.hide()
         self.media = MediaPlayer()
-        self.camera = Camera()
+        self.camera = Camera(self)
         self.posters = Posters()
         self.view.posters = self.slide.posters = self.posters.images
         self.posters.changed.connect(self.session.changed)
@@ -90,6 +91,7 @@ class Presenter(QObject):
         self.media_source_page = None
         self.media.frame.connect(self._media_frame)
         self.camera.frame.connect(self._camera_frame)
+        self.camera.changed.connect(self._camera_state_changed)
         self.media.error.connect(self.notify)
         self.camera.error.connect(self.notify)
         self.media.changed.connect(self._media_state)
@@ -126,6 +128,7 @@ class Presenter(QObject):
         self.updates.failed.connect(lambda message, manual: self.notify(message) if manual and not self._closed else None)
         self.update_tray = None
         self._menus()
+        self._load_camera_appearance()
 
     def _menus(self):
         file_menu = self.presenter.menuBar().addMenu("File")
@@ -152,6 +155,7 @@ class Presenter(QObject):
         action(media_menu, "Expand/restore media", self.expand_media)
         action(media_menu, "Choose camera…", lambda: self.toggle_camera(choose=True))
         action(media_menu, "Toggle camera", self.toggle_camera)
+        action(media_menu, "Camera appearance…", self.configure_camera_appearance)
         action(media_menu, "Video link routing…", self.configure_video_routing)
         help_menu = self.presenter.menuBar().addMenu("Help")
         action(help_menu, "Keyboard help", self.toggle_help)
@@ -348,8 +352,7 @@ class Presenter(QObject):
         if ctrl and key in (Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D):
             horizontal = "left" if key == Qt.Key.Key_A else "right" if key == Qt.Key.Key_D else self.slide.camera_position.split("-")[1]
             vertical = "top" if key == Qt.Key.Key_W else "bottom" if key == Qt.Key.Key_S else self.slide.camera_position.split("-")[0]
-            self.view.camera_position = self.slide.camera_position = f"{vertical}-{horizontal}"
-            state.changed.emit()
+            self.set_camera_appearance(self.slide.camera_width, self.slide.camera_opacity, f"{vertical}-{horizontal}")
             return
         if key in (Qt.Key.Key_Left, Qt.Key.Key_Up, Qt.Key.Key_PageUp,
                    Qt.Key.Key_Right, Qt.Key.Key_Down, Qt.Key.Key_PageDown):
@@ -527,20 +530,74 @@ class Presenter(QObject):
         self.session.changed.emit()
 
     def _camera_frame(self, image):
-        if not self.camera.active:
+        if self._closed or not self.camera.active:
             return
         self.view.camera_image = self.slide.camera_image = image
         self.session.changed.emit()
+
+    def _camera_state_changed(self):
+        if not self.camera.active:
+            self.view.camera_image = self.slide.camera_image = None
+        if not self._closed:
+            self.session.changed.emit()
+
+    def _load_camera_appearance(self):
+        settings = self.session.settings
+        try:
+            width = float(settings.value("camera/width", .28))
+            opacity = float(settings.value("camera/opacity", .8))
+        except (TypeError, ValueError):
+            width, opacity = .28, .8
+        position = str(settings.value("camera/position", "bottom-right"))
+        self.set_camera_appearance(width, opacity, position, persist=False)
+
+    def set_camera_appearance(self, width, opacity, position, *, persist=True):
+        width, opacity = min(.9, max(.1, width)), min(1, max(.05, opacity))
+        if position not in ("top-left", "top-right", "bottom-left", "bottom-right"):
+            position = "bottom-right"
+        for view in (self.view, self.slide):
+            view.camera_width, view.camera_opacity, view.camera_position = width, opacity, position
+        if persist:
+            settings = self.session.settings
+            settings.setValue("camera/width", width)
+            settings.setValue("camera/opacity", opacity)
+            settings.setValue("camera/position", position)
+        self.session.changed.emit()
+
+    def configure_camera_appearance(self):
+        dialog = QDialog(self.presenter)
+        dialog.setWindowTitle("Camera appearance")
+        layout = QFormLayout(dialog)
+        width, opacity = QSpinBox(), QSpinBox()
+        width.setRange(10, 90)
+        opacity.setRange(5, 100)
+        for spin, value in ((width, self.slide.camera_width), (opacity, self.slide.camera_opacity)):
+            spin.setSuffix(" %")
+            spin.setValue(round(value * 100))
+        position = QComboBox()
+        positions = ["top-left", "top-right", "bottom-left", "bottom-right"]
+        position.addItems([value.replace("-", " ").capitalize() for value in positions])
+        position.setCurrentIndex(positions.index(self.slide.camera_position))
+        layout.addRow("Inset width", width)
+        layout.addRow("Opacity", opacity)
+        layout.addRow("Position", position)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.set_camera_appearance(width.value() / 100, opacity.value() / 100, positions[position.currentIndex()])
+        dialog.deleteLater()
 
     def _media_state(self):
         if not self.seek.isSliderDown() and self.media.duration:
             self.seek.setValue(round(self.media.position / self.media.duration * 1000))
 
     def toggle_camera(self, checked=False, choose=False):
-        if self.camera.active and not choose:
+        if self._closed:
+            return
+        if self.camera.requested and not choose:
             self.camera.stop()
-            self.view.camera_image = self.slide.camera_image = None
-            self.session.changed.emit()
             return
         devices = self.camera.devices()
         if not devices:
@@ -548,21 +605,12 @@ class Presenter(QObject):
             return
         device = devices[0]
         if len(devices) > 1 or choose:
-            names = [d.description() for d in devices]
+            names = [f"{i + 1}: {d.description()}" for i, d in enumerate(devices)]
             name, okay = QInputDialog.getItem(self.presenter, "Camera", "Device:", names, 0, False)
             if not okay:
                 return
             device = devices[names.index(name)]
-        from PySide6.QtCore import QCameraPermission
-        permission = QCameraPermission()
-        status = self.app.checkPermission(permission)
-        if status == Qt.PermissionStatus.Undetermined:
-            self.app.requestPermission(permission, lambda p: self.camera.start(device)
-                if p.status() == Qt.PermissionStatus.Granted else self.notify("Camera access was not granted"))
-        elif status == Qt.PermissionStatus.Granted:
-            self.camera.start(device)
-        else:
-            self.notify("Camera permission is disabled in system settings")
+        self.camera.start(device)
 
     def open_web(self, value):
         url = QUrl.fromUserInput(value)

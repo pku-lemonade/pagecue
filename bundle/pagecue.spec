@@ -30,6 +30,7 @@ if sys.platform == "darwin":
             "CFBundleDisplayName": "PageCue", "CFBundleShortVersionString": version,
             "LSMinimumSystemVersion": "14.0", "NSHighResolutionCapable": True,
             "NSCameraUsageDescription": "Show your camera as an optional inset in your presentation.",
+            "NSCameraUseContinuityCameraDeviceType": True,
             "CFBundleDocumentTypes": [{"CFBundleTypeName": "PDF presentation", "CFBundleTypeRole": "Viewer",
                 "LSHandlerRank": "Alternate", "LSItemContentTypes": ["com.adobe.pdf"]}],
         })

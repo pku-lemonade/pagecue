@@ -19,6 +19,12 @@ The interface uses Qt Widgets and custom painting. Qt WebEngine is reserved for
 the original presenter's web-content feature; it does not implement the main UI.
 The existing Présentation and Présentation PDFPC installations are independent.
 
+The keyboard-help panel scrolls when the window is small. Press **V** to toggle
+the camera, **Shift+V** to expand it, and use **Media → Camera appearance…** to
+adjust inset size, opacity and corner. Camera capture starts only after you request
+it and grant the OS permission; device loss clears the preview. Camera appearance
+is remembered between launches, while capture never starts automatically.
+
 PageCue's original code is MIT licensed. Qt/PySide and other dependencies retain
 their own licenses. Binary distribution must include the applicable notices and
 Qt library source/replacement information. Packaging is still in development.
