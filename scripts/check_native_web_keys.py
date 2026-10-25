@@ -18,9 +18,10 @@ class CocoaKeys:
         from importlib.metadata import version
         import objc
         from AppKit import NSApp, NSEvent, NSKeyDown, NSKeyUp
-        from Foundation import NSPoint
+        from Foundation import NSPoint, NSProcessInfo
         self.objc = objc
         self.NSApp, self.NSEvent, self.NSPoint = NSApp, NSEvent, NSPoint
+        self.process_info = NSProcessInfo.processInfo()
         self.down, self.up = NSKeyDown, NSKeyUp
         self.window, self.result = window, result
         result["pyobjc"] = version("pyobjc-framework-Cocoa")
@@ -34,9 +35,10 @@ class CocoaKeys:
         if event.type() not in (self.down, self.up):
             return event
         native = self.objc.objc_object(c_void_p=int(self.window.winId())).window()
+        self.result["native_events"].append({"key": int(event.keyCode()), "type": int(event.type()),
+            "window": int(event.windowNumber()), "owner": int(native.windowNumber())})
         if event.window() != native:
             return event
-        self.result["native_events"].append({"key": int(event.keyCode()), "type": int(event.type())})
         command = {53: "escape", 96: "fullscreen"}.get(event.keyCode())
         if command:
             if event.type() == self.down:
@@ -46,10 +48,15 @@ class CocoaKeys:
 
     def send(self, chars, code):
         native = self.objc.objc_object(c_void_p=int(self.window.winId())).window()
-        for kind in (self.down, self.up):
+        def post(kind):
             event = self.NSEvent.keyEventWithType_location_modifierFlags_timestamp_windowNumber_context_characters_charactersIgnoringModifiers_isARepeat_keyCode_(
-                kind, self.NSPoint(20, 20), 0, 0, native.windowNumber(), None, chars, chars, False, code)
+                kind, self.NSPoint(20, 20), 0, self.process_info.systemUptime(),
+                native.windowNumber(), None, chars, chars, False, code)
+            self.result.setdefault("posted_events", []).append({"key": code, "type": int(kind),
+                "window": int(event.windowNumber()), "timestamp": event.timestamp()})
             self.NSApp().postEvent_atStart_(event, False)
+        post(self.down)
+        QTimer.singleShot(30, lambda: post(self.up))
 
     def exercise(self):
         self.send("a", 0)
