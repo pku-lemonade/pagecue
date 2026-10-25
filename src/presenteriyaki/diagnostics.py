@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import platform
+import shutil
 import sys
 
 from PySide6 import __version__ as pyside_version
@@ -15,6 +16,35 @@ from .document import Media
 from .model import Surface
 
 
+def capture_audience(presenter):
+    window = presenter.audience
+    screen = window.screen()
+    origin = window.mapToGlobal(QPoint()) - screen.geometry().topLeft()
+    return screen.grabWindow(0, origin.x(), origin.y(), window.width(), window.height())
+
+
+def wait_for_pixels(check):
+    """Wait for the native compositor, which finishes after Qt's resize events."""
+    loop = QEventLoop()
+    poll, deadline = QTimer(), QTimer()
+    poll.setInterval(50)
+    deadline.setSingleShot(True)
+    ready = False
+    def inspect():
+        nonlocal ready
+        ready = check()
+        if ready:
+            loop.quit()
+    poll.timeout.connect(inspect)
+    deadline.timeout.connect(loop.quit)
+    poll.start()
+    deadline.start(5000)
+    loop.exec()
+    poll.stop()
+    deadline.stop()
+    assert ready, "Native web camera composition did not render as expected"
+
+
 def check_web_camera(presenter, output):
     """Inspect synthetic compositing only; never starts or photographs a camera."""
     p = presenter
@@ -22,61 +52,35 @@ def check_web_camera(presenter, output):
     image = QImage(400, 400, QImage.Format.Format_RGB32)
     image.fill(QColor("#f08030"))
     previous = (p.slide.camera_opacity, p.slide.camera_large, p.audience.size())
+    p.audience.raise_()
+    p.audience.activateWindow()
+    def pixel(point):
+        capture = capture_audience(p)
+        ratio = capture.devicePixelRatio()
+        point = p.web.mapTo(p.audience, point)
+        return capture.toImage().pixelColor(round(point.x() * ratio), round(point.y() * ratio))
+    def inset():
+        return p.web.rect().bottomRight() - QPoint(30, 30)
+    def blended(point):
+        color = pixel(point)
+        return abs(color.red() - 132) <= 3 and abs(color.green() - 92) <= 3
     try:
         p.slide.camera_opacity = .5
-        def pixel(x, y):
-            capture = p.audience.grab()
-            ratio = capture.devicePixelRatio()
-            return capture.toImage().pixelColor(round(x * ratio), round(y * ratio))
-        def wait_for_background():
-            # loadFinished and resize completion precede Chromium's compositor.
-            # Wait for actual pixels rather than guessing a fixed frame delay.
-            p.slide.camera_image = None
-            p.session.changed.emit()
-            loop = QEventLoop()
-            poll, deadline = QTimer(), QTimer()
-            poll.setInterval(50)
-            deadline.setSingleShot(True)
-            ready = False
-            def inspect():
-                nonlocal ready
-                point = p.slide.geometry().bottomRight() - QPoint(30, 30)
-                ready = pixel(point.x(), point.y()).name() == "#18372b"
-                if ready:
-                    loop.quit()
-            poll.timeout.connect(inspect)
-            deadline.timeout.connect(loop.quit)
-            poll.start()
-            deadline.start(5000)
-            loop.exec()
-            poll.stop()
-            deadline.stop()
-            assert ready, "Web fixture did not paint its background"
-            p.slide.camera_image = image
-            p.session.changed.emit()
-        def inset_check():
-            box = p.slide.geometry()
-            point = box.bottomRight() - QPoint(30, 30)
-            color = pixel(point.x(), point.y())
-            # Half-opacity orange over the known green HTML background.
-            assert abs(color.red() - 132) <= 3 and abs(color.green() - 92) <= 3, color.name()
-            target = p.audience.childAt(point)
-            assert target is p.web or p.web.isAncestorOf(target), "Camera blocks web input"
-        wait_for_background()
-        p.web.grab().save(str(Path(output) / "web.png"))
-        inset_check()
+        wait_for_pixels(lambda: pixel(inset()).name() == "#18372b")
+        capture_audience(p).save(str(Path(output) / "web.png"))
+        p.slide.camera_image = image
+        p.session.changed.emit()
+        wait_for_pixels(lambda: blended(inset()))
+        assert p.web.camera.windowFlags() & Qt.WindowType.WindowTransparentForInput
         p.audience.resize(800, 500)
-        wait_for_background()
-        inset_check()
-        p.audience.grab().save(str(Path(output) / "web-camera.png"))
+        wait_for_pixels(lambda: blended(inset()))
+        capture_audience(p).save(str(Path(output) / "web-camera.png"))
         p.slide.camera_large = True
         p.session.changed.emit()
-        center = p.slide.geometry().center()
-        assert abs(pixel(center.x(), center.y()).red() - 132) <= 3, "Expanded camera hidden"
+        wait_for_pixels(lambda: blended(p.web.rect().center()))
         p.slide.camera_image = None
         p.session.changed.emit()
-        point = p.slide.geometry().bottomRight()
-        assert pixel(point.x() - 30, point.y() - 30).name() == "#18372b", "Stale camera after stop"
+        wait_for_pixels(lambda: pixel(inset()).name() == "#18372b")
     finally:
         p.slide.camera_image = None
         p.slide.camera_opacity, p.slide.camera_large, size = previous
@@ -169,20 +173,23 @@ class SmokeCheck(QObject):
             self.finish()
 
     def _web(self):
-        from PySide6.QtWebEngineCore import (qWebEngineVersion, qWebEngineChromiumVersion,
-                                            qWebEngineChromiumSecurityPatchVersion)
-        self.results.update(qt_webengine=qWebEngineVersion(), chromium=qWebEngineChromiumVersion(),
-                            chromium_security_patch=qWebEngineChromiumSecurityPatchVersion())
         html = self.output / "web-fixture.html"
+        video = ""
+        if self.media:
+            shutil.copyfile(self.media, self.output / "web-video.mp4")
+            video = ('<video id="video" src="web-video.mp4" width="160" autoplay muted loop></video>'
+                     '<script>window.framesPresented=0;const v=document.querySelector("video");'
+                     'const frame=()=>{framesPresented++;v.requestVideoFrameCallback(frame)};'
+                     'v.requestVideoFrameCallback(frame);</script>')
         html.write_text('<!doctype html><title>Presenteriyaki packaged web check</title>'
                         '<body style="background:#18372b;color:white;font:24px sans-serif">'
-                        '<h1>Packaged offline web content</h1></body>')
+                        '<h1>Packaged offline web content</h1>' + video + '</body>')
         p = self.presenter
         p.open_web(str(html))
         def loaded(okay):
             p.web.loadFinished.disconnect(loaded)
             if not okay:
-                self.finish("Packaged WebEngine failed to load local content")
+                self.finish("Packaged native browser failed to load local content")
                 return
             QTimer.singleShot(200, lambda: self.guard(self._after_web))
         p.web.loadFinished.connect(loaded)
@@ -193,18 +200,35 @@ class SmokeCheck(QObject):
         self.key(p.view, Qt.Key.Key_0)
         assert p.web.zoomFactor() == 1.0, "Web zoom reset failed"
         self.results["web_zoom_reset"] = True
-        p.audience.grab().save(str(self.output / "web.png"))
         check_web_camera(p, self.output)
         self.results["web_camera_overlay"] = True
-        def title(value):
-            if value != "Presenteriyaki packaged web check":
-                self.finish("Unexpected packaged web document title")
+        self._web_state()
+
+    def _web_state(self):
+        def received(value):
+            self.guard(lambda: self._check_web_state(json.loads(value)))
+        self.presenter.web.page().runJavaScript(
+            "JSON.stringify({title:document.title,agent:navigator.userAgent,"
+            "frames:window.framesPresented||0,error:document.querySelector('video')?.error?.message||null})", received)
+
+    def _check_web_state(self, state):
+        assert state["title"] == "Presenteriyaki packaged web check", "Unexpected packaged web document title"
+        assert state["error"] is None, state["error"]
+        self.results["web_user_agent"] = state["agent"]
+        if self.media:
+            previous = self.results.setdefault("web_initial_video_frames", state["frames"])
+            if not state["frames"] or state["frames"] <= previous:
+                QTimer.singleShot(200, self._web_state)
                 return
-            self.key(p.web.focusProxy() or p.web, Qt.Key.Key_Escape)
-            self.results["web_loaded"] = True
-            self.results["web_escape"] = p.session.surface == Surface.SLIDES
-            self.finish(None if self.results["web_escape"] else "Web keyboard routing failed")
-        p.web.page().runJavaScript("document.title", title)
+            self.results["web_video_frames"] = state["frames"]
+            self.results["web_video_decoded"] = True
+        self.results["web_loaded"] = True
+        self.key(self.presenter.web.native, Qt.Key.Key_Escape)
+        QTimer.singleShot(0, self._web_escaped)
+
+    def _web_escaped(self):
+        self.results["web_escape"] = self.presenter.session.surface == Surface.SLIDES
+        self.finish(None if self.results["web_escape"] else "Web keyboard routing failed")
 
     def finish(self, error=None):
         if self.done:

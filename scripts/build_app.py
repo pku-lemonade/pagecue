@@ -17,6 +17,8 @@ def main():
     (ROOT / "build/icon.png").write_bytes(icon_png(1024))
     from presenteriyaki import __version__
     (ROOT / "build/bundle-identity.json").write_text(json.dumps({"product": "org.pku-lemonade.pagecue", "version": __version__}))
+    if sys.platform == "win32":
+        subprocess.run([sys.executable, str(ROOT / "scripts/build_native_webview.py")], check=True)
     subprocess.run([sys.executable, str(ROOT / "scripts/collect_notices.py")], check=True)
     subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
                     str(ROOT / "bundle/presenteriyaki.spec")], check=True)

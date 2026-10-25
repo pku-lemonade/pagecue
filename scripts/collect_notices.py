@@ -166,6 +166,13 @@ def main():
         target = OUT / name
         fetch_notice(url, target)
     collect_native_runtime()
+    if sys.platform == "win32":
+        target = OUT / "native-webview"
+        shutil.copytree(ROOT / "bundle/native-webview", target)
+        for name in ("qtwebview-modified-source.tar.gz", "result.json"):
+            shutil.copy2(ROOT / "build/native-webview" / name, target / name)
+        shutil.copy2(ROOT / "build/native-webview/webview2/LICENSE.txt", target / "Microsoft-WebView2-SDK-LICENSE.txt")
+        shutil.copy2(ROOT / "build/native-webview/webview2/NOTICE.txt", target / "Microsoft-WebView2-SDK-NOTICE.txt")
     shutil.copytree(ROOT / "bundle/notices", OUT / "components")
     (OUT / "dependency-versions.json").write_text(json.dumps(manifest, indent=2))
     from render_notices import render

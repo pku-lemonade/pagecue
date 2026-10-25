@@ -1,0 +1,6 @@
+{
+  "url": "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/4a41d80d-4493-4463-a466-d0988b97f1c4/MicrosoftEdgeWebview2Setup.exe",
+  "sha256": "ca4c9016c70e2184c5e231662e0e98abf4826647180ef3faab32fcb1ca2ec15e",
+  "upstream": "https://go.microsoft.com/fwlink/?LinkId=2124703",
+  "documentation": "https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution"
+}

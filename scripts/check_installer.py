@@ -44,7 +44,8 @@ def main():
                 runtime = output / "runtime"
                 with (output / "runtime.log").open("wb") as log:
                     subprocess.run([str(target / "Presenteriyaki.exe"), str(ROOT / "qa/demo.pdf"),
-                        "--smoke-output", str(runtime), "--smoke-web"], stdout=log,
+                        "--smoke-output", str(runtime), "--smoke-web", "--smoke-media",
+                        str(ROOT / "tests/fixtures/generated/colors.mp4")], stdout=log,
                         stderr=subprocess.STDOUT, check=True, timeout=90)
                 assert json.loads((runtime / "result.json").read_text())["passed"]
                 from windows_shortcut import default_shortcut, verify_shortcut

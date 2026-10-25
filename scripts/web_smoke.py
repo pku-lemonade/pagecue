@@ -1,63 +1,6 @@
-"""Native WebEngine integration check against an offline original HTML fixture."""
+"""Run the native browser's application integration check."""
 
-import json
-from pathlib import Path
-import sys
-from PySide6.QtCore import QSettings, QTimer, Qt
-from PySide6.QtTest import QTest
-from presenteriyaki.app import Application, Presenter
-from presenteriyaki.model import Surface
-from presenteriyaki.diagnostics import check_web_camera
-
-
-def main():
-    deck, output = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
-    output.mkdir(parents=True, exist_ok=True)
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(output / "settings"))
-    html = output / "local.html"
-    html.write_text('<!doctype html><html><head><title>Presenteriyaki local web fixture</title></head>'
-        '<body style="background:#18372b;color:white;font:30px sans-serif">'
-        '<h1>Offline web content</h1><p>A local fixture, not a network request.</p></body></html>')
-    app = Application(["presenteriyaki-web-smoke"])
-    presenter = Presenter(app)
-    presenter.show()
-    if not presenter.open(deck):
-        raise RuntimeError("Could not open fixture deck")
-    result = {}
-    def loaded(okay):
-        result["loaded"] = okay
-        presenter.audience.resize(800, 500)
-        def inspect():
-            presenter.web.setZoomFactor(1.5)
-            QTest.keyClick(presenter.view, Qt.Key.Key_0)
-            result["web_zoom_reset"] = presenter.web.zoomFactor() == 1.0
-            result["web_geometry_matches"] = presenter.web.geometry() == presenter.slide.geometry()
-            presenter.audience.grab().save(str(output / "audience.png"))
-            try:
-                check_web_camera(presenter, output)
-                result["web_camera_overlay"] = True
-            except Exception as error:
-                result["error"] = str(error)
-                (output / "results.json").write_text(json.dumps(result, indent=2))
-                app.quit()
-                return
-            def title(value):
-                result["title"] = value
-                QTest.keyClick(presenter.web, Qt.Key.Key_Escape)
-                result["escape_returns_slides"] = presenter.session.surface == Surface.SLIDES
-                (output / "results.json").write_text(json.dumps(result, indent=2))
-                app.quit()
-            presenter.web.page().runJavaScript("document.title", title)
-        QTimer.singleShot(500, inspect)
-    presenter.open_web(str(html))
-    presenter.web.loadFinished.connect(loaded)
-    QTimer.singleShot(15000, app.quit)
-    app.exec()
-    presenter.quit()
-    if not all(result.get(key) for key in ("loaded", "escape_returns_slides", "web_zoom_reset", "web_camera_overlay")):
-        raise RuntimeError("Web integration smoke check failed or timed out")
-
+from check_browser_integration import main
 
 if __name__ == "__main__":
     main()

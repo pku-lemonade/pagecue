@@ -40,6 +40,9 @@ jobs:
         run: uv sync --frozen
       - name: Generate original demo deck and QA directory
         run: uv run python scripts/make_demo.py qa/demo.pdf
+      - name: Build the Windows browser shortcut bridge
+        if: runner.os == 'Windows'
+        run: uv run python scripts/build_native_webview.py
       - name: Exercise PDF rendering, animations, media, and application logic
         run: uv run pytest -q --junitxml=qa/tests.xml --basetemp=qa/tests
       - name: Check interaction rendering with the native window and font backend
@@ -67,6 +70,14 @@ jobs:
         run: uv run python scripts/build_installer.py
       - name: Verify the installer artifact
         run: uv run python scripts/check_installer.py --output qa/installer
+      - name: Check the Mac browser across window changes
+        if: runner.os == 'macOS'
+        timeout-minutes: 2
+        run: uv run --with pyobjc-framework-Cocoa==12.2.2 python scripts/check_browser_integration.py qa/demo.pdf qa/browser-integration
+      - name: Check the Windows browser across window changes
+        if: runner.os == 'Windows'
+        timeout-minutes: 2
+        run: uv run python scripts/check_browser_integration.py qa/demo.pdf qa/browser-integration
       - name: Upload tested preview installer
         if: github.event_name == 'workflow_dispatch' && inputs.upload_installers
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -93,5 +104,8 @@ jobs:
             qa/opening/result.json
             qa/opening/picker.png
             qa/installer
+            qa/browser-integration
+            build/native-webview/result.json
+            build/webview2-bootstrapper.json
           retention-days: 14
           if-no-files-found: warn

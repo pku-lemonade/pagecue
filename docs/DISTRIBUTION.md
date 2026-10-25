@@ -21,7 +21,7 @@ restriction on reverse engineering for debugging modified LGPL components.
 and the actual FFmpeg version, configuration, license texts and attribution.
 `native-runtime.json` records notice hashes, which the package check verifies.
 
-The packaged notice index also includes inventories from nine Qt 6.12.0 source
+The packaged notice index also includes inventories from ten Qt 6.12.0 source
 archives, the 125 third-party license pages published for WebEngine 6.140.0,
 and cryptography's Cargo.lock dependencies. Source archive and crate checksums,
 documentation page hashes, and source URLs are retained in `bundle/notices`.
@@ -54,6 +54,21 @@ that discrepancy; support on macOS 14.4 is not established. Resolve the wheel
 metadata discrepancy and test the minimum supported OS before a stable release.
 See [contributor instructions](../CONTRIBUTING.md#releases) for Developer ID
 signing and notarization. Windows development installers are currently unsigned.
+
+## Native browser
+
+Qt WebView uses the operating system's WebKit on macOS and Microsoft's WebView2
+Runtime on Windows. Windows packages include a modified Qt WebView plugin under
+LGPL-3.0-only; its complete source, patch and rebuild instructions accompany the
+DLL. See [the dependency README](../bundle/native-webview/README.md).
+Qt PDF still uses code from the WebEngine source module, so its relevant notices
+remain included even though the Chromium browser runtime is omitted.
+
+Windows Setup includes Microsoft's SHA-256-pinned, Authenticode-verified WebView2
+bootstrapper. It checks the documented per-user and per-machine registry entries
+and installs the shared runtime only when missing. An internet connection is
+required for that download. Removing Presenteriyaki leaves this shared runtime
+installed. See Microsoft's [deployment documentation](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution).
 
 ## Release checks
 

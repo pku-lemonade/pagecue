@@ -45,7 +45,10 @@ def main():
         compiler = shutil.which("ISCC") or str(Path(os.environ["ProgramFiles(x86)"]) / "Inno Setup 6/ISCC.exe")
         if not Path(compiler).is_file():
             raise SystemExit("Install Inno Setup 6 from https://jrsoftware.org/isinfo.php, then rerun this command.")
+        from prepare_webview2 import prepare
+        webview_setup = prepare()
         subprocess.run([compiler, "/Qp", f"/DAppVersion={__version__}", f"/DSourceDir={source}",
+                        f"/DWebViewSetup={webview_setup}",
                         f"/O{OUTPUT}", f"/F{output.stem}", str(ROOT / "bundle/windows.iss")], check=True)
     print(output)
 

@@ -79,7 +79,7 @@ def main():
         if result.returncode:
             raise RuntimeError(f"Packaged executable exited with {result.returncode}; see {output / 'runtime.log'}")
         evidence = json.loads(report.read_text(encoding="utf-8"))
-        for name in ("passed", "frozen", "rendered", "navigation_reload", "media_decoded", "web_loaded", "web_escape", "web_zoom_reset", "web_camera_overlay"):
+        for name in ("passed", "frozen", "rendered", "navigation_reload", "media_decoded", "web_loaded", "web_escape", "web_zoom_reset", "web_camera_overlay", "web_video_decoded"):
             if evidence.get(name) is not True:
                 raise RuntimeError(f"Packaged check failed: {name}: {evidence}")
         if evidence.get("initial_page") != 2 or evidence.get("talk_duration_seconds") != 750 or evidence.get("video_routing") != "":

@@ -17,8 +17,9 @@ datas += [(str(root / "LICENSE"), "licenses"),
           (str(root / "build/bundle-identity.json"), ".")]
 a = Analysis([str(root / "bundle/entrypoint.py")], pathex=[str(root / "src")],
     hookspath=[str(root / "bundle/hooks")],
-    datas=datas, binaries=[], hiddenimports=["PySide6.QtSvg", "PySide6.QtWebEngineWidgets"],
-    excludes=["tkinter", "numpy", "scipy", "matplotlib", "IPython", "pytest", "reportlab", "PIL"],
+    datas=datas, binaries=[], hiddenimports=["PySide6.QtSvg", "PySide6.QtWebView"],
+    excludes=["tkinter", "numpy", "scipy", "matplotlib", "IPython", "pytest", "reportlab", "PIL",
+              "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtWebEngineQuick"],
     noarchive=False)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="Presenteriyaki", debug=False,

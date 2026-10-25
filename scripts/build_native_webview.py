@@ -1,4 +1,4 @@
-"""Build the experimental Windows shortcut bridge against pinned Qt 6.12 sources."""
+"""Build the Windows shortcut bridge against pinned Qt 6.12 sources."""
 
 import hashlib
 import json
@@ -71,6 +71,9 @@ def main():
     with plugin.open("rb") as source:
         digest = hashlib.file_digest(source, "sha256").hexdigest()
     (BUILD / "result.json").write_text(json.dumps({"sources": sources, "plugin_sha256": digest}, indent=2))
+    with tarfile.open(BUILD / "qtwebview-modified-source.tar.gz", "w:gz") as archive:
+        archive.add(source_root, arcname="qtwebview", filter=lambda item:
+                    None if ".git" in Path(item.name).parts else item)
     print(plugin)
 
 

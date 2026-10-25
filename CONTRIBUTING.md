@@ -10,7 +10,7 @@ uv run pytest -q
 
 The main interface uses Qt Widgets and custom painting. Qt PDF renders slides;
 pypdf reads notes and metadata. Qt Multimedia handles media and camera input.
-WebEngine is used for web content.
+Qt WebView hosts native WebKit (macOS) and WebView2 (Windows) content.
 
 ## Build the app
 
@@ -37,7 +37,12 @@ the build inventories each included Mac binary's deployment target in
 [distribution notes](docs/DISTRIBUTION.md). The package audit also
 rejects unused QML plugin trees and unrelated Qt charting/3D libraries.
 
-The Windows installer build requires [Inno Setup 6](https://jrsoftware.org/isinfo.php).
+Windows builds require Visual Studio C++ tools, CMake, 7-Zip and
+[Inno Setup 6](https://jrsoftware.org/isinfo.php). `build_app.py` builds the
+[WebView2 shortcut bridge](bundle/native-webview/README.md) automatically.
+For Windows development from source, run `scripts/build_native_webview.py` before
+opening web content. Setup installs Microsoft WebView2 if it is missing; that
+one-time dependency download requires internet access.
 It installs for the current user and includes a Start Menu entry and uninstaller.
 On macOS, open the disk image and drag the app to Applications. Close the app
 before updating it. Development builds are not notarized or signed with a
@@ -76,23 +81,17 @@ checks are separate from automated tests.
 The Windows installer check runs only on fresh CI runners because it creates
 an uninstall entry and Start Menu shortcut.
 
-Test browser video separately from native media. The pinned WebEngine build
-decodes VP9/WebM but reports no H.264 support through `HTMLMediaElement.canPlayType`;
-an MP4 `<video>` fails with `DEMUXER_ERROR_NO_SUPPORTED_STREAMS`. Native Qt
-Multimedia MP4 decoding passes. Loading an HTML page alone does not establish
-browser video playback: check decoded frame progress and media errors too.
-Qt documents the required [WebEngine codec build option](https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs).
-This remains a browser compatibility limitation in the preview.
+Test browser video separately from native media: decoded frames must advance,
+not merely report a successful HTML load. `scripts/check_browser_integration.py`
+checks H.264 playback, rendered zoom/reset, Escape/F5 and synthetic camera
+composition across resize, fullscreen and minimize/restore. Run visual checks
+on an unlocked desktop. On macOS the input sender requires the test-only
+`pyobjc-framework-Cocoa==12.2.2` package.
 
-`scripts/check_native_webview.py` probes Qt's native WebKit/WebView2 backends
-without changing the app. Run it with `--capture --camera-overlay` on an unlocked
-test desktop to check H.264 decoding and translucent camera composition. The
-manual **Native browser feasibility check** workflow runs this on all three
-targets. Playback and static composition pass. Windows also passes repeated
-shortcut checks with an experimental [WebView2 bridge](bundle/native-webview/README.md).
-The Mac 15 keyboard probe intermittently misses Escape; this remains unresolved.
-App integration, zoom, window lifecycle and packaged deployment also need checks
-before replacing WebEngine.
+The manual native-browser workflow also checks repeated native typing and
+shortcuts against the platform backends. It sends input only to its own test
+windows. The published 0.3.0 preview still uses WebEngine and lacks browser
+H.264 support; the native backend is under development for the next release.
 
 The internal `PageCue` storage name and bundle identity are retained for existing
 preferences and OS permissions. Keep those compatibility identifiers stable.
