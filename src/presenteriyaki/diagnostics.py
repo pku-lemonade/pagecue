@@ -23,7 +23,7 @@ def capture_audience(presenter):
     return screen.grabWindow(0, origin.x(), origin.y(), window.width(), window.height())
 
 
-def wait_for_pixels(check):
+def wait_for_pixels(check, message):
     """Wait for the native compositor, which finishes after Qt's resize events."""
     loop = QEventLoop()
     poll, deadline = QTimer(), QTimer()
@@ -42,7 +42,7 @@ def wait_for_pixels(check):
     loop.exec()
     poll.stop()
     deadline.stop()
-    assert ready, "Native web camera composition did not render as expected"
+    assert ready, message
 
 
 def check_web_camera(presenter, output):
@@ -66,21 +66,24 @@ def check_web_camera(presenter, output):
         return abs(color.red() - 132) <= 3 and abs(color.green() - 92) <= 3
     try:
         p.slide.camera_opacity = .5
-        wait_for_pixels(lambda: pixel(inset()).name() == "#18372b")
+        wait_for_pixels(lambda: pixel(inset()).name() == "#18372b", "Web background did not render")
         capture_audience(p).save(str(Path(output) / "web.png"))
         p.slide.camera_image = image
         p.session.changed.emit()
-        wait_for_pixels(lambda: blended(inset()))
+        wait_for_pixels(lambda: blended(inset()), "Web camera inset did not render")
         assert p.web.camera.windowFlags() & Qt.WindowType.WindowTransparentForInput
         p.audience.resize(800, 500)
-        wait_for_pixels(lambda: blended(inset()))
+        wait_for_pixels(lambda: blended(inset()), "Web camera did not follow the resized audience")
         capture_audience(p).save(str(Path(output) / "web-camera.png"))
         p.slide.camera_large = True
         p.session.changed.emit()
-        wait_for_pixels(lambda: blended(p.web.rect().center()))
+        wait_for_pixels(lambda: blended(p.web.rect().center()), "Expanded web camera did not render")
         p.slide.camera_image = None
         p.session.changed.emit()
-        wait_for_pixels(lambda: pixel(inset()).name() == "#18372b")
+        wait_for_pixels(lambda: pixel(inset()).name() == "#18372b", "Web camera remained visible after stopping")
+    except Exception:
+        capture_audience(p).save(str(Path(output) / "web-failure.png"))
+        raise
     finally:
         p.slide.camera_image = None
         p.slide.camera_opacity, p.slide.camera_large, size = previous

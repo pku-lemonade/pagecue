@@ -6,8 +6,8 @@ import ctypes.util
 from PySide6.QtCore import QAbstractNativeEventFilter, Qt
 
 
-class BrowserKeys(QAbstractNativeEventFilter):
-    """Route audience web shortcuts while leaving native text input intact."""
+class BrowserIntegration(QAbstractNativeEventFilter):
+    """Route browser shortcuts and keep its camera window attached to the audience."""
 
     def __init__(self, browser):
         super().__init__()
@@ -23,6 +23,27 @@ class BrowserKeys(QAbstractNativeEventFilter):
         self.get_key = ctypes.CFUNCTYPE(ctypes.c_ushort, ctypes.c_void_p, ctypes.c_void_p)(("objc_msgSend", library))
         self.get_window = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)(("objc_msgSend", library))
         self.get_repeat = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)(("objc_msgSend", library))
+        self.parent_selector = library.sel_registerName(b"parentWindow")
+        self.add_child_selector = library.sel_registerName(b"addChildWindow:ordered:")
+        self.remove_child_selector = library.sel_registerName(b"removeChildWindow:")
+        self.add_child = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long)(
+            ("objc_msgSend", library))
+        self.remove_child = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)(
+            ("objc_msgSend", library))
+
+    def attach_camera(self):
+        child = self.get_window(int(self.browser.camera.winId()), self.window_selector)
+        owner = self.get_window(int(self.browser.audience.winId()), self.window_selector)
+        if self.get_window(child, self.parent_selector) != owner:
+            # Qt's transient-parent hint does not create an AppKit child window.
+            # A child stays directly above its owner during activation/restore.
+            self.add_child(owner, self.add_child_selector, child, 1)  # NSWindowAbove
+
+    def detach_camera(self):
+        child = self.get_window(int(self.browser.camera.winId()), self.window_selector)
+        owner = self.get_window(child, self.parent_selector)
+        if owner:
+            self.remove_child(owner, self.remove_child_selector, child)
 
     def nativeEventFilter(self, kind, pointer):
         if bytes(kind) not in (b"NSEvent", b"mac_generic_NSEvent") or not self.browser.isVisible():

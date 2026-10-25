@@ -19,9 +19,11 @@ def prepare():
             shutil.copyfileobj(response, output)
     if hashlib.sha256(target.read_bytes()).hexdigest() != source["sha256"]:
         raise RuntimeError("WebView2 installer SHA-256 does not match the pinned download")
-    script = ("$s = Get-AuthenticodeSignature -LiteralPath $env:PRESENTERIYAKI_WEBVIEW_SETUP; "
+    script = ("$ErrorActionPreference = 'Stop'; "
+              "$s = Get-AuthenticodeSignature -LiteralPath $env:PRESENTERIYAKI_WEBVIEW_SETUP; "
               "@{status=$s.Status.ToString(); subject=$s.SignerCertificate.Subject} | ConvertTo-Json -Compress")
-    signature = json.loads(subprocess.check_output(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+    shell = shutil.which("pwsh") or "powershell"
+    signature = json.loads(subprocess.check_output([shell, "-NoProfile", "-NonInteractive", "-Command", script],
         env={**os.environ, "PRESENTERIYAKI_WEBVIEW_SETUP": str(target)}, text=True))
     if signature["status"] != "Valid" or "CN=Microsoft Corporation," not in signature["subject"]:
         raise RuntimeError(f"WebView2 installer signature verification failed: {signature}")

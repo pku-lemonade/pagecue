@@ -52,11 +52,11 @@ class Browser(QWidget):
         self.camera.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.camera.setAttribute(Qt.WidgetAttribute.WA_NativeWindow)
         parent.installEventFilter(self)
-        self.native_keys = None
+        self.native_integration = None
         if sys.platform == "darwin":
-            from .macos import BrowserKeys
-            self.native_keys = BrowserKeys(self)
-            QCoreApplication.instance().installNativeEventFilter(self.native_keys)
+            from .macos import BrowserIntegration
+            self.native_integration = BrowserIntegration(self)
+            QCoreApplication.instance().installNativeEventFilter(self.native_integration)
         self.hide()
 
     def load(self, url):
@@ -105,6 +105,11 @@ class Browser(QWidget):
         showing = visible and self.camera.isHidden()
         self.camera.setGeometry(QRect(self.mapToGlobal(QPoint(0, 0)), self.size()))
         self.camera.setVisible(visible)
+        if self.native_integration:
+            if visible:
+                self.native_integration.attach_camera()
+            else:
+                self.native_integration.detach_camera()
         if visible:
             if showing:
                 self.camera.raise_()
@@ -147,13 +152,16 @@ class Browser(QWidget):
         self.update_camera()
 
     def hideEvent(self, event):
+        if self.native_integration:
+            self.native_integration.detach_camera()
         self.camera.hide()
         super().hideEvent(event)
 
     def shutdown(self):
         self._closed = True
-        if self.native_keys is not None:
-            QCoreApplication.instance().removeNativeEventFilter(self.native_keys)
-            self.native_keys = None
+        if self.native_integration is not None:
+            self.native_integration.detach_camera()
+            QCoreApplication.instance().removeNativeEventFilter(self.native_integration)
+            self.native_integration = None
         self.native.stop()
         self.camera.close()
