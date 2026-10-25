@@ -223,8 +223,7 @@ class Presenter(QObject):
         self.auto_update_action.setChecked(self.session.settings.value("check-updates", False, type=bool))
         self.auto_update_action.toggled.connect(lambda checked: self.session.settings.setValue("check-updates", checked))
         action(help_menu, "About Presenteriyaki", lambda: QMessageBox.about(self.presenter, "Presenteriyaki",
-            f"Presenteriyaki {__version__}\nA minimalist Qt PDF presenter.\nIndependent implementation · MIT\n"
-            "In development: see the feature parity ledger."))
+            f"Presenteriyaki {__version__}\nA minimalist two-screen PDF presenter.\nMIT License"))
 
     def show(self):
         for name, window in (("presenter", self.presenter), ("audience", self.audience)):
