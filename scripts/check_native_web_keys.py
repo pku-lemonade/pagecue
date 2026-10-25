@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 os.environ["QT_WEBVIEW_PLUGIN"] = "native"
-from PySide6.QtCore import QAbstractNativeEventFilter, QTimer
+from PySide6.QtCore import QAbstractNativeEventFilter, QEvent, QObject, QTimer, Qt
 from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtWebView import QWebView, QWebViewLoadingInfo, QtWebView
 
@@ -33,7 +33,7 @@ class CocoaKeys(QAbstractNativeEventFilter):
         native = self.objc.objc_object(c_void_p=int(self.window.winId())).window()
         if event.window() != native:
             return False, 0
-        self.result["native_events"].append(int(event.keyCode()))
+        self.result["native_events"].append({"key": int(event.keyCode()), "type": int(event.type())})
         command = {53: "escape", 96: "fullscreen"}.get(event.keyCode())
         if command:
             if event.type() == self.down:
@@ -64,6 +64,7 @@ class WindowsKeys(QAbstractNativeEventFilter):
         self.user32.GetParent.restype = wintypes.HWND
         self.user32.IsChild.argtypes = [wintypes.HWND, wintypes.HWND]
         self.user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+        self.user32.MapVirtualKeyW.argtypes = [wintypes.UINT, wintypes.UINT]
         self.window, self.result = window, result
 
     def nativeEventFilter(self, kind, pointer):
@@ -98,16 +99,47 @@ class WindowsKeys(QAbstractNativeEventFilter):
         self.user32.EnumChildWindows.argtypes = [self.types.HWND, callback_type, self.types.LPARAM]
         self.user32.EnumChildWindows(int(self.window.winId()), callback_type(child), 0)
         self.result["children"] = children
-        target = next(c["hwnd"] for c in children if c["class"] == "Chrome_RenderWidgetHostHWND")
+        renderer = next(c for c in children if c["class"] == "Chrome_RenderWidgetHostHWND")
+        target = renderer["hwnd"]
+        current_thread = ctypes.WinDLL("kernel32").GetCurrentThreadId()
+        self.user32.AttachThreadInput.argtypes = [self.types.DWORD, self.types.DWORD, self.types.BOOL]
+        self.user32.SetFocus.argtypes = [self.types.HWND]
+        self.user32.SetFocus.restype = self.types.HWND
+        attached = self.user32.AttachThreadInput(current_thread, renderer["thread"], True)
+        try:
+            self.user32.SetFocus(target)
+        finally:
+            if attached:
+                self.user32.AttachThreadInput(current_thread, renderer["thread"], False)
         # Target the embedded renderer, never the system foreground window.
         def send(key, character=None):
-            self.user32.PostMessageW(target, 0x100, key, 1)
+            key_data = (self.user32.MapVirtualKeyW(key, 0) << 16) | 1
+            self.user32.PostMessageW(target, 0x100, key, key_data)
             if character:
                 self.user32.PostMessageW(target, 0x102, ord(character), 1)
-            self.user32.PostMessageW(target, 0x101, key, 0xC0000001)
+            self.user32.PostMessageW(target, 0x101, key, key_data | 0xC0000000)
         send(0x41, "a")
         QTimer.singleShot(200, lambda: send(0x74))
         QTimer.singleShot(400, lambda: send(0x1B))
+
+
+class QtKeys(QObject):
+    def __init__(self, result):
+        super().__init__()
+        self.result = result
+
+    def eventFilter(self, watched, event):
+        if event.type() not in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
+            return False
+        self.result["qt_events"].append({"key": event.key(), "type": int(event.type()),
+                                        "target": watched.metaObject().className()})
+        command = {Qt.Key.Key_Escape: "escape", Qt.Key.Key_F5: "fullscreen"}.get(event.key())
+        if command:
+            if event.type() == QEvent.Type.KeyPress:
+                self.result["shortcuts"].append(command)
+            event.accept()
+            return True
+        return False
 
 
 def main():
@@ -123,7 +155,7 @@ def main():
     web = QWebView()
     container = QWidget.createWindowContainer(web, window)
     container.setGeometry(0, 0, 600, 400)
-    result = {"native_events": [], "shortcuts": [], "passed": False}
+    result = {"native_events": [], "qt_events": [], "shortcuts": [], "passed": False}
     keys = CocoaKeys(window, result) if sys.platform == "darwin" else WindowsKeys(window, result)
     app.installNativeEventFilter(keys)
     done = False
@@ -144,7 +176,8 @@ def main():
             result["passed"] = (result["page"]["value"] == "a" and result["page"]["keys"] == ["a"]
                                 and result["shortcuts"] == ["fullscreen", "escape"])
             finish(None if result["passed"] else "Browser typing or shortcut interception failed")
-        web.runJavaScript('JSON.stringify({value:document.querySelector("input").value,keys:window.keys})', received)
+        web.runJavaScript('JSON.stringify({value:document.querySelector("input").value,keys:window.keys,'
+                          'focused:document.hasFocus(),active:document.activeElement.tagName})', received)
 
     def exercise():
         try:
@@ -164,6 +197,9 @@ def main():
     window.show()
     window.raise_()
     window.activateWindow()
+    qt_keys = QtKeys(result)
+    for target in (window, window.windowHandle(), web, container):
+        target.installEventFilter(qt_keys)
     web.loadHtml('<!doctype html><input autofocus><script>window.keys=[];'
                  'document.addEventListener("keydown",e=>keys.push(e.key));</script>')
     QTimer.singleShot(15000, lambda: finish("Keyboard probe timed out"))
