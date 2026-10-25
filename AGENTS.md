@@ -1,5 +1,12 @@
 # Presenteriyaki implementation instructions
 
+For an installation-only request, follow the requested version and README's
+build/check/install workflow. Report untested capabilities; the development
+acceptance work below is a separate task, not a prerequisite for installing a
+development preview. Preserve existing applications, preferences and documents.
+
+## Rewrite development
+
 The active objective is a Qt/PySide rewrite of Présentation with its minimalist
 style/basic layout and **no dropped features**. `docs/FEATURES.md` is the parity
 ledger, not a menu of optional scope. Keep incomplete capabilities visible.
@@ -20,5 +27,5 @@ ledger, not a menu of optional scope. Keep incomplete capabilities visible.
 - `--hardware-camera` activates a real camera. Run it only after explicit user
   authorization for a local preview test; never run it in ordinary CI or installer
   checks. The hardware diagnostic records metadata only, never images/video.
-- Do not mark the goal complete until the feature ledger has concrete evidence
+- Do not mark the rewrite goal complete until the feature ledger has concrete evidence
   for every capability and the supported platform builds have been checked.

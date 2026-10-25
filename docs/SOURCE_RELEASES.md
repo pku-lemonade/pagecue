@@ -30,7 +30,26 @@ then follow README.md and AGENTS.md in that checkout.
 5. Future packaged releases additionally need the public-binary notice/source and
    signing checks in DISTRIBUTION.md. A source tag does not waive those checks.
 
-## Published checkpoint
+## Published checkpoints
+
+### Presenteriyaki v0.2.0
+
+[`v0.2.0`](https://github.com/pku-lemonade/presenteriyaki/tree/v0.2.0) is the first
+Presenteriyaki source preview, at `0003fa8ea97b51688bfdee6eb4151a60fdd6d045`.
+[CI run 40196504437](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40196504437)
+passes 97 tests, 16 native interaction checks, and packaged execution plus
+install/update/removal on Windows x64 and both Mac architectures. Its annotated
+tag object is `080e620efc95f0c3be1f327b34032f513fe7a2f0`.
+
+The live Qt checker finds 0.2.0 through both the current repository endpoint and
+the old PageCue endpoint's redirect. It reports an update for installed 0.1.0 and
+no newer version for 0.2.0. All results link to the canonical Presenteriyaki tag.
+Transport evidence is under `qa/presenteriyaki-source-release-live.json`.
+This publishes source only; the remaining acceptance gates are in
+COMPLETION_AUDIT.md. Existing PageCue preferences, command aliases and the earlier
+immutable tag are retained.
+
+### Earlier PageCue v0.1.0
 
 [`v0.1.0`](https://github.com/pku-lemonade/presenteriyaki/tree/v0.1.0) is a development
 source preview at commit `8a5138aa3d48deae4844bcb4b5698fcc1fd60a90`.

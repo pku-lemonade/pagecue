@@ -14,6 +14,11 @@ packaged execution plus install/update/removal. Tests exercise generated PDFs,
 actual Qt rendering/decoding and input events; their scope is described below.
 The source reference hash in FEATURES.md was rechecked and still matches.
 
+The finalized source-preview commit `0003fa8` passes the same checks in
+[40196504437](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40196504437)
+and is published as `v0.2.0`. The live update checker verifies older/current
+versions through both the current and legacy repository URLs.
+
 | Requirements | Concrete evidence | Remaining scope |
 |---|---|---|
 | UI-01–02: minimalist two-window layout | Native layout captures, `test_gui.py`, minimum/help-scroll checks, real Mac two-display acceptance | Physical Windows display acceptance |

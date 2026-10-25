@@ -69,6 +69,14 @@ It remains available for the user. Do not replace this installed bundle while it
 is running. The old PageCue build directories remain intact.
 See COMPLETION_AUDIT.md for the remaining acceptance gates.
 
+The finalized source-preview checkpoint `0003fa8ea97b51688bfdee6eb4151a60fdd6d045`
+also passes all three targets in run 40196504437 and is published as immutable
+`v0.2.0` (annotated tag `080e620efc95f0c3be1f327b34032f513fe7a2f0`). The live Qt
+checker finds it via both repository names, reports an update from 0.1.0 and no
+newer version for 0.2.0. Source-only publication and exact IDs are recorded in
+SOURCE_RELEASES.md. The existing PageCue bundle also passed a read-only legacy
+identity/signature check using the renamed installer. No old app was removed.
+
 The ink-scaling audit now uses an actual GUI selection and wheel event on a
 zoomed/letterboxed slide. It checks a stationary cursor anchor, visibly extended
 ink, unchanged unselected ink and inverse scaling. Offscreen/native Cocoa pass;
@@ -408,68 +416,43 @@ locally with TeX/FFmpeg excluded from PATH.
 
 ## Required remaining work
 
-1. Complete actual notification-click/Windows delivery and real privacy-video playback.
-   The user-approved Mac notification test now has native banner observation.
-   The v0.1.0 source update channel is published and live-checked; release/source
-   parsing, cancellation, routing and public HTTPS service calls have coverage.
-   A fresh live Qt check on 2026-10-25 resolved the public directory to
-   `yt.chocolatemoo53.com` and retrieved metadata for Big Buck Bunny
-   (`YE7VzlLtp-4`, 597 seconds). The actual PageCue WebEngine watch page then
-   presented a human-verification challenge and no video element. The check
-   stopped without attempting the challenge; no playback or decoded frames are
-   claimed. Metadata is under `qa/live-video-recheck.json` and
-   `qa/live-video-playback/result.json`; no video frames were saved. A usable
-   instance or a human-completed session is needed for the remaining live check.
-   The [official instance policy](https://docs.invidious.io/instances/) requires
-   public-instance anti-abuse controls, so directory/API reachability alone cannot
-   establish browser playback.
-2. Complete the remaining rendering/long-deck audit. Current and compiled
-   2013/2016/2018 animation output now cover widget and named-icon forms, original
-   object-style timing, independent animations, posters and click/keyboard controls.
-   The baseline implementation's widget/fixed-timing boundary was rechecked and
-   recorded in FEATURES.md; general OCG/arbitrary JavaScript playback was not an
-   implemented feature of the reference app.
-   The 400-page synthetic-deck interaction/render check now passes. A renewed
-   baseline help/CLI audit found explicit notes-size/web-zoom reset commands and
-   icon export missing. Notes/web reset, original short CLI aliases and PageCue
-   icon export are now restored and tested, including actual Mac bundle execution.
-3. Finish camera device-switch/unplug acceptance and Windows hardware coverage.
-   Authorized real Mac permission/live preview/stop checks now pass. Camera frames
-   are not captured automatically during ordinary QA.
-   Width/opacity/position now have persisted controls. Permission callbacks are
-   cancelled on stop/switch/quit; device loss clears both views, and each capture
-   generation has its own sink to reject late frames. Six simulated lifecycle/
-   preference tests pass. The actual Mac permission call was corrected after the
-   hardware test found the simulation's incomplete signature. The Mac bundle opts
-   into the Continuity Camera device type.
-4. Finish interaction/visual edge cases: small windows, changing DPI, crop/pan/zoom,
-   selection scaling, persistent preferences, hide/fullscreen restoration and
-   remaining physical unplug and Windows display behavior. Mac two-display
-   selection/fullscreen/swap/hide/restore now pass with user visual confirmation.
-   The overlapping help at 700×420 is corrected: rows wrap at readable sizes and
-   the panel scrolls. `qa/layout-camera/minimum.png` and `minimum-scrolled.png`
-   show the correction; native Windows/Intel resize captures are added to CI.
-   Native Mac file-picker/OS-open acceptance now passes by user confirmation.
-   Windows native picker acceptance remains pending. A normal LaunchServices
-   launch ran the packaged Cocoa event loop and painted (sampled process evidence),
-   but Computer Use returned `cgWindowNotFound` for both the app path and bundle ID,
-   so no successful native picker interaction is claimed. The owned QA process was
-   stopped after investigation; original Présentation apps were untouched.
-   A fresh attempt against the rebuilt CLI-capable app again returned
-   `cgWindowNotFound` while the app inventory showed it running. The owned QA
-   process was stopped; no alternate OS-input automation was used.
-5. Complete native package verification and the binary dependency/source/notice
-   audit. Mac bundled Python/Qt, identity/icon, camera entitlements,
-   usage text and staged installer exist. Fresh CI runner startup passes; ordinary
-   user first-launch permission/signing checks remain pending. WebEngine's separate
-   runtime version and missing notices are recorded in DISTRIBUTION.md.
-6. Complete both platforms' physical-device acceptance and ordinary-user
-   first-launch checks. Windows CI is not equivalent to hardware acceptance.
-   The user has authorized and completed the local Mac camera/two-display check;
-   this does not authorize saving/uploading camera frames or prove Windows,
-   mixed-DPI, physical unplug or tablet behavior.
-7. Do a requirement-by-requirement completion audit against `FEATURES.md`; do not
-   substitute an unsupported-feature message for a feature's implementation.
+The rendering, navigation, notes, animation, media and interaction audit now has
+concrete coverage for the baseline capabilities listed in FEATURES.md, including
+the crop-box and timed-animation corrections and GUI ink scaling. The current
+requirement-by-requirement mapping is in COMPLETION_AUDIT.md. Revisit completed
+checks when changed code or new evidence warrants it; the following acceptance
+items are still open.
+
+1. Verify actual notification clicks and Windows notification delivery. Mac
+   permission was approved and enabled; both PageCue and Presenteriyaki test
+   banners were observed. The computer-use service could not act on the transient
+   banner before its window disappeared. Existing click-routing tests are
+   simulated. Background update checks remain off in the user's normal settings.
+2. Verify real privacy-video playback. Live Qt directory routing and metadata for
+   Big Buck Bunny (YE7VzlLtp-4, 597 seconds) succeed, but the actual WebEngine watch
+   page presents a human-verification challenge before exposing a video player.
+   No challenge was attempted and no playback was claimed. Metadata is under
+   `qa/live-video-recheck.json` and `qa/live-video-playback/result.json`. A usable
+   instance or a human-completed session is needed. The
+   [official instance policy](https://docs.invidious.io/instances/) requires
+   public-instance anti-abuse controls; API reachability does not establish playback.
+3. Complete physical-device acceptance: real display disconnect/reconnect,
+   camera switch/unplug, Windows projector/camera and native picker, mixed DPI,
+   and a physical tablet. The user declined the display-disconnect test for now;
+   do not repeat that request during this work session. Authorized Mac two-display
+   fullscreen/swap/hide/restore and camera capture/stop already passed with user
+   confirmation. Those checks saved metadata only, never camera images/video.
+4. Complete ordinary Windows and downloaded-binary first-launch acceptance where
+   applicable. The source-built Mac app has now been installed, checked and opened
+   through the native app launcher. Native CI packages run on Windows Server 2025;
+   this does not establish behavior on physical Windows laptops/projectors.
+5. Before any public binary release, finish the exact Qt/WebEngine/Chromium source
+   correspondence and bundled third-party notice audit in DISTRIBUTION.md. Current
+   packages verify Python/FFmpeg notice hashes and carry dependency metadata, but
+   the broader audit remains incomplete. No public binary has been published.
+6. After these gates are resolved, refresh the completion audit against the full
+   feature ledger. Keep the rewrite goal incomplete until the remaining evidence
+   exists. Source-install tasks can complete independently by following README.
 
 The Mac development app occupies approximately 562 MiB (`du -sh`); it includes
 WebEngine for original web-view parity. Startup/resource budgets remain unmeasured.

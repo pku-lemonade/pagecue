@@ -130,8 +130,9 @@ test reports and screenshots for review, without publishing an unaudited binary.
 The presence of the workflow is not proof that any particular run/platform passed;
 inspect the run's logs and evidence. Physical display/camera testing is separate.
 
-The [verified source preview](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40183195653)
-passes 85 tests plus six native interaction checks on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
+The [v0.2.0 source preview](https://github.com/pku-lemonade/presenteriyaki/tree/v0.2.0)
+passes 97 tests plus 16 native interaction checks on Windows x64 and Mac arm64/Intel
+in [its verified run](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40196504437). Its packaged apps also pass
 PDF/media/web execution and Unicode-path installation checks. Windows shortcut lifecycle
 checks, CLI page/duration/direct-video settings and PNG icon export also pass.
 Windows evidence is from a
