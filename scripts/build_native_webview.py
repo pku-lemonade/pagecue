@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -21,8 +22,19 @@ def run(*arguments, **options):
 
 def main():
     if sys.platform != "win32":
-        raise SystemExit("Build this plugin on Windows x64 with Visual Studio 2022.")
+        raise SystemExit("Build this plugin on Windows x64 with Visual Studio C++ tools.")
     BUILD.mkdir(parents=True, exist_ok=True)
+    vswhere = Path(os.environ["ProgramFiles(x86)"]) / "Microsoft Visual Studio/Installer/vswhere.exe"
+    installation = subprocess.check_output([str(vswhere), "-latest", "-products", "*", "-requires",
+        "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath"], text=True).strip()
+    if not installation:
+        raise SystemExit("Visual Studio C++ tools were not found.")
+    vcvars = Path(installation) / "VC/Auxiliary/Build/vcvarsall.bat"
+    environment_script = BUILD / "compiler-env.cmd"
+    environment_script.write_text(f'@echo off\ncall "{vcvars}" x64 >nul\nif errorlevel 1 exit /b 1\nset\n')
+    environment = subprocess.check_output(["cmd", "/d", "/c", str(environment_script)], text=True)
+    compiler_env = dict(os.environ)
+    compiler_env.update(line.split("=", 1) for line in environment.splitlines() if "=" in line and not line.startswith("="))
     sources = json.loads((CONFIG / "sources.json").read_text())
     archives = {}
     for name, source in sources.items():
@@ -50,9 +62,9 @@ def main():
     with zipfile.ZipFile(archives["webview2"]) as archive:
         archive.extractall(webview_sdk)
     qt_sdk = sdk / "6.12.0/msvc2022_64"
-    run("cmake", "-S", CONFIG, "-B", BUILD / "cmake", "-G", "Visual Studio 17 2022", "-A", "x64",
-        f"-DCMAKE_PREFIX_PATH={qt_sdk}", f"-DQT_SOURCE_DIR={source_root}", f"-DWEBVIEW2_SDK_ROOT={webview_sdk}")
-    run("cmake", "--build", BUILD / "cmake", "--config", "Release", "--parallel", "2")
+    run("cmake", "-S", CONFIG, "-B", BUILD / "cmake", "-G", "NMake Makefiles", "-DCMAKE_BUILD_TYPE=Release",
+        f"-DCMAKE_PREFIX_PATH={qt_sdk}", f"-DQT_SOURCE_DIR={source_root}", f"-DWEBVIEW2_SDK_ROOT={webview_sdk}", env=compiler_env)
+    run("cmake", "--build", BUILD / "cmake", env=compiler_env)
     plugin = BUILD / "plugins/webview/qtwebview_webview2.dll"
     with plugin.open("rb") as source:
         digest = hashlib.file_digest(source, "sha256").hexdigest()
