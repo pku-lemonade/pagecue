@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 
 from install_app import executable, install, platform_name, uninstall, validate
+from check_payload import check_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,6 +24,7 @@ def main():
     platform = platform_name()
     source = args.source or ROOT / "dist" / ("Presenteriyaki.app" if platform == "macos" else "Presenteriyaki")
     validate(source, platform)
+    (output / "payload.json").write_text(json.dumps(check_payload(source, platform), indent=2), encoding="utf-8")
     with tempfile.TemporaryDirectory(prefix="presenteriyaki-安装 with spaces-") as directory:
         work = Path(directory)
         destination = work / source.name

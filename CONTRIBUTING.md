@@ -3,7 +3,7 @@
 Use Python 3.13 and [uv](https://docs.astral.sh/uv/).
 
 ```sh
-uv sync --frozen --python 3.13
+uv sync --frozen --python 3.13 --managed-python
 uv run presenteriyaki /path/to/slides.pdf
 uv run pytest -q
 ```
@@ -23,12 +23,19 @@ uv run python scripts/build_installer.py
 
 Outputs:
 
-- macOS: `dist/Presenteriyaki.app` (macOS 14 or later)
+- macOS: `dist/Presenteriyaki.app`
 - Windows: `dist/Presenteriyaki/Presenteriyaki.exe`
 - Installers: `dist/installers/` (`.dmg` on macOS, `-setup.exe` on Windows)
 
 These include the Python and Qt runtime. macOS arm64, macOS Intel and Windows x64
 are built separately.
+
+Use uv-managed Python for release builds, as CI does. Homebrew Python may depend
+on a newer macOS version. The app records the Python/Qt deployment target, and
+the build inventories each included Mac binary's deployment target in
+`build/payload.json`. See the compatibility caveat in
+[distribution notes](docs/DISTRIBUTION.md). The package audit also
+rejects unused QML plugin trees and unrelated Qt charting/3D libraries.
 
 The Windows installer build requires [Inno Setup 6](https://jrsoftware.org/isinfo.php).
 It installs for the current user and includes a Start Menu entry and uninstaller.
@@ -73,6 +80,23 @@ The internal `PageCue` storage name and bundle identity are retained for existin
 preferences and OS permissions. Keep those compatibility identifiers stable.
 
 ## Releases
+
+For a signed Mac build, set `PRESENTERIYAKI_CODESIGN_IDENTITY` to an installed
+**Developer ID Application** certificate name or fingerprint before running
+`scripts/build_app.py`. PyInstaller signs the app and its nested binaries with
+the hardened runtime enabled. An Apple Development certificate is not sufficient.
+
+After configuring a `notarytool` Keychain profile, run:
+
+```sh
+uv run python scripts/notarize_macos.py --profile presenteriyaki-notary
+```
+
+This submits the app to Apple, staples its ticket, builds and notarizes the DMG,
+then checks both with Gatekeeper. Submission results remain in
+`build/notarization/`. Credentials stay in Keychain; the command takes only the
+profile name. Run the installer check against the resulting DMG before release.
+See Apple's [notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow).
 
 Run the native checks, review [distribution requirements](docs/DISTRIBUTION.md),
 and publish platform application downloads with release notes. Keep internal QA

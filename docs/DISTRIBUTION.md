@@ -21,6 +21,21 @@ restriction on reverse engineering for debugging modified LGPL components.
 and the actual FFmpeg version, configuration, license texts and attribution.
 `native-runtime.json` records notice hashes, which the package check verifies.
 
+The packaged file inventory is checked separately. Presenteriyaki uses Qt Widgets;
+its build omits the unused QML plugin tree, QML debugging tools and Qt Virtual
+Keyboard plugin. The check rejects accidental inclusion of unrelated Qt Charts,
+Data Visualization, Graphs and Quick 3D libraries. This keeps unnecessary modules
+out of both the download and the dependency audit.
+
+Mac release builds use uv-managed Python. The bundle declares the greater of its
+Python and Qt deployment targets, and `payload.json` records every Mach-O target
+above that declaration. Qt declares 14.4, but the current PySide/Shiboken wheels
+contain bindings targeting 26.0. Packaged tests passed on macOS 15.7.9 despite
+that discrepancy; support on macOS 14.4 is not established. Resolve the wheel
+metadata discrepancy and test the minimum supported OS before publication.
+See [contributor instructions](../CONTRIBUTING.md#releases) for Developer ID
+signing and notarization. Windows development installers are currently unsigned.
+
 ## Release checks
 
 Before publishing application downloads:

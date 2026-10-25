@@ -6,7 +6,7 @@ CONTRIBUTING.md; keep conversation history and local QA logs out of app docs.
 
 - Preserve the minimalist interface and existing capabilities.
 - Use Qt Widgets/custom painting for the main UI; WebEngine is for web content.
-- Set up with `uv sync --frozen --python 3.13`; run relevant tests with `uv run pytest`.
+- Set up with `uv sync --frozen --python 3.13 --managed-python`; run relevant tests with `uv run pytest`.
 - Use original synthetic fixtures. Keep PDFs and notes unmodified during use.
 - Visually check GUI changes with the rendering scripts and fixtures under `scripts/`.
 - Keep ordinary tests and CI independent of physical camera access. Live camera

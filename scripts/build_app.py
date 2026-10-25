@@ -24,6 +24,10 @@ def main():
         # Existing PageCue shortcuts keep working during an explicit in-place update.
         folder = ROOT / "dist/Presenteriyaki"
         shutil.copy2(folder / "Presenteriyaki.exe", folder / "PageCue.exe")
+    from check_payload import check_payload
+    bundle = ROOT / "dist" / ("Presenteriyaki.app" if sys.platform == "darwin" else "Presenteriyaki")
+    inventory = check_payload(bundle, "macos" if sys.platform == "darwin" else "windows")
+    (ROOT / "build/payload.json").write_text(json.dumps(inventory, indent=2), encoding="utf-8")
     print("Built", ROOT / "dist" / ("Presenteriyaki.app" if sys.platform == "darwin" else "Presenteriyaki"))
 
 
