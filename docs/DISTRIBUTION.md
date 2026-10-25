@@ -78,6 +78,15 @@ complete attribution or source correspondence for Chromium's separately embedded
 third-party code, Qt's other bundled components, or Python extension dependencies.
 The public-binary audit remains open.
 
+PyInstaller 6.22.3's installed `COPYING.txt` was also inspected. Its bootloader
+exception permits combining the unmodified bootloader with differently licensed
+applications; using it does not require relicensing PageCue under GPL. The
+[official license explanation](https://pyinstaller.org/en/stable/license.html)
+also says generated applications need not include PyInstaller's license or credit.
+Its runtime hooks/additional runtime modules are identified separately as
+Apache-2.0 in COPYING.txt. None of this replaces the Qt, Python or other dependency
+audit above. PageCue does not modify PyInstaller's source or bootloader.
+
 ## Build and test
 
 ```sh

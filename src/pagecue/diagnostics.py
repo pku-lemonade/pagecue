@@ -6,7 +6,7 @@ import platform
 import sys
 
 from PySide6 import __version__ as pyside_version
-from PySide6.QtCore import QEvent, QLibraryInfo, QObject, QPoint, Qt, QTimer, qVersion
+from PySide6.QtCore import QEvent, QEventLoop, QLibraryInfo, QObject, QPoint, Qt, QTimer, qVersion
 from PySide6.QtGui import QColor, QImage, QKeyEvent
 from PySide6.QtWidgets import QApplication
 
@@ -23,13 +23,37 @@ def check_web_camera(presenter, output):
     image.fill(QColor("#f08030"))
     previous = (p.slide.camera_opacity, p.slide.camera_large, p.audience.size())
     try:
-        p.slide.camera_image = image
         p.slide.camera_opacity = .5
-        p.session.changed.emit()
         def pixel(x, y):
             capture = p.audience.grab()
             ratio = capture.devicePixelRatio()
             return capture.toImage().pixelColor(round(x * ratio), round(y * ratio))
+        def wait_for_background():
+            # loadFinished and resize completion precede Chromium's compositor.
+            # Wait for actual pixels rather than guessing a fixed frame delay.
+            p.slide.camera_image = None
+            p.session.changed.emit()
+            loop = QEventLoop()
+            poll, deadline = QTimer(), QTimer()
+            poll.setInterval(50)
+            deadline.setSingleShot(True)
+            ready = False
+            def inspect():
+                nonlocal ready
+                point = p.slide.geometry().bottomRight() - QPoint(30, 30)
+                ready = pixel(point.x(), point.y()).name() == "#18372b"
+                if ready:
+                    loop.quit()
+            poll.timeout.connect(inspect)
+            deadline.timeout.connect(loop.quit)
+            poll.start()
+            deadline.start(5000)
+            loop.exec()
+            poll.stop()
+            deadline.stop()
+            assert ready, "Web fixture did not paint its background"
+            p.slide.camera_image = image
+            p.session.changed.emit()
         def inset_check():
             box = p.slide.geometry()
             point = box.bottomRight() - QPoint(30, 30)
@@ -38,9 +62,11 @@ def check_web_camera(presenter, output):
             assert abs(color.red() - 132) <= 3 and abs(color.green() - 92) <= 3, color.name()
             target = p.audience.childAt(point)
             assert target is p.web or p.web.isAncestorOf(target), "Camera blocks web input"
+        wait_for_background()
+        p.web.grab().save(str(Path(output) / "web.png"))
         inset_check()
         p.audience.resize(800, 500)
-        QApplication.processEvents()
+        wait_for_background()
         inset_check()
         p.audience.grab().save(str(Path(output) / "web-camera.png"))
         p.slide.camera_large = True
