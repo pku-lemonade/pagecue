@@ -13,17 +13,6 @@ from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtWebView import QWebView, QWebViewLoadingInfo, QtWebView
 
 
-class ProbeWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.cocoa_keys = None
-
-    def nativeEvent(self, kind, pointer):
-        if self.cocoa_keys is not None:
-            return self.cocoa_keys.handle_event("window:" + bytes(kind).decode(), pointer)
-        return False, 0
-
-
 class CocoaKeys(QAbstractNativeEventFilter):
     def __init__(self, window, result):
         super().__init__()
@@ -39,7 +28,6 @@ class CocoaKeys(QAbstractNativeEventFilter):
         result["pyobjc"] = version("pyobjc-framework-Cocoa")
 
     def close(self):
-        self.window.cocoa_keys = None
         QApplication.instance().removeNativeEventFilter(self)
 
     def nativeEventFilter(self, kind, pointer):
@@ -47,16 +35,13 @@ class CocoaKeys(QAbstractNativeEventFilter):
         # QNSApplication uses mac_generic_NSEvent from sendEvent:.
         if bytes(kind) not in (b"NSEvent", b"mac_generic_NSEvent"):
             return False, 0
-        return self.handle_event(bytes(kind).decode(), pointer)
-
-    def handle_event(self, path, pointer):
         event = self.objc.objc_object(c_void_p=int(pointer))
         if event.type() not in (self.down, self.up):
             return False, 0
         native = self.objc.objc_object(c_void_p=int(self.window.winId())).window()
         self.result["native_events"].append({"key": int(event.keyCode()), "type": int(event.type()),
             "window": int(event.windowNumber()), "owner": int(native.windowNumber()),
-            "path": path})
+            "path": bytes(kind).decode()})
         if event.window() != native:
             return False, 0
         command = {53: "escape", 96: "fullscreen"}.get(event.keyCode())
@@ -200,7 +185,7 @@ def main():
     QtWebView.initialize()
     app = QApplication([])
     app.setApplicationName("PresenteriyakiNativeKeyboardProbe")
-    window = ProbeWindow()
+    window = QWidget()
     window.probe_output = args.output
     window.resize(600, 400)
     web = QWebView()
@@ -209,8 +194,6 @@ def main():
     container.setGeometry(0, 0, 600, 400)
     result = {"native_events": [], "qt_events": [], "shortcuts": [], "passed": False}
     keys = CocoaKeys(window, result) if sys.platform == "darwin" else WindowsKeys(window, result)
-    if sys.platform == "darwin":
-        window.cocoa_keys = keys
     app.installNativeEventFilter(keys)
     done = False
 
@@ -277,7 +260,10 @@ def main():
     qt_keys = QtKeys(result)
     for target in (window, window.windowHandle(), web, container):
         target.installEventFilter(qt_keys)
-    web.loadHtml('<!doctype html><input autofocus><script>window.keys=[];'
+    # Native correction panels consume Escape to dismiss a suggestion before
+    # application shortcuts run. Keep this fixture about typing and shortcuts.
+    web.loadHtml('<!doctype html><input autofocus autocomplete="off" autocorrect="off" '
+                 'autocapitalize="off" spellcheck="false"><script>window.keys=[];'
                  'document.addEventListener("keydown",e=>keys.push(e.key));</script>')
     QTimer.singleShot(10000 + args.cycles * 2000, lambda: finish("Keyboard probe timed out"))
     app.exec()
