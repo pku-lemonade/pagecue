@@ -19,18 +19,19 @@ timer on the other. Use a single screen to rehearse.
 
 Presenteriyaki runs as a standalone app; Python is included.
 
-- **macOS:** download the [Apple Silicon](https://github.com/pku-lemonade/presenteriyaki/releases/download/v0.3.0/Presenteriyaki-0.3.0-macos-arm64.dmg)
-  or [Intel](https://github.com/pku-lemonade/presenteriyaki/releases/download/v0.3.0/Presenteriyaki-0.3.0-macos-x86_64.dmg)
+- **macOS:** download the [Apple Silicon](https://github.com/pku-lemonade/presenteriyaki/releases/download/v0.4.0/Presenteriyaki-0.4.0-macos-arm64.dmg)
+  or [Intel](https://github.com/pku-lemonade/presenteriyaki/releases/download/v0.4.0/Presenteriyaki-0.4.0-macos-x86_64.dmg)
   disk image and drag Presenteriyaki to Applications.
-- **Windows:** run the [x64 installer](https://github.com/pku-lemonade/presenteriyaki/releases/download/v0.3.0/Presenteriyaki-0.3.0-windows-x64-setup.exe),
-  then open Presenteriyaki from Start.
+- **Windows:** run the [x64 installer](https://github.com/pku-lemonade/presenteriyaki/releases/download/v0.4.0/Presenteriyaki-0.4.0-windows-x64-setup.exe),
+  then open Presenteriyaki from Start. Setup downloads Microsoft WebView2 if
+  needed, so an internet connection may be required during installation.
 
 These are **unsigned preview builds**. On macOS, after the first blocked launch,
 choose **System Settings → Privacy & Security → Open Anyway**.
 Windows may show a SmartScreen warning with **More info → Run anyway**.
 Quit the app before updating an existing installation.
 
-See [release notes and checksums](https://github.com/pku-lemonade/presenteriyaki/releases/tag/v0.3.0).
+See [release notes and checksums](https://github.com/pku-lemonade/presenteriyaki/releases/tag/v0.4.0).
 Developers can [build from source](CONTRIBUTING.md#build-the-app).
 
 ## Getting started

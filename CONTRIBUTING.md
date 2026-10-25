@@ -90,8 +90,8 @@ on an unlocked desktop. On macOS the input sender requires the test-only
 
 The manual native-browser workflow also checks repeated native typing and
 shortcuts against the platform backends. It sends input only to its own test
-windows. The published 0.3.0 preview still uses WebEngine and lacks browser
-H.264 support; the native backend is under development for the next release.
+windows. The native backends support H.264/MP4 inside web pages. Keep the frame-progress
+check when changing browser dependencies; loading HTML is not proof of playback.
 
 The internal `PageCue` storage name and bundle identity are retained for existing
 preferences and OS permissions. Keep those compatibility identifiers stable.

@@ -1,4 +1,4 @@
-name: Native browser feasibility check
+name: Native browser checks
 
 on:
   workflow_dispatch:
@@ -9,13 +9,9 @@ on:
         options: [all, windows-2025, macos-15, macos-15-intel]
         default: all
       patched_windows:
-        description: Build the experimental WebView2 shortcut bridge
+        description: Build the WebView2 shortcut bridge
         type: boolean
         default: true
-      trace_cocoa:
-        description: Trace the Mac probe's event queue and dispatch
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -38,19 +34,15 @@ jobs:
           python-version: '3.13'
           enable-cache: true
       - run: uv sync --frozen
-      - name: Build experimental WebView2 shortcut bridge
+      - name: Build WebView2 shortcut bridge
         if: runner.os == 'Windows' && inputs.patched_windows
         run: uv run python scripts/build_native_webview.py
       - name: Decode original H.264 video through the native browser
         run: uv run python scripts/check_native_webview.py --capture --camera-overlay
       - name: Check native Cocoa browser input
         timeout-minutes: 2
-        if: runner.os == 'macOS' && !inputs.trace_cocoa
+        if: runner.os == 'macOS'
         run: uv run --with pyobjc-framework-Cocoa==12.2.2 python scripts/check_native_web_keys.py
-      - name: Trace native Cocoa browser input
-        timeout-minutes: 2
-        if: runner.os == 'macOS' && inputs.trace_cocoa
-        run: uv run --with pyobjc-framework-Cocoa==12.2.2 python scripts/trace_cocoa_keys.py
       - name: Check native Windows browser input
         timeout-minutes: 2
         if: runner.os == 'Windows'
@@ -74,7 +66,6 @@ jobs:
             qa/native-webview/result.json
             qa/native-webview/window.png
             qa/native-webkeys/result.json
-            qa/native-webkeys/tracking-escape-*.png
             qa/browser-integration
             build/native-webview/result.json
           if-no-files-found: warn

@@ -172,7 +172,7 @@ video.requestVideoFrameCallback(frame);</script></body>''')
         if sys.platform == "darwin":
             from check_native_web_keys import CocoaKeys
             sender = CocoaKeys(p.audience, result)
-            # This sender is not installed as a filter: BrowserKeys in the app
+            # This sender is not installed as a filter: BrowserIntegration in the app
             # must deliver the shortcut to Presenter.
             sender.send("\uf708" if key == Qt.Key.Key_F5 else "\x1b", 96 if key == Qt.Key.Key_F5 else 53)
         else:

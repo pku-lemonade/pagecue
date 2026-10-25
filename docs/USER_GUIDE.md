@@ -66,7 +66,9 @@ are also available on the slide.
 
 Web links open in the audience window. Press **Esc** to return to slides.
 
-The preview's embedded browser supports WebM video, but cannot play H.264/MP4
-inside web pages. For those videos, open the site in your regular browser, or
-open a local video file through **Media → Open video or audio**. The app's native
-media player supports H.264/MP4.
+Web pages can play H.264/MP4 video. Your camera inset stays above the web content;
+**F5** toggles fullscreen. Use the presenter window's zoom controls to adjust web
+content, and **0** to reset its zoom.
+
+Websites may require login or restrict playback in embedded browsers. Local video
+and audio files also open through **Media → Open video or audio**.
