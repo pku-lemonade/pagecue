@@ -13,4 +13,5 @@ target_include_directories(qtwebview_webview2 PRIVATE "${WEBVIEW2_SDK_ROOT}/buil
 target_link_libraries(qtwebview_webview2 PRIVATE Qt6::WebViewPrivate Qt6::Widgets urlmon
     "${WEBVIEW2_SDK_ROOT}/build/native/x64/WebView2LoaderStatic.lib")
 set_target_properties(qtwebview_webview2 PROPERTIES PREFIX ""
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/../plugins/webview"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/../plugins/webview")
