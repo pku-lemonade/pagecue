@@ -24,6 +24,8 @@ the camera, **Shift+V** to expand it, and use **Media → Camera appearance…**
 adjust inset size, opacity and corner. Camera capture starts only after you request
 it and grant the OS permission; device loss clears the preview. Camera appearance
 is remembered between launches, while capture never starts automatically.
+The default is a small bottom-right inset, bounded by 20% of both the available
+width and height so square/portrait feeds do not cover a large part of the slide.
 
 Double-click the audience view (or choose **View → Audience fullscreen**) to fill
 its screen while keeping the presenter windowed. **F5** selects general fullscreen;
@@ -32,6 +34,8 @@ selected fullscreen mode. Ctrl/⌘ + wheel zooms around the cursor; Ctrl/⌘ + d
 pans, and Ctrl/⌘ + 0 resets the slide or whiteboard view.
 Use **+ / −** for notes or web zoom and **0** to reset it. Zero still works inside
 a page number already being entered (for example, **1 0 Enter**).
+On macOS, presentation fullscreen stays on the current desktops rather than
+moving the windows into separate Spaces.
 
 Command-line options include `-p/--page` (1-based), `-d/--duration` (minutes),
 `-y/--youtube/--direct-video`, `-v/--version`, and `-i/--icon [FILE]`.
@@ -118,3 +122,5 @@ This uses a drawn image and saves captures for inspection.
 `uv run python scripts/opening_smoke.py qa/demo.pdf qa/opening` checks drag/drop,
 Qt's widget file dialog, application file-open events and recent-page restoration
 using isolated preferences. Native OS dialog/event-delivery acceptance is separate.
+See [hardware acceptance](docs/HARDWARE_ACCEPTANCE.md) for the explicitly authorized
+two-display/camera check and the remaining physical-device checks.

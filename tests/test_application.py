@@ -3,12 +3,52 @@ from types import SimpleNamespace
 
 import pytest
 from PIL import Image
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtTest import QTest
 
 from pagecue.app import Presenter
 from pagecue.document import Media
 from pagecue.model import Surface
+from pagecue.services import Release
+
+
+def test_update_notification_click_opens_current_release_once(qapp, qtbot, monkeypatch):
+    # Simulated delivery: never enable OS notifications or open a real browser.
+    from pagecue import app as module
+    class Tray(QObject):
+        messageClicked = Signal()
+        isSystemTrayAvailable = staticmethod(lambda: True)
+        supportsMessages = staticmethod(lambda: True)
+        def __init__(self, icon, parent):
+            super().__init__(parent)
+            self.messages = []
+        def show(self):
+            pass
+        def showMessage(self, title, message):
+            self.messages.append((title, message))
+        def hide(self):
+            pass
+    monkeypatch.setattr(module, "QSystemTrayIcon", Tray)
+    opened = []
+    monkeypatch.setattr(module.QDesktopServices, "openUrl", lambda url: opened.append(url.toString()))
+    app = Presenter(qapp)
+    qtbot.addWidget(app.presenter)
+    qtbot.addWidget(app.audience)
+    first = Release("0.2.0", "https://github.com/pku-lemonade/pagecue/releases/tag/v0.2.0", True)
+    second = Release("0.3.0", "https://github.com/pku-lemonade/pagecue/releases/tag/v0.3.0", True)
+    app._update_result(first, False)
+    tray = app.update_tray
+    tray.messageClicked.emit()
+    assert opened == [first.url]
+    app._update_result(second, False)
+    assert app.update_tray is tray and len(tray.messages) == 2
+    tray.messageClicked.emit()
+    assert opened == [first.url, second.url]
+    app._closed = True
+    tray.messageClicked.emit()
+    assert opened == [first.url, second.url]
+    app.session.close()
+    app.media.close()
 
 
 @pytest.mark.parametrize("interrupt", ["navigate", "reload", "board", "escape"])
@@ -98,17 +138,17 @@ def test_audience_only_fullscreen_and_restore_on_two_screen_topology(qapp, qtbot
     monkeypatch.setattr(app, "_place", lambda window, screen: placements.append((window, screen)))
     QTest.mouseDClick(app.slide, Qt.MouseButton.LeftButton)
     assert app.fullscreen and app.audience_only_fullscreen
-    assert app.audience.isFullScreen() and not app.presenter.isFullScreen()
+    assert app.audience.presentation_fullscreen and not app.presenter.presentation_fullscreen
     app.hide_all()
     app.restore_all()
     assert app.fullscreen and app.audience_only_fullscreen
-    assert app.audience.isFullScreen() and not app.presenter.isFullScreen()
+    assert app.audience.presentation_fullscreen and not app.presenter.presentation_fullscreen
     QTest.keyClick(app.view, Qt.Key.Key_F5)
     assert app.fullscreen and not app.audience_only_fullscreen
-    assert app.audience.isFullScreen() and app.presenter.isFullScreen()
+    assert app.audience.presentation_fullscreen and app.presenter.presentation_fullscreen
     QTest.keyClick(app.view, Qt.Key.Key_Escape)
     assert not app.fullscreen
-    assert not app.audience.isFullScreen() and not app.presenter.isFullScreen()
+    assert not app.audience.presentation_fullscreen and not app.presenter.presentation_fullscreen
     app.session.close()
     app.media.close()
 

@@ -318,7 +318,7 @@ class Camera(QObject):
                 return
             self._start_device(current, generation)
         if status == Qt.PermissionStatus.Undetermined:
-            application.requestPermission(permission, lambda result: authorized(result.status()))
+            application.requestPermission(permission, self, lambda result: authorized(result.status()))
         else:
             authorized(status)
 

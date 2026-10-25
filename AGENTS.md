@@ -17,5 +17,8 @@ ledger, not a menu of optional scope. Keep incomplete capabilities visible.
 - Use `scripts/make_demo.py` and `scripts/gui_smoke.py` for reproducible local QA.
   Offscreen tests are useful but do not prove physical monitor correctness.
 - Keep PDF/notes sources unmodified and preserve the live session on failed reload.
+- `--hardware-camera` activates a real camera. Run it only after explicit user
+  authorization for a local preview test; never run it in ordinary CI or installer
+  checks. The hardware diagnostic records metadata only, never images/video.
 - Do not mark the goal complete until the feature ledger has concrete evidence
   for every capability and the supported platform builds have been checked.

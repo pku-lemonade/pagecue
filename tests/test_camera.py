@@ -6,9 +6,42 @@ import pytest
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QColor, QImage
 from PySide6.QtMultimedia import QCamera, QVideoFrame
+from PIL import Image, ImageChops
 
 from pagecue.app import Presenter
 from pagecue import media
+
+
+@pytest.mark.parametrize("dimensions", [(400, 400), (640, 360), (300, 600)])
+def test_default_camera_inset_stays_small_in_bottom_right(qapp, qtbot, deck, dimensions, tmp_path):
+    presenter = Presenter(qapp)
+    qtbot.addWidget(presenter.presenter)
+    qtbot.addWidget(presenter.audience)
+    presenter.show()
+    presenter.open(deck)
+    qtbot.waitUntil(lambda: bool(presenter.session.images.cache) and not presenter.session.images.pending)
+    view = presenter.slide
+    def capture():
+        image = view.grab().toImage().convertToFormat(QImage.Format.Format_RGBA8888)
+        return Image.frombytes("RGBA", (image.width(), image.height()), bytes(image.constBits()))
+    before = capture()
+    # A solid synthetic rectangle, never a camera frame or physical device.
+    image = QImage(*dimensions, QImage.Format.Format_RGB32)
+    image.fill(QColor("#f08030"))
+    view.camera_image, view.camera_opacity = image, 1.0
+    after = capture()
+    bounds = ImageChops.difference(before, after).convert("RGB").getbbox()
+    assert bounds is not None
+    x1, y1, x2, y2 = bounds
+    dpr = view.devicePixelRatioF()
+    assert x2 - x1 <= after.width * .20
+    assert y2 - y1 <= after.height * .20
+    assert abs(after.width - x2 - 16 * dpr) <= 2 * dpr
+    assert abs(after.height - y2 - 16 * dpr) <= 2 * dpr
+    assert (x2 - x1) / (y2 - y1) == pytest.approx(dimensions[0] / dimensions[1], abs=.03)
+    after.save(tmp_path / "synthetic-camera-inset.png")
+    presenter.session.close()
+    presenter.media.close()
 
 
 def device(identifier):
@@ -45,7 +78,10 @@ def simulated_camera(qapp, monkeypatch):
     monkeypatch.setattr(media, "QMediaCaptureSession", Capture)
     monkeypatch.setattr(media.Camera, "devices", staticmethod(lambda: devices))
     monkeypatch.setattr(qapp, "checkPermission", lambda _: Qt.PermissionStatus.Undetermined)
-    monkeypatch.setattr(qapp, "requestPermission", lambda _, callback: callbacks.append(callback))
+    def request_permission(permission, context, callback):
+        assert isinstance(context, media.Camera)
+        callbacks.append(callback)
+    monkeypatch.setattr(qapp, "requestPermission", request_permission)
     def reply(index=0, granted=True):
         callbacks[index](SimpleNamespace(status=lambda: Qt.PermissionStatus.Granted if granted else Qt.PermissionStatus.Denied))
     return SimpleNamespace(instances=instances, devices=devices, callbacks=callbacks, reply=reply)

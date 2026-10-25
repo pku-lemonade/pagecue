@@ -64,7 +64,7 @@ class Canvas(QWidget):
         self.camera_image = None
         self.camera_position = "bottom-right"
         self.camera_large = False
-        self.camera_width = .28
+        self.camera_width = .20
         self.camera_opacity = .8
         self._animation_last = {}
         self._cursor_context = None
@@ -352,7 +352,7 @@ class Canvas(QWidget):
         if self.camera_image is not None:
             box = self.current_box.adjusted(16, 16, -16, -16)
             if not self.camera_large:
-                size = fit_rect(QRectF(0, 0, box.width() * self.camera_width, box.height()),
+                size = fit_rect(QRectF(0, 0, box.width() * self.camera_width, box.height() * self.camera_width),
                                 self.camera_image.width(), self.camera_image.height()).size()
                 width, height = size.width(), size.height()
                 x = box.left() if "left" in self.camera_position else box.right() - width

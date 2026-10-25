@@ -41,6 +41,35 @@ class Window(QMainWindow):
     close_requested = Signal()
     restored = Signal()
 
+    def __init__(self):
+        super().__init__()
+        self._presentation_flags = None
+
+    @property
+    def presentation_fullscreen(self):
+        return self._presentation_flags is not None or self.isFullScreen()
+
+    def enter_presentation_fullscreen(self):
+        if QApplication.platformName() != "cocoa":
+            self.showFullScreen()
+            return
+        # Native macOS fullscreen uses asynchronous, app-wide Spaces transitions.
+        # Presentation windows need independent, immediate placement on displays.
+        screen = self.screen()
+        if self._presentation_flags is None:
+            self._presentation_flags = self.windowFlags()
+        self.setWindowFlags(self._presentation_flags | Qt.WindowType.FramelessWindowHint |
+                            Qt.WindowType.WindowStaysOnTopHint)
+        self.setGeometry(screen.geometry())
+        self.show()
+        self.raise_()
+
+    def leave_presentation_fullscreen(self):
+        if self._presentation_flags is not None:
+            flags, self._presentation_flags = self._presentation_flags, None
+            self.setWindowFlags(flags)
+        self.showNormal()
+
     def closeEvent(self, event):
         self.close_requested.emit()
         event.accept()
@@ -114,6 +143,10 @@ class Presenter(QObject):
         self.app.screenRemoved.connect(self._screen_removed)
         self.fullscreen = False
         self.audience_only_fullscreen = False
+        self._mac_presentation = None
+        if self.app.platformName() == "cocoa":
+            from .macos import PresentationOptions
+            self._mac_presentation = PresentationOptions()
         self.audience_screen = self.session.settings.value("audience-screen", None)
         self._windowed = None
         self._hidden = False
@@ -129,6 +162,7 @@ class Presenter(QObject):
         self.updates.checked.connect(self._update_result)
         self.updates.failed.connect(lambda message, manual: self.notify(message) if manual and not self._closed else None)
         self.update_tray = None
+        self._notified_release_url = None
         self._menus()
         self._load_camera_appearance()
 
@@ -210,8 +244,14 @@ class Presenter(QObject):
             if QSystemTrayIcon.isSystemTrayAvailable() and QSystemTrayIcon.supportsMessages():
                 if self.update_tray is None:
                     self.update_tray = QSystemTrayIcon(self.app.windowIcon(), self)
+                    self.update_tray.messageClicked.connect(self._open_notified_release)
                     self.update_tray.show()
+                self._notified_release_url = release.url
                 self.update_tray.showMessage("PageCue update", message)
+
+    def _open_notified_release(self):
+        if not self._closed and self._notified_release_url:
+            QDesktopServices.openUrl(QUrl(self._notified_release_url))
 
     def configure_video_routing(self):
         options = ["Direct YouTube links", "Find an Invidious instance automatically", "Use my Invidious instance"]
@@ -550,10 +590,10 @@ class Presenter(QObject):
     def _load_camera_appearance(self):
         settings = self.session.settings
         try:
-            width = float(settings.value("camera/width", .28))
+            width = float(settings.value("camera/width", .20))
             opacity = float(settings.value("camera/opacity", .8))
         except (TypeError, ValueError):
-            width, opacity = .28, .8
+            width, opacity = .20, .8
         position = str(settings.value("camera/position", "bottom-right"))
         self.set_camera_appearance(width, opacity, position, persist=False)
 
@@ -584,7 +624,7 @@ class Presenter(QObject):
         positions = ["top-left", "top-right", "bottom-left", "bottom-right"]
         position.addItems([value.replace("-", " ").capitalize() for value in positions])
         position.setCurrentIndex(positions.index(self.slide.camera_position))
-        layout.addRow("Inset width", width)
+        layout.addRow("Inset size", width)
         layout.addRow("Opacity", opacity)
         layout.addRow("Position", position)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -699,11 +739,13 @@ class Presenter(QObject):
         if not self.fullscreen:
             return
         for window in (self.presenter, self.audience):
-            window.showNormal()
+            window.leave_presentation_fullscreen()
         if self._windowed:
             self.presenter.setGeometry(self._windowed[0])
             self.audience.setGeometry(self._windowed[1])
         self.fullscreen = False
+        if self._mac_presentation:
+            self._mac_presentation.leave()
         self.view.setFocus()
 
     def toggle_fullscreen(self, audience_only=False):
@@ -716,11 +758,13 @@ class Presenter(QObject):
         screens = self.app.screens()
         target = next((s for s in screens if s.name() == self.audience_screen), screens[-1])
         self._place(self.audience, target)
-        self.audience.showFullScreen()
+        if self._mac_presentation:
+            self._mac_presentation.enter()
+        self.audience.enter_presentation_fullscreen()
         if len(screens) > 1 and not audience_only:
             other = next(s for s in screens if s != target)
             self._place(self.presenter, other)
-            self.presenter.showFullScreen()
+            self.presenter.enter_presentation_fullscreen()
         self.fullscreen = True
         self.audience_only_fullscreen = audience_only
         self.view.setFocus()
@@ -772,6 +816,8 @@ class Presenter(QObject):
         if self._closed:
             return
         self._closed = True
+        if self.fullscreen:
+            self.leave_fullscreen()
         if not self.fullscreen:
             self.session.settings.setValue("geometry/presenter", self.presenter.saveGeometry())
             self.session.settings.setValue("geometry/audience", self.audience.saveGeometry())
@@ -799,6 +845,8 @@ def main():
     parser.add_argument("--smoke-output", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--smoke-media", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--smoke-web", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--hardware-output", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument("--hardware-camera", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.icon is not None:
         from .artwork import icon_png
@@ -813,10 +861,15 @@ def main():
         return 0
     if args.smoke_output and not args.pdf:
         parser.error("The packaged smoke check requires a PDF")
-    if args.smoke_output:
+    if args.hardware_camera and not args.hardware_output:
+        parser.error("--hardware-camera requires --hardware-output and explicit user authorization")
+    if args.hardware_output and (not args.pdf or args.smoke_output):
+        parser.error("The hardware check requires a PDF and cannot run with --smoke-output")
+    if args.smoke_output or args.hardware_output:
         from PySide6.QtCore import QSettings
         QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-        QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(args.smoke_output / "settings"))
+        QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope,
+                          str((args.smoke_output or args.hardware_output) / "settings"))
     app = Application(sys.argv[:1])
     app.setApplicationName("PageCue")
     app.setOrganizationName("PageCue")
@@ -830,6 +883,9 @@ def main():
     if args.smoke_output:
         from .diagnostics import SmokeCheck
         presenter.smoke = SmokeCheck(presenter, args.smoke_output, args.smoke_media, args.smoke_web)
+    if args.hardware_output:
+        from .hardware import HardwareCheck
+        presenter.hardware_check = HardwareCheck(presenter, args.hardware_output, args.hardware_camera)
     if args.pdf:
         QTimer.singleShot(0, lambda: presenter.open(args.pdf, page=args.page - 1 if args.page else None))
     app.aboutToQuit.connect(presenter.quit)

@@ -43,7 +43,41 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **75 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **79 passed** on the development Mac at this checkpoint.
+The user authorized real local camera/two-display tests with no saved/uploaded
+camera frames. Those checks exposed a wrong permission-call signature and actual
+macOS fullscreen transition failures. PySide's request now includes the Camera
+QObject context, and the permission simulation matches the real API. Mac
+presentation fullscreen now uses independently placed borderless Qt windows with
+temporary AppKit menu/Dock auto-hide, avoiding app-wide Spaces transitions.
+Full-display geometry, selected screens, swap, hide/restore and return to windowed
+mode all pass on the user's two physical displays. Permission was granted and
+live camera capture/stop/clear passed (399 frames, then 403 on the inset retest).
+The user confirmed both displays and the preview looked correct. See
+`docs/HARDWARE_ACCEPTANCE.md` for the scope and remaining physical checks.
+
+The user requested a smaller corner camera. The inset now bounds both dimensions,
+preserving square/portrait feeds without covering a large fraction of a slide.
+After the user accepted 18% but found it slightly small, the default was nudged to
+20%; no further live-camera tuning was requested. Three synthetic aspect-ratio
+tests pass. The hardware diagnostic no longer expands the camera automatically.
+Only numeric/geometry metadata was recorded from real camera tests; no camera
+images were saved or uploaded.
+
+Update notification clicks now open the current release page once, with a
+simulated delivery test that neither enables OS notifications nor opens a browser.
+Live Qt HTTPS calls successfully read the public Invidious directory and an
+instance's stats (Invidious software 2026.10.24-43d51d1); a later directory lookup
+fell back to the original URL. This establishes live transport/routing behavior,
+not video playback reliability. GitHub's real release endpoint still reports no
+published release. Local metadata is under `qa/live-services/`.
+
+Run 40175806222 passed Windows' 75 tests, six native interaction tests and package
+checks. Both Mac native-test steps stalled and reached the job timeout; the
+terminal run is cancelled, not successful. The next native-test step has verbose
+output, a 30-second Python stack dump and a five-minute step limit for diagnosis;
+the checks have not been removed or marked optional. Windows native artifacts are
+under `qa/native-font-windows-ci/`. Fresh CI must verify the current corrections.
 The CLI restores `-v`, `-y`, and `-i/--icon`; optional file output supports a Windows
 GUI executable without stdout. Icon export paints PageCue's original SVG, with no
 GUI application/font dependency. Subprocess tests use an invalid platform-plugin
@@ -258,16 +292,19 @@ locally with TeX/FFmpeg excluded from PATH.
    baseline help/CLI audit found explicit notes-size/web-zoom reset commands and
    icon export missing. Notes/web reset, original short CLI aliases and PageCue
    icon export are now restored and tested, including actual Mac bundle execution.
-3. Audit camera permission/device lifecycle and test a real camera with deliberate
-   user involvement. Camera frames are not captured automatically during QA.
+3. Finish camera device-switch/unplug acceptance and Windows hardware coverage.
+   Authorized real Mac permission/live preview/stop checks now pass. Camera frames
+   are not captured automatically during ordinary QA.
    Width/opacity/position now have persisted controls. Permission callbacks are
    cancelled on stop/switch/quit; device loss clears both views, and each capture
    generation has its own sink to reject late frames. Six simulated lifecycle/
-   preference tests pass. Actual OS permission prompts and real capture remain
-   required. The Mac bundle opts into the Continuity Camera device type.
+   preference tests pass. The actual Mac permission call was corrected after the
+   hardware test found the simulation's incomplete signature. The Mac bundle opts
+   into the Continuity Camera device type.
 4. Finish interaction/visual edge cases: small windows, changing DPI, crop/pan/zoom,
    selection scaling, persistent preferences, hide/fullscreen restoration and
-   actual physical display selection/swap/unplug behavior.
+   remaining physical unplug and Windows display behavior. Mac two-display
+   selection/fullscreen/swap/hide/restore now pass with user visual confirmation.
    The overlapping help at 700×420 is corrected: rows wrap at readable sizes and
    the panel scrolls. `qa/layout-camera/minimum.png` and `minimum-scrolled.png`
    show the correction; native Windows/Intel resize captures are added to CI.
@@ -286,8 +323,9 @@ locally with TeX/FFmpeg excluded from PATH.
    runtime version and missing notices are recorded in DISTRIBUTION.md.
 6. Complete both platforms' physical-device acceptance and ordinary-user
    first-launch checks. Windows CI is not equivalent to hardware acceptance.
-   An asynchronous question asks whether a webcam and second display are available;
-   no answer or permission to activate a physical camera has been received yet.
+   The user has authorized and completed the local Mac camera/two-display check;
+   this does not authorize saving/uploading camera frames or prove Windows,
+   mixed-DPI, physical unplug or tablet behavior.
 7. Do a requirement-by-requirement completion audit against `FEATURES.md`; do not
    substitute an unsupported-feature message for a feature's implementation.
 
