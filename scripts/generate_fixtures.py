@@ -2,19 +2,23 @@
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import urllib.request
 
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests/fixtures"
+LEGACY_URL = "https://raw.githubusercontent.com/agrahn/animate/0b553a67a44dedc0e8870599b57774461cdf74d3/animate.sty"
+LEGACY_SHA256 = "673e073fb2fc4c8c43ea65b2ff0b52e5a190d62989d23da90337b07449ab4763"
 
 
-def run(arguments):
-    result = subprocess.run(arguments, capture_output=True, text=True)
+def run(arguments, **options):
+    result = subprocess.run(arguments, capture_output=True, text=True, **options)
     if result.returncode:
         raise RuntimeError(result.stdout[-3000:] + result.stderr[-3000:])
 
@@ -32,6 +36,21 @@ def main():
                 run([engine, "-interaction=nonstopmode", "-halt-on-error",
                      f"-output-directory={work}", str(FIXTURES / f"{name}.tex")])
             shutil.copy2(work / f"{name}.pdf", output / f"{name}.pdf")
+        # Compile our own source with an unmodified, pinned historic package.
+        # The third-party .sty is temporary, not vendored into application code.
+        legacy = work / "legacy"
+        legacy.mkdir()
+        with urllib.request.urlopen(LEGACY_URL, timeout=30) as response:
+            package = response.read()
+        if hashlib.sha256(package).hexdigest() != LEGACY_SHA256:
+            raise RuntimeError("Historic animate package hash mismatch")
+        (legacy / "animate.sty").write_bytes(package)
+        environment = os.environ.copy()
+        environment["TEXINPUTS"] = str(legacy) + os.pathsep
+        for _ in range(2):
+            run([engine, "-interaction=nonstopmode", "-halt-on-error",
+                 f"-output-directory={legacy}", str(FIXTURES / "animation.tex")], env=environment)
+        shutil.copy2(legacy / "animation.pdf", output / "animation-2018.pdf")
         run([ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
              "-f", "lavfi", "-i", "color=c=red:s=160x90:r=10:d=1",
              "-f", "lavfi", "-i", "color=c=blue:s=160x90:r=10:d=1",
@@ -47,7 +66,8 @@ def main():
              str(output / "vfr.mp4")])
     sources = [Path(__file__), *FIXTURES.glob("*.tex")]
     artifacts = sorted(output.glob("*.pdf")) + sorted(output.glob("*.mp4"))
-    manifest = {"tools": {"pdflatex": subprocess.check_output([engine, "--version"], text=True).splitlines()[0],
+    manifest = {"historic_package": {"url": LEGACY_URL, "sha256": LEGACY_SHA256, "license": "LPPL"},
+                "tools": {"pdflatex": subprocess.check_output([engine, "--version"], text=True).splitlines()[0],
                           "ffmpeg": subprocess.check_output([ffmpeg, "-version"], text=True).splitlines()[0]},
                 "sha256": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
                            for path in sources + artifacts}}

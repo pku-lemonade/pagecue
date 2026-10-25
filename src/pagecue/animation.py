@@ -114,7 +114,16 @@ def _matching_brace(text, start):
 
 
 def _number(expression):
-    tree = ast.parse(expression.strip(), mode="eval")
+    # Older animate versions emit constant JavaScript ternaries for zero FPS.
+    # Recognize only numeric branches; never execute the PDF's script.
+    conditional = re.fullmatch(r"([0-9.eE+*/ ()-]+)\s*==\s*0\s*\?\s*([0-9.eE+*/ ()-]+)\s*:\s*([0-9.eE+*/ ()-]+)", expression.strip())
+    if conditional:
+        condition, yes, no = (_number(part) for part in conditional.groups())
+        return yes if condition == 0 else no
+    try:
+        tree = ast.parse(expression.strip(), mode="eval")
+    except SyntaxError as error:
+        raise ValueError("Unrecognized numeric expression") from error
     operations = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv}
     def evaluate(node):
         if isinstance(node, ast.Constant) and type(node.value) in (int, float):

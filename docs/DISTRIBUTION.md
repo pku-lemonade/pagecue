@@ -59,10 +59,10 @@ path. Close running instances before updating, especially on Windows.
 `--check` validates the installed app, while `--uninstall` removes only its
 identified bundle. Documents, preferences and PDF defaults are retained.
 The Windows CLI creates a per-user Start Menu shortcut using Windows' shell-link
-COM interface through PowerShell; it does not change execution policy or PDF
-associations. Paths are passed as environment data. Existing links must match the
+Unicode COM interface (`IShellLinkW`/`IPersistFile`) through Python's standard
+`ctypes`; it does not launch a shell or change PDF associations. Existing links must match the
 expected target and application description. `--no-shortcut` supports portable or
-secondary installations. See [Microsoft's shell-link documentation](https://learn.microsoft.com/en-us/troubleshoot/windows-client/admin-development/create-desktop-shortcut-with-wsh).
+secondary installations. See [Microsoft's shell-link documentation](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ishelllinkw).
 
 The development Mac arm64 package has been installed, checked, updated, launched
 from a Unicode/space-containing path, and removed. Its frozen executable passed

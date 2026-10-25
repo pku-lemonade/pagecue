@@ -28,6 +28,12 @@ def test_older_object_metadata_and_no_loop():
 def test_timing_does_not_execute_expressions():
     with pytest.raises(ValueError):
         timing("a0_fps=__import__('os').system('echo forbidden');", 0)
+    with pytest.raises(ValueError):
+        timing("a0_fps=condition ? doSomething() : 10;", 0)
+
+
+def test_legacy_constant_frame_rate_expression():
+    assert timing("a0_fps=4==0?1e-6:4;a0_playing=false;", 0) == (4, False, False, False)
 
 
 def test_loop_palindrome_reverse_step_and_speed_controls():
@@ -58,8 +64,10 @@ def test_loop_palindrome_reverse_step_and_speed_controls():
     assert state.direction == 0 and state.frame == 2
 
 
-@pytest.fixture
-def latex_animation(tmp_path):
+@pytest.fixture(params=["current", "2018"])
+def latex_animation(tmp_path, request):
+    if request.param == "2018":
+        return Path(__file__).parent / "fixtures/generated/animation-2018.pdf"
     engine = shutil.which("pdflatex")
     if engine is None:
         path = tmp_path / "animation.pdf"

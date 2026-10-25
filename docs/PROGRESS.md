@@ -34,11 +34,16 @@ application are unchanged. PageCue is a working name. No binary release is claim
   original generated fixtures (72 KiB) keep PDF/media tests active without TeX or
   FFmpeg. Their manifest ties outputs to the authored sources and generator.
 - Windows Start Menu helper preserves unrelated shortcuts and uses per-user shell
-  links without changing PDF associations or execution policy; CI coverage added.
+  links without changing PDF associations; CI coverage added. The first scripting
+  helper failed to set a Unicode target in Windows CI; it has been replaced with
+  native IShellLinkW/IPersistFile calls and is awaiting re-verification.
+- An original animation fixture compiled with the maintainer's pinned, unmodified
+  animate 2018/02/28 package now renders all frames with correct timing/controls.
+  The fixture generator records its source/hash and does not vendor the package.
 
 ## Evidence
 
-`uv run pytest -q`: **52 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **54 passed** on the development Mac at this checkpoint.
 The initial native CI revision (`441b353`) ran **43 tests without skips** on Windows.
 
 Tests include actual Qt PDF rendering, notes/annotations/encryption, original
@@ -79,6 +84,11 @@ Offscreen/native Cocoa captures are local under `qa/` (ignored):
   Mac arm64 and Intel also completed the workflow successfully. Downloaded runner
   evidence is under `mac-arm-ci/` and `mac-intel-ci/`; the second run must still
   verify the latest link and Start Menu changes.
+- [Second native run 40168249300](https://github.com/pku-lemonade/pagecue/actions/runs/40168249300):
+  all 52 application tests and both Mac packages passed. Windows packaging built,
+  but the new shortcut helper failed before the runtime smoke. Do not present that
+  revision's Windows installer as fully validated. A native Unicode API replacement
+  and an early Windows shell-link check are now prepared for the next run.
 
 Reproduce the common checks:
 
@@ -119,14 +129,19 @@ locally with TeX/FFmpeg excluded from PATH.
 - GoToR /D values were incorrectly interpreted as current-deck destinations.
   They now open the target document at the requested numeric/named destination;
   missing destinations fail transactionally. /UF file specifications remain Unicode.
+- animate 2018 emits FPS as a constant JavaScript ternary (`4==0?1e-6:4`). This
+  previously raised SyntaxError and prevented the entire PDF from opening. A
+  narrowly numeric reader now handles it; invalid numeric syntax is a recoverable
+  metadata error. No PDF JavaScript is executed. Actual legacy frame colors pass.
 
 ## Required remaining work
 
 1. Create an actual release channel; validate OS update notification delivery and
    real privacy-video service behavior. Release parsing/routing now have coverage.
-2. Expand animation coverage: a real older animate PDF, alternate
-   forms/layouts, multiple animations, click/keyboard controls and long decks.
-   Legacy timing has unit coverage but no compiled legacy integration fixture yet.
+2. Expand animation coverage: alternate forms/layouts, multiple animations,
+   click/keyboard controls and long decks. Current and compiled 2018 widget output
+   are covered; older object-style timing still has unit coverage only. A 2016
+   package probe needs its historical `animfp.sty` dependency before compilation.
 3. Audit camera permission/device lifecycle and test a real camera with deliberate
    user involvement. Camera frames are not captured automatically during QA.
 4. Finish interaction/visual edge cases: small windows, changing DPI, crop/pan/zoom,

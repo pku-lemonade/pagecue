@@ -13,3 +13,11 @@ Otherwise they use these committed PDFs/MP4s, exercising the actual Qt renderers
 and decoders on every supported platform without silently skipping those tests.
 The PDFs include generated LaTeX/animate machinery and standard embedded fonts;
 they are test documents, not code copied into the application implementation.
+
+`animation-2018.pdf` uses the same authored source with the unmodified animate
+2018/02/28 package from [the maintainer's archived repository](https://github.com/agrahn/animate).
+The generator fetches a pinned commit, checks its SHA-256, and keeps the `.sty`
+only in a temporary directory. This third-party package is LPPL licensed; its
+source URL and hash are recorded in the manifest. Regeneration requires network
+access for that source. The PDF is compiled with the installed TeX toolchain,
+so it tests the historic package's output structures, not a historical OS/TeX setup.

@@ -1,11 +1,10 @@
 """Per-user Windows shell links, without changing associations or script policy."""
 
-import base64
-import json
+import ctypes
 import os
 from pathlib import Path
-import subprocess
 import tempfile
+import uuid
 
 DESCRIPTION = "PageCue PDF presenter (org.pku-lemonade.pagecue)"
 
@@ -18,32 +17,64 @@ def default_shortcut():
 
 
 def _shell_link(path, target=None):
-    # Only constant code is evaluated. Paths are passed as environment data, so
-    # Unicode, quotes, dollar signs and spaces cannot become PowerShell syntax.
-    code = """
-$ErrorActionPreference = 'Stop'
-[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-$shell = New-Object -ComObject WScript.Shell
-$link = $shell.CreateShortcut($env:PAGECUE_LINK_PATH)
-if ($env:PAGECUE_LINK_WRITE -eq 'yes') {
-    $link.TargetPath = $env:PAGECUE_LINK_TARGET
-    $link.Arguments = ''
-    $link.WorkingDirectory = [System.IO.Path]::GetDirectoryName($env:PAGECUE_LINK_TARGET)
-    $link.IconLocation = $env:PAGECUE_LINK_TARGET + ',0'
-    $link.Description = $env:PAGECUE_LINK_DESCRIPTION
-    $link.Save()
-}
-@{target=$link.TargetPath; arguments=$link.Arguments; description=$link.Description} | ConvertTo-Json -Compress
-"""
-    environment = os.environ.copy()
-    environment.update(PAGECUE_LINK_PATH=str(path), PAGECUE_LINK_TARGET=str(target or ""),
-                       PAGECUE_LINK_WRITE="yes" if target else "no", PAGECUE_LINK_DESCRIPTION=DESCRIPTION)
-    result = subprocess.run(["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand",
-                             base64.b64encode(code.encode("utf-16-le")).decode("ascii")],
-                            env=environment, capture_output=True, text=True, encoding="utf-8", timeout=30)
-    if result.returncode:
-        raise OSError(f"Windows could not access the shortcut: {result.stderr.strip()}")
-    return json.loads(result.stdout.lstrip("\ufeff"))
+    """Use IShellLinkW/IPersistFile directly; all path arguments are UTF-16.
+
+    Vtable indices follow the Windows SDK's IShellLinkW and IPersistFile ABI.
+    No third-party COM package, interpreter process or shell quoting is involved.
+    """
+    if os.name != "nt":
+        raise OSError("Windows shell links require Windows")
+    class GUID(ctypes.Structure):
+        _fields_ = [("data1", ctypes.c_uint32), ("data2", ctypes.c_uint16),
+                    ("data3", ctypes.c_uint16), ("data4", ctypes.c_ubyte * 8)]
+    def guid(value):
+        return GUID.from_buffer_copy(uuid.UUID(value).bytes_le)
+    def check(result):
+        if result < 0:
+            raise OSError(f"Windows shell-link operation failed (HRESULT 0x{result & 0xffffffff:08x})")
+    def method(pointer, slot, *types):
+        table = ctypes.cast(pointer, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p))).contents
+        return ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p, *types)(table[slot])
+    ole = ctypes.WinDLL("ole32")
+    ole.CoInitializeEx.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    ole.CoInitializeEx.restype = ctypes.c_long
+    ole.CoCreateInstance.argtypes = [ctypes.POINTER(GUID), ctypes.c_void_p, ctypes.c_uint32,
+                                    ctypes.POINTER(GUID), ctypes.POINTER(ctypes.c_void_p)]
+    ole.CoCreateInstance.restype = ctypes.c_long
+    status = ole.CoInitializeEx(None, 2)  # COINIT_APARTMENTTHREADED
+    if status != -2147417850:  # RPC_E_CHANGED_MODE: an existing apartment is usable
+        check(status)
+    link, persist = ctypes.c_void_p(), ctypes.c_void_p()
+    try:
+        clsid = guid("00021401-0000-0000-c000-000000000046")
+        interface = guid("000214f9-0000-0000-c000-000000000046")
+        check(ole.CoCreateInstance(ctypes.byref(clsid), None, 1, ctypes.byref(interface), ctypes.byref(link)))
+        persistence = guid("0000010b-0000-0000-c000-000000000046")
+        check(method(link, 0, ctypes.POINTER(GUID), ctypes.POINTER(ctypes.c_void_p))(
+            link, ctypes.byref(persistence), ctypes.byref(persist)))
+        if target is not None:
+            for slot, value in ((20, str(target)), (7, DESCRIPTION), (9, str(target.parent)), (11, "")):
+                check(method(link, slot, ctypes.c_wchar_p)(link, value))
+            check(method(link, 17, ctypes.c_wchar_p, ctypes.c_int)(link, str(target), 0))
+            check(method(persist, 6, ctypes.c_wchar_p, ctypes.c_int)(persist, str(path), 1))
+        else:
+            check(method(persist, 5, ctypes.c_wchar_p, ctypes.c_uint32)(persist, str(path), 0))
+        result = {}
+        for key, slot in (("target", 3), ("description", 6), ("arguments", 10)):
+            buffer = ctypes.create_unicode_buffer(4096)
+            if key == "target":
+                check(method(link, slot, ctypes.c_wchar_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32)(
+                    link, buffer, len(buffer), None, 4))  # SLGP_RAWPATH; do not resolve/search
+            else:
+                check(method(link, slot, ctypes.c_wchar_p, ctypes.c_int)(link, buffer, len(buffer)))
+            result[key] = buffer.value
+        return result
+    finally:
+        for pointer in (persist, link):
+            if pointer.value:
+                method(pointer, 2)(pointer)  # IUnknown::Release
+        if status >= 0:
+            ole.CoUninitialize()
 
 
 def verify_shortcut(path, target):

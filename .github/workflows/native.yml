@@ -35,6 +35,9 @@ jobs:
         run: uv sync --frozen
       - name: Exercise PDF rendering, animations, media, and application logic
         run: uv run pytest -q --junitxml=qa/tests.xml
+      - name: Exercise Windows Unicode shell links
+        if: runner.os == 'Windows'
+        run: uv run python scripts/check_windows_shortcut.py
       - name: Generate original demo deck
         run: uv run python scripts/make_demo.py qa/demo.pdf
       - name: Build native app with bundled Python and Qt
