@@ -19,7 +19,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | DOC-04 | Safe reload of PDF and notes without losing active session | Implemented | Invalid reload retains document; valid reload retains page/timer |
 | DOC-05 | PDF text annotations, sidecar/embedded format-2 notes, Unicode | Implemented | Sidecar/embedded/annotation/Unicode tests pass |
 | DOC-06 | Beamer two-region notes cropping and zoomable notes text | Implemented | Real Beamer notes PDF excludes miniature/header/off-page text |
-| DOC-07 | Internal/named/external links and hover hit testing | Initial implementation | PDF action fixtures pending |
+| DOC-07 | Internal/named/external links and hover hit testing | Implemented, including other-PDF destinations | Real direct/GoTo/named/GoToR/URI/Launch fixtures; zoom/pan click and hover; hidden links inactive in blackout; encoded file-URI round trip |
 | TIME-01 | Wall clock, count up/down, pause/reset, duration adjustments | Implemented | Pause/reset domain, Shift+T clock, and reload tests pass |
 | TIME-02 | PDF /Dur auto-advance and pause/resume | Implemented | Actual /Dur PDF auto-advance and disabled state tested |
 | INK-01 | Draw on slides and board, color/opacity/width, tablet input | Implemented; device QA pending | GUI draw test passes; physical tablet pending |
@@ -34,8 +34,8 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | ANIM-01 | LaTeX animate frames, widget controls, frame stepping | Implemented for recognized widget-frame animations | Actual LaTeX animate PDF frames and controls rendered; older PDFs pending |
 | ANIM-02 | Autoplay, forward/reverse, loop, palindrome, old/new metadata | Implemented for recognized metadata | Real current fixture autoplay/loop/palindrome; reverse/speed/legacy metadata unit tests |
 | APP-01 | Menus, help, about, version/update check and notifications | Implemented; actual release channel pending | Real local HTTP/QtNetwork version and missing-release tests; OS notification delivery pending |
-| APP-02 | Per-user installation, reproducible packages, update/uninstall | Native bundle recipe and staged per-user installer implemented | Mac arm64 bundle signature and installed executable smoke pass; Unicode install/update/check/remove exercised; Windows/clean machines pending |
-| APP-03 | Windows/macOS support, fonts, mixed DPI, input devices | Native Mac development launch works | Windows and physical device acceptance pending |
+| APP-02 | Per-user installation, reproducible packages, update/uninstall | Native bundle recipe, staged installer and Windows Start Menu support | Windows x64 and Mac arm64/Intel CI install/update/remove and packaged execution pass; new shortcut checks pending CI; OS first-launch approval flow pending |
+| APP-03 | Windows/macOS support, fonts, mixed DPI, input devices | Windows x64 and Mac arm64/Intel packages run in CI | Windows presenter/Chinese notes capture inspected; mixed DPI and physical device acceptance pending |
 
 No native code/toolkit choice proves media/animation parity. Keep actual fixture
 evidence for each format and control. Do not mark “unsupported” as completion.

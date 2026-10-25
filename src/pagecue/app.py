@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 import sys
+from urllib.parse import quote, urlsplit, urlunsplit
 
 from PySide6.QtCore import QEvent, QObject, QPointF, QRect, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QColor, QDesktopServices, QIcon, QKeySequence
@@ -229,11 +230,11 @@ class Presenter(QObject):
         if path:
             self.open(path)
 
-    def open(self, path, page=None):
+    def open(self, path, page=None, destination=None):
         password = ""
         while True:
             try:
-                self.session.open(path, password=password, page=page)
+                self.session.open(path, password=password, page=page, destination=destination)
                 return True
             except PasswordRequired:
                 password, okay = QInputDialog.getText(self.presenter, "Encrypted PDF", "Password:",
@@ -479,6 +480,16 @@ class Presenter(QObject):
             self.play_media(action.value, action.rect)
         elif action.kind == "url":
             self.open_web(str(action.value))
+        elif action.kind == "document":
+            link = action.value
+            if link.resource.path is not None:
+                self.open(link.resource.path, destination=link.destination)
+            elif link.resource.url:
+                parsed = urlsplit(link.resource.url)
+                fragment = (f"page={link.destination + 1}" if isinstance(link.destination, int)
+                            else f"nameddest={quote(link.destination, safe='')}" if isinstance(link.destination, str)
+                            else parsed.fragment)
+                self.open_web(urlunsplit(parsed._replace(fragment=fragment)))
 
     def pick_media(self):
         from .document import Media

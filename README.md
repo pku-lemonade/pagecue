@@ -52,8 +52,10 @@ require activating a Python environment. A public binary release is not ready ye
 
 Default destinations are `~/Applications/PageCue.app` on macOS and
 `%LOCALAPPDATA%\Programs\PageCue` on Windows. Use `--destination PATH` to override.
-On Windows launch `PageCue.exe` inside that directory; Start Menu integration is
-not implemented yet. Windows packaging itself remains unverified.
+On Windows use the PageCue Start Menu shortcut, or launch `PageCue.exe` inside
+that directory. `--no-shortcut` leaves Start Menu entries untouched for portable
+or secondary installations. Existing shortcuts for another installation are
+preserved; the installer will report the conflict rather than replace them.
 
 For automated packaged checks, pass a PDF plus `--smoke-output DIR` to the installed
 executable, optionally adding `--smoke-media VIDEO --smoke-web`. Inspect the
@@ -73,6 +75,11 @@ to exercise PDF/media/WebEngine, then verifies update/removal. It uploads JSON,
 test reports and screenshots for review, without publishing an unaudited binary.
 The presence of the workflow is not proof that any particular run/platform passed;
 inspect the run's logs and evidence. Physical display/camera testing is separate.
+
+The first CI run verified Windows x64 and Mac arm64/Intel packages, including actual
+PDF/media/web execution and Unicode-path installation. Windows evidence is from a
+Windows Server 2025 runner, not a Windows 11 laptop with a projector. Full parity
+and hardware acceptance remain incomplete; see the feature ledger for details.
 
 Locally, after building and generating `qa/demo.pdf`, reproduce the packaged check:
 

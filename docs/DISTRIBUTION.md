@@ -58,9 +58,16 @@ path. Close running instances before updating, especially on Windows.
 
 `--check` validates the installed app, while `--uninstall` removes only its
 identified bundle. Documents, preferences and PDF defaults are retained.
-Windows Start Menu shortcuts/installer shell integration are still pending.
+The Windows CLI creates a per-user Start Menu shortcut using Windows' shell-link
+COM interface through PowerShell; it does not change execution policy or PDF
+associations. Paths are passed as environment data. Existing links must match the
+expected target and application description. `--no-shortcut` supports portable or
+secondary installations. See [Microsoft's shell-link documentation](https://learn.microsoft.com/en-us/troubleshoot/windows-client/admin-development/create-desktop-shortcut-with-wsh).
 
 The development Mac arm64 package has been installed, checked, updated, launched
 from a Unicode/space-containing path, and removed. Its frozen executable passed
 PDF/navigation/reload, muted media decoding and local WebEngine checks. Neither
-Windows execution nor a separate clean Mac environment has been validated yet.
+physical-device acceptance nor an ordinary Windows/macOS user's first-launch OS
+approval flow has been validated yet. The native CI workflow now exercises fresh
+Windows Server 2025 and Mac runner environments. Its results/artifacts, rather
+than the existence of the workflow, determine which platform checks passed.

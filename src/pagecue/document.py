@@ -5,7 +5,8 @@ from io import BytesIO
 from pathlib import Path
 import mimetypes
 import re
-from urllib.parse import parse_qs, urlparse, unquote
+from urllib.parse import parse_qs, urlparse
+from urllib.request import url2pathname
 from functools import cached_property
 import hashlib
 
@@ -35,10 +36,16 @@ class Media:
 
 
 @dataclass
+class DocumentLink:
+    resource: Media
+    destination: int | str | None = None
+
+
+@dataclass
 class Action:
     rect: tuple[float, float, float, float]
     kind: str
-    value: int | str | Media
+    value: int | str | Media | DocumentLink
     title: str = ""
 
 
@@ -62,6 +69,7 @@ class Snapshot:
     password: str = ""
     animations: list[AnimationSpec] = field(default_factory=list)
     animation_pdf: bytes | None = None
+    destinations: dict[str, int] = field(default_factory=dict)
 
 
 def resolved(value):
@@ -102,7 +110,10 @@ def filespec(value, directory: Path) -> Media:
     # A Windows drive letter is not a URL scheme.
     if parsed.scheme in ("http", "https"):
         return Media(name, url=name)
-    path = Path(unquote(parsed.path)) if parsed.scheme == "file" else Path(name)
+    if parsed.scheme == "file":
+        path = Path(url2pathname(("//" + parsed.netloc if parsed.netloc not in ("", "localhost") else "") + parsed.path))
+    else:
+        path = Path(name)
     return Media(name, path=(directory / path).resolve())
 
 
@@ -159,6 +170,8 @@ def load_snapshot(path: Path, password: str = "", notes_layout: str = "auto") ->
         value = resolved(value)
         if isinstance(value, str):
             dest = named.get(value)
+            if dest is None and isinstance(value, NameObject):
+                dest = named.get(value.removeprefix("/"))
             return reader.get_destination_page_number(dest) if dest is not None else None
         if isinstance(value, (list, ArrayObject)) and value:
             ref = value[0]
@@ -202,16 +215,28 @@ def load_snapshot(path: Path, password: str = "", notes_layout: str = "auto") ->
             if subtype != "/Link":
                 continue
             action = resolved(annotation.get("/A", {}))
-            dest = destination(annotation.get("/Dest", action.get("/D")))
+            # A GoToR destination belongs to a different document. Interpreting
+            # its numeric /D here would silently jump within the current deck.
+            dest = destination(annotation.get("/Dest", action.get("/D"))) if action.get("/S") in (None, "/GoTo") else None
             if dest is not None:
                 info.actions.append(Action(rect, "page", dest, f"Go to page {dest + 1}"))
             elif action.get("/S") == "/Named":
                 info.actions.append(Action(rect, "named", str(action.get("/N", ""))))
             elif action.get("/S") in ("/URI", "/Launch", "/GoToR"):
-                value = str(action.get("/URI", action.get("/F", "")))
+                raw = action.get("/URI", action.get("/F", ""))
+                resource = filespec(raw, path.parent)
+                value = resource.name
                 if is_media(value):
-                    resource = filespec(value, path.parent)
                     info.actions.append(Action(rect, "media", resource, value))
+                elif action.get("/S") == "/GoToR" or (action.get("/S") == "/Launch" and urlparse(value).path.lower().endswith(".pdf")):
+                    target = resolved(action.get("/D"))
+                    if isinstance(target, (list, ArrayObject)):
+                        target = int(target[0]) if target and isinstance(target[0], int) else None
+                    elif isinstance(target, NameObject):
+                        target = target.removeprefix("/")
+                    elif not isinstance(target, str):
+                        target = None
+                    info.actions.append(Action(rect, "document", DocumentLink(resource, target), value))
                 else:
                     info.actions.append(Action(rect, "url", value, value))
         if text:
@@ -275,4 +300,6 @@ def load_snapshot(path: Path, password: str = "", notes_layout: str = "auto") ->
             page[NameObject("/Annots")] = ArrayObject(ref for ref in page["/Annots"] if keep_annotation(ref))
     target = BytesIO()
     writer.write(target)
-    return Snapshot(path, target.getvalue(), pages, notes, sections, data, password, animations, animation_pdf)
+    destinations = {name: number for name, dest in named.items()
+                    if (number := reader.get_destination_page_number(dest)) is not None and number >= 0}
+    return Snapshot(path, target.getvalue(), pages, notes, sections, data, password, animations, animation_pdf, destinations)

@@ -72,9 +72,15 @@ class Session(QObject):
     def ink_pages(self):
         return [-1] if self.surface == Surface.BOARD else self.navigation.overlay_pages(self.page)
 
-    def open(self, path, *, password="", page=None, reload=False):
+    def open(self, path, *, password="", page=None, reload=False, destination=None):
         candidate = load_snapshot(Path(path), password, self.notes_layout)
         old, previous = self.snapshot, self.page
+        if isinstance(destination, str):
+            if destination not in candidate.destinations:
+                raise ValueError(f"The linked destination {destination!r} does not exist in this PDF")
+            page = candidate.destinations[destination]
+        elif isinstance(destination, int):
+            page = destination
         if page is None:
             try:
                 page = previous if reload else int(self.settings.value("recent/" + str(candidate.path), 0))

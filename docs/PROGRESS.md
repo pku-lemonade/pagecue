@@ -1,8 +1,8 @@
 # Implementation checkpoint
 
-The rewrite remains active and incomplete. The project is local at `code/pagecue`;
-the existing wrapper repository/application are unchanged. PageCue is a working
-name. No binary release or Windows validation is claimed.
+The rewrite remains active and incomplete, at `code/pagecue` and the public
+repository https://github.com/pku-lemonade/pagecue. The existing wrapper repository/
+application are unchanged. PageCue is a working name. No binary release is claimed.
 
 ## Current implementation
 
@@ -27,10 +27,19 @@ name. No binary release or Windows validation is claimed.
   Standard-library installer stages and verifies copies, checks app identity,
   restores the previous app on failed commit, and preserves a recovery copy if
   restoration also fails. Removal leaves preferences/documents intact.
+- Local/direct/named PDF links, other-PDF numeric/named destinations, Unicode file
+  specifications and file-URI decoding. Link hover/click coordinates track slide
+  zoom/pan; hidden links cannot activate during blackout.
+- Native CI builds/tests/packages on Windows x64, Mac arm64 and Mac Intel. Small
+  original generated fixtures (72 KiB) keep PDF/media tests active without TeX or
+  FFmpeg. Their manifest ties outputs to the authored sources and generator.
+- Windows Start Menu helper preserves unrelated shortcuts and uses per-user shell
+  links without changing PDF associations or execution policy; CI coverage added.
 
 ## Evidence
 
-`uv run pytest -q`: **42 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **52 passed** on the development Mac at this checkpoint.
+The initial native CI revision (`441b353`) ran **43 tests without skips** on Windows.
 
 Tests include actual Qt PDF rendering, notes/annotations/encryption, original
 LaTeX animate and Beamer-generated fixtures, controlled PDF labels/outlines,
@@ -41,6 +50,7 @@ checks the final B-frame; a silent WAV verifies audio loading without audible so
 New coverage exercises real QtNetwork HTTP release responses, stale URL callbacks,
 and installation/update/removal/rollback boundaries in temporary directories.
 Windows-shaped installer fixture tests on a Mac are not Windows execution evidence.
+Actual Windows CI execution is now available separately below.
 
 Offscreen/native Cocoa captures are local under `qa/` (ignored):
 
@@ -60,6 +70,15 @@ Offscreen/native Cocoa captures are local under `qa/` (ignored):
   `result.json` reports frozen=true and all PDF/media/web checks passing. The
   installation was updated, verified and removed; original fixture/source files
   and built application remained. This is not a separate clean-machine test.
+- `windows-ci/`: downloaded evidence from [native run 40167752910](https://github.com/pku-lemonade/pagecue/actions/runs/40167752910).
+  The Windows Server 2025 AMD64 packaged executable reports Qt 6.12, frozen=true,
+  PDF/navigation/reload, media decode, web load and Escape all passing. Installation,
+  update, verification and removal passed from a Unicode path. Presenter (including
+  Chinese notes) and WebEngine captures were inspected. This proves that runner
+  configuration, not physical Windows laptops/projectors or first-launch prompts.
+  Mac arm64 and Intel also completed the workflow successfully. Downloaded runner
+  evidence is under `mac-arm-ci/` and `mac-intel-ci/`; the second run must still
+  verify the latest link and Start Menu changes.
 
 Reproduce the common checks:
 
@@ -71,9 +90,12 @@ QT_QPA_PLATFORM=cocoa uv run python scripts/gui_smoke.py qa/demo.pdf qa/native-m
 QT_QPA_PLATFORM=cocoa uv run python scripts/web_smoke.py qa/demo.pdf qa/web-fixed
 ```
 
-The Cocoa commands require macOS. Tests generating LaTeX/video fixtures require
-`pdflatex` (animate/beamer packages) and `ffmpeg`; they explicitly skip if missing.
-Their sources are original fixtures in `tests/fixtures`, not upstream test copies.
+The Cocoa commands require macOS. Tests regenerate LaTeX/video fixtures when
+`pdflatex` (animate/beamer packages) and `ffmpeg` are available, otherwise use the
+committed generated fixtures; missing generation tools no longer skip those tests.
+Sources/manifest are in `tests/fixtures`, not upstream test copies. Regenerate with
+`uv run python scripts/generate_fixtures.py`. The 43-test portable path also passed
+locally with TeX/FFmpeg excluded from PATH.
 
 ## Issues found and corrected
 
@@ -94,12 +116,15 @@ Their sources are original fixtures in `tests/fixtures`, not upstream test copie
 - Cancel an outstanding automatic video URL lookup before aborting replies: Qt
   can emit completion inline. Late replies must not open web content after the
   presenter navigates, reloads, switches views, or presses Escape.
+- GoToR /D values were incorrectly interpreted as current-deck destinations.
+  They now open the target document at the requested numeric/named destination;
+  missing destinations fail transactionally. /UF file specifications remain Unicode.
 
 ## Required remaining work
 
 1. Create an actual release channel; validate OS update notification delivery and
    real privacy-video service behavior. Release parsing/routing now have coverage.
-2. Expand action/link and animation coverage: a real older animate PDF, alternate
+2. Expand animation coverage: a real older animate PDF, alternate
    forms/layouts, multiple animations, click/keyboard controls and long decks.
    Legacy timing has unit coverage but no compiled legacy integration fixture yet.
 3. Audit camera permission/device lifecycle and test a real camera with deliberate
@@ -107,17 +132,18 @@ Their sources are original fixtures in `tests/fixtures`, not upstream test copie
 4. Finish interaction/visual edge cases: small windows, changing DPI, crop/pan/zoom,
    selection scaling, persistent preferences, hide/fullscreen restoration and
    actual physical display selection/swap/unplug behavior.
-5. Complete Windows packaging/Start Menu integration and the binary dependency/
-   source/notice audit. Mac bundled Python/Qt, identity/icon, camera entitlements,
+5. Complete native package verification and the binary dependency/source/notice
+   audit. Mac bundled Python/Qt, identity/icon, camera entitlements,
    usage text and staged installer exist. Clean-machine startup remains pending;
    local Mac Unicode-path install/update/uninstall and startup checks pass.
-6. Run Windows builds/tests and both platforms' physical-device acceptance checks.
-   No Windows environment has been exercised yet. Keep these requirements open.
+6. Rerun native checks for the link/shortcut changes,
+   and complete both platforms' physical-device acceptance and ordinary-user
+   first-launch checks. Windows CI is not equivalent to hardware acceptance.
 7. Do a requirement-by-requirement completion audit against `FEATURES.md`; do not
    substitute an unsupported-feature message for a feature's implementation.
 
 The Mac development app occupies approximately 562 MiB (`du -sh`); it includes
 WebEngine for original web-view parity. Startup/resource budgets remain unmeasured.
-No public repo for the new app, public packaged release, clean-room certification
-or full parity claim exists yet. `docs/DISTRIBUTION.md` explicitly records the
+No public packaged release, clean-room certification or full parity claim exists
+yet. `docs/DISTRIBUTION.md` explicitly records the
 remaining dependency-notice/source audit before public binary distribution.

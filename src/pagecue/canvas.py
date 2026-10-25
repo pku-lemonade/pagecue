@@ -41,7 +41,7 @@ class Canvas(QWidget):
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAcceptDrops(True)
-        self.session.changed.connect(self.update)
+        self.session.changed.connect(self._refresh)
         self.session.document_changed.connect(self._new_document)
         self.current_box = QRectF()
         self.notes_box = QRectF()
@@ -63,6 +63,15 @@ class Canvas(QWidget):
         self.camera_position = "bottom-right"
         self.camera_large = False
         self._animation_last = {}
+        self._cursor_context = None
+
+    def _refresh(self):
+        context = (id(self.session.snapshot), self.session.page, self.session.surface)
+        if context != self._cursor_context:
+            self._cursor_context = context
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            QToolTip.hideText()
+        self.update()
 
     def _new_document(self):
         self.thumb_scroll = 0
@@ -358,6 +367,13 @@ class Canvas(QWidget):
     def keyPressEvent(self, event):
         self.command.emit(event)
 
+    def _action_at(self, pos):
+        if self.session.surface != Surface.SLIDES or not self.current_box.contains(pos):
+            return None
+        point = self._to_page(pos)
+        return next((action for action in self.session.snapshot.pages[self.session.page].actions
+                     if QRectF(*action.rect).contains(point)), None)
+
     def mousePressEvent(self, event):
         self.setFocus()
         if not self.session.snapshot:
@@ -408,10 +424,12 @@ class Canvas(QWidget):
         if self.current_box.contains(pos):
             point = self._to_page(pos)
             self.session.show_pointer(point)
-            for action in self.session.snapshot.pages[self.session.page].actions:
-                if QRectF(*action.rect).contains(point):
-                    QToolTip.showText(event.globalPosition().toPoint(), action.title, self)
-                    break
+        action = self._action_at(pos)
+        self.setCursor(Qt.CursorShape.PointingHandCursor if action else Qt.CursorShape.ArrowCursor)
+        if action and action.title:
+            QToolTip.showText(event.globalPosition().toPoint(), action.title, self)
+        else:
+            QToolTip.hideText()
         if self._drag == "click" and (pos - self._press).manhattanLength() > 5:
             self._start_stroke(self._press)
         if self._drag == "draw":
@@ -438,9 +456,7 @@ class Canvas(QWidget):
                 self.command.emit("media-toggle")
                 self._drag = None
                 return
-            point = self._to_page(event.position())
-            action = next((action for action in self.session.snapshot.pages[self.session.page].actions
-                           if QRectF(*action.rect).contains(point)), None)
+            action = self._action_at(event.position())
             if action:
                 self.session.action_requested.emit(action)
             else:

@@ -129,6 +129,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", nargs="?", type=Path, help="Built PageCue.app (Mac) or PageCue directory (Windows)")
     parser.add_argument("--destination", type=Path, help="Override the per-user application location")
+    parser.add_argument("--no-shortcut", action="store_true", help="Windows: leave Start Menu shortcuts untouched")
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument("--check", action="store_true", help="Verify the installed application without changing it")
     actions.add_argument("--uninstall", action="store_true", help="Remove only the identified PageCue application")
@@ -136,16 +137,27 @@ def main():
     try:
         platform = platform_name()
         target = destination_path(args.destination or default_destination(platform))
+        shortcut = None
+        if platform == "windows" and not args.no_shortcut:
+            import windows_shortcut
+            shortcut = windows_shortcut.default_shortcut()
+            windows_shortcut.check_destination(shortcut, executable(target, platform))
         if args.check:
             info = validate(target, platform)
+            if shortcut:
+                windows_shortcut.verify_shortcut(shortcut, executable(target, platform))
             print(f"Verified PageCue {info['version']}: {target}")
         elif args.uninstall:
             uninstall(target, platform)
+            if shortcut:
+                windows_shortcut.remove_shortcut(shortcut, executable(target, platform))
             print(f"Removed {target}. Preferences and presentation files were preserved.")
         else:
             if args.source is None:
                 parser.error("specify the built application to install")
             info = install(args.source, target, platform)
+            if shortcut:
+                windows_shortcut.create_shortcut(shortcut, executable(target, platform))
             print(f"Installed PageCue {info['version']}: {target}")
             print(f"Executable: {executable(target, platform)}")
     except (OSError, ValueError, subprocess.CalledProcessError) as error:

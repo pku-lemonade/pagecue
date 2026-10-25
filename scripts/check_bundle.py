@@ -25,6 +25,19 @@ def main():
         work = Path(directory)
         destination = work / source.name
         install(source, destination, platform)
+        shortcut = None
+        if platform == "windows":
+            from windows_shortcut import create_shortcut, remove_shortcut, verify_shortcut
+            shortcut = work / "Start Menu 讲稿/PageCue.lnk"
+            create_shortcut(shortcut, executable(destination, platform))
+            verify_shortcut(shortcut, executable(destination, platform))
+            # An existing shortcut to another executable must remain untouched.
+            try:
+                create_shortcut(shortcut, executable(source, platform))
+            except ValueError:
+                verify_shortcut(shortcut, executable(destination, platform))
+            else:
+                raise RuntimeError("Replaced a shortcut belonging to another installation")
         # Launch from outside the repo without inheriting development import paths.
         environment = os.environ.copy()
         for key in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "QT_PLUGIN_PATH", "QT_QPA_PLATFORM_PLUGIN_PATH"):
@@ -50,12 +63,20 @@ def main():
                 raise RuntimeError(f"Missing {name} capture")
         install(source, destination, platform)
         validate(destination, platform)
+        if shortcut:
+            create_shortcut(shortcut, executable(destination, platform))
+            verify_shortcut(shortcut, executable(destination, platform))
         uninstall(destination, platform)
+        if shortcut:
+            remove_shortcut(shortcut, executable(destination, platform))
+            if shortcut.exists():
+                raise RuntimeError("Shortcut survived uninstall")
         if destination.exists() or not source.is_dir() or not (ROOT / "qa/demo.pdf").is_file():
             raise RuntimeError("Installation cleanup did not preserve the expected files")
     (output / "installation.json").write_text(json.dumps({
         "passed": True, "platform": platform, "unicode_path": True,
         "install": True, "update": True, "verify": True, "uninstall": True,
+        "shortcut": "create/verify/update/preserve-other/remove" if platform == "windows" else "not applicable",
     }, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(evidence, indent=2))
 
