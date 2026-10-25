@@ -42,6 +42,8 @@ jobs:
         run: uv run python scripts/make_demo.py qa/demo.pdf
       - name: Check responsive layouts using synthetic camera frames
         run: uv run python scripts/layout_smoke.py qa/demo.pdf qa/layout
+      - name: Check file drops, Qt file dialog, file events and recent pages
+        run: uv run python scripts/opening_smoke.py qa/demo.pdf qa/opening
       - name: Build native app with bundled Python and Qt
         run: uv run python scripts/build_app.py
       - name: Install, launch, update and remove the actual native package
@@ -55,5 +57,6 @@ jobs:
             qa/tests.xml
             qa/packaged
             qa/layout
+            qa/opening/result.json
           retention-days: 14
           if-no-files-found: warn

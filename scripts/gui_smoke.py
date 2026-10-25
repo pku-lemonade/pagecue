@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import sys
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtTest import QTest
 from pagecue.app import Application, Presenter
 
@@ -12,6 +12,8 @@ from pagecue.app import Application, Presenter
 def main():
     path, output = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
     output.mkdir(parents=True, exist_ok=True)
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(output / "settings"))
     app = Application(["pagecue-smoke"])
     app.setApplicationName("PageCue QA")
     presenter = Presenter(app)

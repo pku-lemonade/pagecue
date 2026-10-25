@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 import sys
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QSettings, QTimer, Qt
 from PySide6.QtTest import QTest
 from pagecue.app import Application, Presenter
 from pagecue.model import Surface
@@ -12,6 +12,8 @@ from pagecue.model import Surface
 def main():
     deck, output = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
     output.mkdir(parents=True, exist_ok=True)
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(output / "settings"))
     html = output / "local.html"
     html.write_text('<!doctype html><html><head><title>PageCue local web fixture</title></head>'
         '<body style="background:#18372b;color:white;font:30px sans-serif">'

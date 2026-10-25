@@ -1,0 +1,35 @@
+% Original PageCue fixture: separate controls, posters, and two pages.
+\documentclass{article}
+\usepackage[paperwidth=170mm,paperheight=100mm,margin=8mm]{geometry}
+\usepackage{xcolor}
+\usepackage{animate}
+\pagestyle{empty}
+\newcommand{\frameboxcolor}[2]{\colorbox{#1}{\rule{0pt}{20mm}\makebox[50mm]{#2}}}
+\begin{document}
+\noindent Two independent animations\par\bigskip
+\begin{minipage}{72mm}
+Manual, last-frame poster\par
+\begin{animateinline}[controls,poster=last]{4}
+\frameboxcolor{red}{One}
+\newframe
+\frameboxcolor{green}{Two}
+\newframe
+\frameboxcolor{blue}{\color{white}Three}
+\end{animateinline}
+\end{minipage}\hfill
+\begin{minipage}{72mm}
+Autoplay and loop\par
+\begin{animateinline}[controls,autoplay,loop]{7}
+\frameboxcolor{yellow}{A}
+\newframe
+\frameboxcolor{magenta}{B}
+\end{animateinline}
+\end{minipage}
+\newpage
+No poster before playback\par\bigskip
+\begin{animateinline}[controls,poster=none]{3}
+\frameboxcolor{cyan}{First}
+\newframe
+\frameboxcolor{yellow}{Second}
+\end{animateinline}
+\end{document}

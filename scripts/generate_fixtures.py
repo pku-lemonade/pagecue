@@ -31,7 +31,7 @@ def main():
     output.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory() as directory:
         work = Path(directory)
-        for name in ("animation", "beamer-notes"):
+        for name in ("animation", "beamer-notes", "multiple-animations"):
             for _ in range(2):
                 run([engine, "-interaction=nonstopmode", "-halt-on-error",
                      f"-output-directory={work}", str(FIXTURES / f"{name}.tex")])

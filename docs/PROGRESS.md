@@ -43,7 +43,13 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **61 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **65 passed** on the development Mac at this checkpoint.
+New work covers multiple animations, last/absent posters, reverse pause/resume,
+and duplicate source field names in merged PDFs. Native Cocoa captures of the
+poster and previously invisible first-frame states were inspected under
+`qa/animation-ui-check/`. `scripts/opening_smoke.py` passes Unicode drag/drop,
+Qt widget-dialog selection, QApplication QFileOpenEvent handling and recent-page
+restoration. Those checks do not simulate native OS dialog/event delivery.
 The current changes add scrollable/wrapped help and camera permission/device
 lifecycle, plus persisted inset width/opacity/corner controls. Native macOS
 captures under `qa/layout-camera/` show minimum, scrolled and normal layouts and
@@ -124,6 +130,21 @@ locally with TeX/FFmpeg excluded from PATH.
 
 ## Issues found and corrected
 
+- QSettings' organization/application constructor ignores setDefaultFormat and
+  selects NativeFormat. Earlier QA overrides therefore did not isolate preferences
+  as intended. Session now supplies the format/scope explicitly; regression tests
+  inspect the actual settings filename. All QA scripts set output-local INI paths.
+  The local PageCue preference file was backed up under `qa/preference-recovery/`;
+  seven synthetic-deck history entries and the exact camera values left by the
+  clamp test were removed. Other preferences and original Présentation apps remain.
+- Animation extraction ignored last-frame/absent posters and reused numeric source
+  IDs globally, losing an animation after merged PDFs repeated a field name. The
+  initial visible frame now comes from annotation flags/appearance references;
+  application IDs are independent of per-page source IDs. Space pauses either
+  playback direction and resumes that direction instead of switching to forward.
+- Pixel checks now account for the captured widget's device pixel ratio; logical
+  coordinates cannot index a Retina-resolution QImage directly.
+
 - Beamer initially exposed its miniature/header and off-page hidden overlay text
   in notes. Extraction now checks page bounds and recognizes the miniature header.
 - Application-wide Python event filtering caused a native Shiboken/WebEngine crash
@@ -162,8 +183,9 @@ locally with TeX/FFmpeg excluded from PATH.
 
 1. Create an actual release channel; validate OS update notification delivery and
    real privacy-video service behavior. Release parsing/routing now have coverage.
-2. Expand animation coverage: alternate forms/layouts, multiple animations,
-   click/keyboard controls and long decks. Current and compiled 2018 widget output
+2. Expand animation coverage: alternate forms/layouts and long decks. Multiple
+   animations, posters and click/keyboard controls now have integration coverage.
+   Current and compiled 2018 widget output
    are covered; older object-style timing still has unit coverage only. A 2016
    package probe needs its historical `animfp.sty` dependency before compilation.
 3. Audit camera permission/device lifecycle and test a real camera with deliberate

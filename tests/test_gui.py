@@ -1,6 +1,24 @@
-from PySide6.QtCore import Qt
+from pathlib import Path
+from PySide6.QtCore import QSettings, Qt
 from pagecue.canvas import Canvas
 from pagecue.session import Session
+
+
+def test_settings_override_and_recent_page_are_isolated(qtbot, deck, tmp_path):
+    session = Session()
+    assert session.settings.format() == QSettings.Format.IniFormat
+    assert Path(session.settings.fileName()).is_relative_to(tmp_path / "settings")
+    session.open(deck)
+    session.go(2)
+    session.save()
+    restored = Session()
+    restored.open(deck)
+    assert restored.page == 2
+    restored.settings.setValue("recent/" + str(deck.resolve()), "invalid page")
+    restored.open(deck)
+    assert restored.page == 0
+    session.close()
+    restored.close()
 
 
 def test_qt_renders_real_pdf_and_two_views(qtbot, deck, tmp_path):

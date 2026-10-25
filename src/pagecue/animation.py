@@ -32,6 +32,8 @@ class AnimationSpec:
     loop: bool = False
     palindrome: bool = False
     controls: list[AnimationControl] = field(default_factory=list)
+    poster: int | None = 0
+    source_identifier: int | None = None
 
 
 @dataclass
@@ -40,13 +42,23 @@ class AnimationState:
     frame: int = 0
     direction: int = 0
     speed: float = 1
+    visible: bool = field(init=False, default=True)
+    _resume_direction: int = field(init=False, default=1)
+
+    def __post_init__(self):
+        self.visible = self.spec.poster is not None
+        self.frame = self.spec.poster if self.visible else 0
 
     def play(self, direction=1):
-        if direction > 0 and self.frame == len(self.spec.frames) - 1:
+        if not self.visible:
+            self.frame = 0 if direction > 0 else len(self.spec.frames) - 1
+        elif direction > 0 and self.frame == len(self.spec.frames) - 1:
             self.frame = 0
         elif direction < 0 and self.frame == 0:
             self.frame = len(self.spec.frames) - 1
         self.direction = 1 if direction > 0 else -1
+        self._resume_direction = self.direction
+        self.visible = True
 
     def advance(self):
         if not self.direction:
@@ -68,14 +80,27 @@ class AnimationState:
         if name in ("EndLeft", "EndRight"):
             self.frame = 0 if name == "EndLeft" else len(self.spec.frames) - 1
             self.direction = 0
+            self.visible = True
         elif name in ("StepLeft", "StepRight"):
             self.direction = 0
-            self.frame = min(len(self.spec.frames) - 1, max(0, self.frame + (-1 if name == "StepLeft" else 1)))
+            if self.visible:
+                self.frame = min(len(self.spec.frames) - 1, max(0, self.frame + (-1 if name == "StepLeft" else 1)))
+            else:
+                self.frame = len(self.spec.frames) - 1 if name == "StepLeft" else 0
+            self.visible = True
         elif name.startswith("Pause"):
+            self._resume_direction = self.direction or self._resume_direction
             self.direction = 0
-        elif name.startswith("Play") or name == "Toggle":
+        elif name == "Toggle":
+            if self.direction:
+                self._resume_direction = self.direction
+                self.direction = 0
+            else:
+                self.play(self._resume_direction)
+        elif name.startswith("Play"):
             direction = -1 if name.endswith("Left") else 1
-            if (name.startswith("PlayPause") or name == "Toggle") and self.direction == direction:
+            if name.startswith("PlayPause") and self.direction == direction:
+                self._resume_direction = direction
                 self.direction = 0
             else:
                 self.play(direction)
@@ -260,8 +285,20 @@ def extract(reader, rect_converter):
                     command = "PlayPauseLeft" if command.endswith("Left") else "PlayPauseRight"
                 key = tuple(float(v) for v in annotation["/Rect"])
                 controls[key] = AnimationControl(rect_converter(page, key), command)
-            specs.append(AnimationSpec(identifier, page_index, rect_converter(page, container["/Rect"]),
-                frame_pages, fps, autoplay, loop, palindrome, list(controls.values())))
+            hidden = 1 | 2 | 32  # PDF annotation Invisible, Hidden and NoView flags
+            poster = next((index for index, (_, annotation) in enumerate(candidates)
+                           if not int(annotation.get("/F", 0)) & hidden), None)
+            if poster is None and not int(container.get("/F", 0)) & hidden:
+                # Older animate versions put the poster on the container's
+                # appearance instead of exposing one of the frame widgets.
+                appearance = _object(container.get("/AP", {})).get("/N")
+                if appearance is not None:
+                    poster = next((index for index, (_, annotation) in enumerate(candidates)
+                                   if _object(annotation.get("/AP", {})).get("/N") == appearance), None)
+            # Merged PDFs can reuse the same source field names on other pages.
+            # Give every extracted animation its own application identity.
+            specs.append(AnimationSpec(len(specs), page_index, rect_converter(page, container["/Rect"]),
+                frame_pages, fps, autoplay, loop, palindrome, list(controls.values()), poster, identifier))
     if not specs:
         return [], None, problems
     output = BytesIO()

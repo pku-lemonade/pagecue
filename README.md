@@ -98,3 +98,7 @@ uv run python scripts/check_bundle.py --output qa/packaged
 For minimum-size layouts, help scrolling and camera compositing without opening
 a camera, run `uv run python scripts/layout_smoke.py qa/demo.pdf qa/layout`.
 This uses a drawn image and saves captures for inspection.
+
+`uv run python scripts/opening_smoke.py qa/demo.pdf qa/opening` checks drag/drop,
+Qt's widget file dialog, application file-open events and recent-page restoration
+using isolated preferences. Native OS dialog/event-delivery acceptance is separate.

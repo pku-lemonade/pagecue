@@ -287,17 +287,17 @@ def load_snapshot(path: Path, password: str = "", notes_layout: str = "auto") ->
                 sections.append(number)
     # Remove comment annotations from the render-only copy, retaining the source.
     writer = PdfWriter(clone_from=reader)
-    animation_ids = {animation.identifier for animation in animations}
-    def keep_annotation(ref):
+    def keep_annotation(ref, animation_ids):
         annotation = resolved(ref)
         if annotation.get("/Subtype") == "/Text":
             return False
         name = str(annotation.get("/T", "")).removeprefix("btn@").replace("@", ".")
         match = re.fullmatch(r"(?:anm)?(\d+)(?:\..+)?", name)
         return not (match and int(match.group(1)) in animation_ids)
-    for page in writer.pages:
+    for index, page in enumerate(writer.pages):
+        animation_ids = {animation.source_identifier for animation in animations if animation.page == index}
         if "/Annots" in page:
-            page[NameObject("/Annots")] = ArrayObject(ref for ref in page["/Annots"] if keep_annotation(ref))
+            page[NameObject("/Annots")] = ArrayObject(ref for ref in page["/Annots"] if keep_annotation(ref, animation_ids))
     target = BytesIO()
     writer.write(target)
     destinations = {name: number for name, dest in named.items()

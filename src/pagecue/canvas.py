@@ -269,12 +269,13 @@ class Canvas(QWidget):
             if state.spec.page != page:
                 continue
             rect = position(state.spec.rect)
-            frame = self.session.animation_images.get(state.spec.frames[state.frame], rect.width(), rect.height(), self.devicePixelRatioF())
-            if frame is not None:
-                self._animation_last[state.spec.identifier] = frame
-            displayed = self._animation_last.get(state.spec.identifier)
-            if displayed is not None:
-                painter.drawImage(rect, displayed)
+            if state.visible:
+                frame = self.session.animation_images.get(state.spec.frames[state.frame], rect.width(), rect.height(), self.devicePixelRatioF())
+                if frame is not None:
+                    self._animation_last[state.spec.identifier] = frame
+                displayed = self._animation_last.get(state.spec.identifier)
+                if displayed is not None:
+                    painter.drawImage(rect, displayed)
             if state.direction:
                 next_index = (state.frame + state.direction) % len(state.spec.frames)
                 self.session.animation_images.get(state.spec.frames[next_index], rect.width(), rect.height(), self.devicePixelRatioF())

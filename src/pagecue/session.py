@@ -48,7 +48,9 @@ class Session(QObject):
         self.digits = ""
         self.auto_advance = True
         self.notes_layout = "auto"
-        self.settings = QSettings("PageCue", "PageCue")
+        # The organization/application-only constructor always uses NativeFormat,
+        # even after setDefaultFormat(). Honor explicit QA/portable overrides.
+        self.settings = QSettings(QSettings.defaultFormat(), QSettings.Scope.UserScope, "PageCue", "PageCue")
         self.tick = QTimer(self)
         self.tick.setInterval(250)
         self.tick.timeout.connect(self.changed)
