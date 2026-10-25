@@ -43,21 +43,32 @@ def main():
         for key in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "QT_PLUGIN_PATH", "QT_QPA_PLATFORM_PLUGIN_PATH"):
             environment.pop(key, None)
         environment["QT_QPA_PLATFORM"] = "cocoa" if platform == "macos" else "windows"
+        icon_path = work / "exported icon 图标.png"
+        subprocess.run([str(executable(destination, platform)), "--icon", str(icon_path)],
+                       cwd=work, env=environment, check=True, timeout=30)
+        from PySide6.QtGui import QImage
+        icon = QImage(str(icon_path))
+        if icon.isNull() or icon.width() != 256 or icon.height() != 256 or not icon.hasAlphaChannel():
+            raise RuntimeError("Packaged icon export did not produce the expected PNG")
+        (output / "icon.png").write_bytes(icon_path.read_bytes())
         smoke = output / "runtime"
         report = smoke / "result.json"
         if report.exists():
             report.unlink()  # Never accept an old successful run as current evidence.
         arguments = [str(executable(destination, platform)), str(ROOT / "qa/demo.pdf"),
                      "--smoke-output", str(smoke), "--smoke-media",
-                     str(ROOT / "tests/fixtures/generated/colors.mp4"), "--smoke-web"]
+                     str(ROOT / "tests/fixtures/generated/colors.mp4"), "--smoke-web",
+                     "-p", "2", "-d", "12.5", "-y"]
         with (output / "runtime.log").open("wb") as log:
             result = subprocess.run(arguments, cwd=work, env=environment, stdout=log, stderr=subprocess.STDOUT, timeout=90)
         if result.returncode:
             raise RuntimeError(f"Packaged executable exited with {result.returncode}; see {output / 'runtime.log'}")
         evidence = json.loads(report.read_text(encoding="utf-8"))
-        for name in ("passed", "frozen", "rendered", "navigation_reload", "media_decoded", "web_loaded", "web_escape"):
+        for name in ("passed", "frozen", "rendered", "navigation_reload", "media_decoded", "web_loaded", "web_escape", "web_zoom_reset"):
             if evidence.get(name) is not True:
                 raise RuntimeError(f"Packaged check failed: {name}: {evidence}")
+        if evidence.get("initial_page") != 2 or evidence.get("talk_duration_seconds") != 750 or evidence.get("video_routing") != "":
+            raise RuntimeError(f"Packaged CLI options did not configure the session: {evidence}")
         for name in ("presenter", "audience", "media", "web"):
             if not (smoke / f"{name}.png").is_file():
                 raise RuntimeError(f"Missing {name} capture")
@@ -76,6 +87,7 @@ def main():
     (output / "installation.json").write_text(json.dumps({
         "passed": True, "platform": platform, "unicode_path": True,
         "install": True, "update": True, "verify": True, "uninstall": True,
+        "icon_export": True, "cli_page_duration_direct_video": True,
         "shortcut": "create/verify/update/preserve-other/remove" if platform == "windows" else "not applicable",
     }, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(evidence, indent=2))

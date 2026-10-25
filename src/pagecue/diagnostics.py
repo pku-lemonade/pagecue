@@ -57,6 +57,9 @@ class SmokeCheck(QObject):
         self.results["notes_pages"] = len(p.session.snapshot.notes.pages)
         self.results["rendered"] = True
         old_page = p.session.page
+        self.results["initial_page"] = old_page + 1
+        self.results["talk_duration_seconds"] = p.session.clock.duration
+        self.results["video_routing"] = p.video_mode
         if p.session.navigation.count > 1:
             p.session.go(0)
             self.key(p.view, Qt.Key.Key_Right)

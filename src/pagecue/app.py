@@ -792,12 +792,25 @@ def main():
     parser.add_argument("pdf", nargs="?", type=Path)
     parser.add_argument("--page", "-p", type=int, default=None, help="Initial physical page (1-based)")
     parser.add_argument("--duration", "-d", type=float, default=0, help="Talk duration in minutes")
-    parser.add_argument("--version", action="version", version=__version__)
-    parser.add_argument("--direct-video", "--youtube", action="store_true", help="Open YouTube links directly for this session")
+    parser.add_argument("--version", "-v", action="version", version=__version__)
+    parser.add_argument("--icon", "-i", nargs="?", const="-", metavar="FILE",
+                        help="Export PageCue's PNG icon and exit (default: binary stdout)")
+    parser.add_argument("--direct-video", "--youtube", "-y", action="store_true", help="Open YouTube links directly for this session")
     parser.add_argument("--smoke-output", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--smoke-media", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--smoke-web", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.icon is not None:
+        from .artwork import icon_png
+        if args.icon == "-":
+            output = getattr(sys.stdout, "buffer", None)
+            if output is None:
+                parser.error("Standard output is unavailable; use --icon FILE.png")
+            output.write(icon_png())
+            output.flush()
+        else:
+            Path(args.icon).write_bytes(icon_png())
+        return 0
     if args.smoke_output and not args.pdf:
         parser.error("The packaged smoke check requires a PDF")
     if args.smoke_output:

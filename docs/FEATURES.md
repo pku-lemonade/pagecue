@@ -36,7 +36,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | APP-01 | Menus, help, about, version/update check and notifications | Implemented; actual release channel pending | Real local HTTP/QtNetwork version and missing-release tests; OS notification delivery pending |
 | APP-02 | Per-user installation, reproducible packages, update/uninstall | Native bundle recipe, staged installer and Windows Start Menu support | Windows x64 and Mac arm64/Intel CI install/update/remove and packaged execution pass; Windows Unicode shortcut lifecycle passes; OS first-launch approval flow pending |
 | APP-03 | Windows/macOS support, fonts, mixed DPI, input devices | Windows x64 and Mac arm64/Intel packages run in CI | Windows presenter/Chinese notes capture inspected; mixed DPI and physical device acceptance pending |
-| APP-04 | CLI help/version, initial page/duration, direct video and icon export | Help/version/page/duration/direct routing implemented; icon export and short aliases incomplete | Reference CLI audit found missing original `-v`, `-y`, and PNG icon export capability; export must use PageCue's own artwork |
+| APP-04 | CLI help/version, initial page/duration, direct video and icon export | Implemented, including original short aliases and optional PNG output path | Headless subprocess version/stdout/file export tests pass; actual Mac bundle verifies PNG export and `-p 2 -d 12.5 -y` session settings; fresh Windows/Intel CI pending |
 
 No native code/toolkit choice proves media/animation parity. Keep actual fixture
 evidence for each format and control. Do not mark “unsupported” as completion.

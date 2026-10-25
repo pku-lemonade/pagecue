@@ -33,6 +33,13 @@ pans, and Ctrl/⌘ + 0 resets the slide or whiteboard view.
 Use **+ / −** for notes or web zoom and **0** to reset it. Zero still works inside
 a page number already being entered (for example, **1 0 Enter**).
 
+Command-line options include `-p/--page` (1-based), `-d/--duration` (minutes),
+`-y/--youtube/--direct-video`, `-v/--version`, and `-i/--icon [FILE]`.
+For example, `uv run pagecue -p 2 -d 20 slides.pdf` starts on page two with a
+20-minute timer. `uv run pagecue --icon icon.png` exports PageCue's own PNG icon
+without opening a window. Omitting the filename writes binary PNG to stdout;
+use a filename with the packaged Windows GUI executable, which has no console.
+
 PageCue's original code is MIT licensed. Qt/PySide and other dependencies retain
 their own licenses. Binary distribution must include the applicable notices and
 Qt library source/replacement information. Packaging is still in development.

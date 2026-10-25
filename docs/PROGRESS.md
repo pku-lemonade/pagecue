@@ -43,7 +43,19 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **74 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **75 passed** on the development Mac at this checkpoint.
+The CLI restores `-v`, `-y`, and `-i/--icon`; optional file output supports a Windows
+GUI executable without stdout. Icon export paints PageCue's original SVG, with no
+GUI application/font dependency. Subprocess tests use an invalid platform-plugin
+name to verify that version/icon commands never initialize a GUI. The actual Mac
+bundle exports PNG and starts with `-p 2 -d 12.5 -y`; packaged diagnostics confirm
+page two, 750 seconds and direct routing, plus PDF/media/web/zoom-reset behavior.
+The staged install/update/remove check passes under `qa/cli-bundle/`.
+
+Run 40174814252 failed all targets before executing tests: `--basetemp=qa/tests`
+requires its parent directory, which a fresh runner did not have. The workflow
+now generates the original demo/QA directory before pytest. This corrects the
+evidence-path setup; it does not weaken the tests. Fresh native CI must confirm it.
 Bare 0 now resets notes/web zoom unless a page number is already being entered;
 the View menu also exposes reset. Numeric input such as 10 remains intact. The
 native offline WebEngine check under `qa/web-zoom-reset/` confirms real zoom reset,
@@ -230,9 +242,8 @@ locally with TeX/FFmpeg excluded from PATH.
    implemented feature of the reference app.
    The 400-page synthetic-deck interaction/render check now passes. A renewed
    baseline help/CLI audit found explicit notes-size/web-zoom reset commands and
-   icon export missing. Notes/web reset is now restored and tested. Icon export
-   must use PageCue's own artwork; add the original `-v` and `-y` aliases. The
-   ledger records this remaining CLI gap.
+   icon export missing. Notes/web reset, original short CLI aliases and PageCue
+   icon export are now restored and tested, including actual Mac bundle execution.
 3. Audit camera permission/device lifecycle and test a real camera with deliberate
    user involvement. Camera frames are not captured automatically during QA.
    Width/opacity/position now have persisted controls. Permission callbacks are

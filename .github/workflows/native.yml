@@ -33,13 +33,13 @@ jobs:
           enable-cache: true
       - name: Install locked dependencies
         run: uv sync --frozen
+      - name: Generate original demo deck and QA directory
+        run: uv run python scripts/make_demo.py qa/demo.pdf
       - name: Exercise PDF rendering, animations, media, and application logic
         run: uv run pytest -q --junitxml=qa/tests.xml --basetemp=qa/tests
       - name: Exercise Windows Unicode shell links
         if: runner.os == 'Windows'
         run: uv run python scripts/check_windows_shortcut.py
-      - name: Generate original demo deck
-        run: uv run python scripts/make_demo.py qa/demo.pdf
       - name: Check responsive layouts using synthetic camera frames
         run: uv run python scripts/layout_smoke.py qa/demo.pdf qa/layout
       - name: Check file drops, Qt file dialog, file events and recent pages

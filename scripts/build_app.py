@@ -12,18 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     os.chdir(ROOT)
     (ROOT / "build").mkdir(exist_ok=True)
-    from PySide6.QtCore import QRectF
-    from PySide6.QtGui import QGuiApplication, QImage, QPainter
-    from PySide6.QtSvg import QSvgRenderer
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-    app = QGuiApplication([])
-    image = QImage(1024, 1024, QImage.Format.Format_ARGB32)
-    image.fill(0)
-    painter = QPainter(image)
-    renderer = QSvgRenderer(str(ROOT / "src/pagecue/assets/pagecue.svg"))
-    renderer.render(painter, QRectF(0, 0, 1024, 1024))
-    painter.end()
-    image.save(str(ROOT / "build/icon.png"))
+    from pagecue.artwork import icon_png
+    (ROOT / "build/icon.png").write_bytes(icon_png(1024))
     from pagecue import __version__
     (ROOT / "build/bundle-identity.json").write_text(json.dumps({"product": "org.pku-lemonade.pagecue", "version": __version__}))
     subprocess.run([sys.executable, str(ROOT / "scripts/collect_notices.py")], check=True)

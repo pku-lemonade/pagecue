@@ -39,6 +39,20 @@ The public licensing page redirects to the separate WebEngine documentation;
 collect matching third-party notices and verify exact source correspondence before
 publishing a binary. These are recorded gaps, not completed release checks.
 
+The [official separation announcement](https://www.qt.io/blog/qt-webengine-will-release-separate)
+and [PySide 6.12 announcement](https://www.qt.io/blog/qt-for-python-release-6.12-is-here)
+explain this split: WebEngine/PDF use a separate release cycle and the Python wheel
+version combines Qt's version with the Chromium major (`6.12.0.140`). On
+2026-10-25 the public source index exposed
+[6.140.0-rc](https://download.qt.io/development_releases/qtwebengine/6.140.0-rc/)
+and the official GitHub mirror's newest tag was `v6.140.0-rc` at
+`d505fc23640d2bd6345e6483eb73daf4e19f5829`. No final `v6.140.0` tag was observed.
+This identifies an available source candidate; it does **not** prove that the
+wheel was built from it. The public WebEngine licensing page also currently
+redirects to development snapshots. A fresh direct `chrome://credits` load via
+QWebEngineView returned `loadFinished(false)`; it was not rejected by PageCue's URL
+filter. Runtime correspondence and third-party notices remain unresolved.
+
 ## Build and test
 
 ```sh
