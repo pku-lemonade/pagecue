@@ -81,8 +81,12 @@ video.requestVideoFrameCallback(frame);</script></body>''')
         if args.no_capture:
             return
         image, ratio = capture(name)
-        y = round((p.web.y() + 5) * ratio)
-        width = sum(1 for x in range(image.width()) if min(image.pixelColor(x, y).getRgb()[:3]) >= 250) / ratio
+        origin = p.web.mapTo(p.audience, QPoint(0, 5))
+        left, y = round(origin.x() * ratio), round(origin.y() * ratio)
+        end = left
+        while end < image.width() and min(image.pixelColor(end, y).getRgb()[:3]) >= 250:
+            end += 1
+        width = (end - left) / ratio
         assert abs(width - expected) <= 2, f"Rendered ruler width: {width}, expected {expected}"
 
     def camera_check(name):
