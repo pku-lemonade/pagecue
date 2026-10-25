@@ -49,13 +49,15 @@ lifecycle, plus persisted inset width/opacity/corner controls. Native macOS
 captures under `qa/layout-camera/` show minimum, scrolled and normal layouts and
 synthetic inset/expanded camera images; all five were visually inspected. The
 layout check confirms that scrolling help does not navigate the PDF. No physical
-camera was activated or photographed by these checks. CI rerun is pending.
-The current implementation commit **`0bc2f83`** passes **55 tests without skips on
+camera was activated or photographed by these checks. Windows minimum/scrolled
+and Intel Mac minimum captures were also inspected from the CI artifacts.
+The current implementation commit **`9ace65b`** passes **61 tests without skips on
 Windows x64, Mac arm64 and Mac Intel**, plus all three packaged executable checks:
-[native run 40168937506](https://github.com/pku-lemonade/pagecue/actions/runs/40168937506).
+[native run 40169910930](https://github.com/pku-lemonade/pagecue/actions/runs/40169910930).
 Windows additionally passes Unicode shell-link create/read/update/conflict/removal.
-Downloaded JSON, JUnit reports and captures are under `qa/windows-final-ci/`,
-`qa/mac-arm-final-ci/` and `qa/mac-intel-final-ci/`. Only authored fixtures were used.
+Downloaded JSON, JUnit reports and captures are under `qa/camera-windows-ci/`,
+`qa/camera-arm-ci/` and `qa/camera-intel-ci/`. Local rebuilt-bundle checks also pass
+under `qa/camera-bundle/`. Only authored fixtures/synthetic camera images were used.
 This is automated runner evidence, not physical-device or ordinary-user OS approval
 acceptance. Documentation-only commits after that revision do not change binaries.
 
@@ -177,6 +179,11 @@ locally with TeX/FFmpeg excluded from PATH.
    The overlapping help at 700×420 is corrected: rows wrap at readable sizes and
    the panel scrolls. `qa/layout-camera/minimum.png` and `minimum-scrolled.png`
    show the correction; native Windows/Intel resize captures are added to CI.
+   Native file-picker/OS-open acceptance is still pending. A normal LaunchServices
+   launch ran the packaged Cocoa event loop and painted (sampled process evidence),
+   but Computer Use returned `cgWindowNotFound` for both the app path and bundle ID,
+   so no successful native picker interaction is claimed. The owned QA process was
+   stopped after investigation; original Présentation apps were untouched.
 5. Complete native package verification and the binary dependency/source/notice
    audit. Mac bundled Python/Qt, identity/icon, camera entitlements,
    usage text and staged installer exist. Fresh CI runner startup passes; ordinary
@@ -184,6 +191,8 @@ locally with TeX/FFmpeg excluded from PATH.
    runtime version and missing notices are recorded in DISTRIBUTION.md.
 6. Complete both platforms' physical-device acceptance and ordinary-user
    first-launch checks. Windows CI is not equivalent to hardware acceptance.
+   An asynchronous question asks whether a webcam and second display are available;
+   no answer or permission to activate a physical camera has been received yet.
 7. Do a requirement-by-requirement completion audit against `FEATURES.md`; do not
    substitute an unsupported-feature message for a feature's implementation.
 

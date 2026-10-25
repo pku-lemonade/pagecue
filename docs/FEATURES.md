@@ -10,7 +10,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 
 | ID | Capability | Implementation | Verification |
 |---|---|---|---|
-| UI-01 | Minimal dark layout: clock, current/next, notes, thumbnail rail, help | Implemented; help wraps and scrolls in small windows | Native Mac minimum/normal/scrolled captures inspected; help scrolling preserves page; other-platform resize captures pending CI |
+| UI-01 | Minimal dark layout: clock, current/next, notes, thumbnail rail, help | Implemented; help wraps and scrolls in small windows | Mac and Windows minimum/scrolled captures inspected, including Intel; layout checks pass on all three targets and help scrolling preserves page |
 | UI-02 | Two independently resizable windows, single-screen rehearsal | Implemented | Two-window Qt/Cocoa smoke; physical screens pending |
 | UI-03 | Display selection, swap, fullscreen, hide/unhide, unplug recovery | Implemented controls; hardware validation pending | Hide/restore unit integration passes; physical displays pending |
 | DOC-01 | PDF picker, file arguments, drag/drop, OS file-open events | Implemented | Programmatic open tested; picker/drop/OS events pending |

@@ -82,8 +82,8 @@ test reports and screenshots for review, without publishing an unaudited binary.
 The presence of the workflow is not proof that any particular run/platform passed;
 inspect the run's logs and evidence. Physical display/camera testing is separate.
 
-The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40168937506)
-passes 55 tests on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
+The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40169910930)
+passes 61 tests on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
 PDF/media/web execution and Unicode-path installation checks. Windows shortcut lifecycle
 checks also pass. Windows evidence is from a
 Windows Server 2025 runner, not a Windows 11 laptop with a projector. Full parity
@@ -94,3 +94,7 @@ Locally, after building and generating `qa/demo.pdf`, reproduce the packaged che
 ```sh
 uv run python scripts/check_bundle.py --output qa/packaged
 ```
+
+For minimum-size layouts, help scrolling and camera compositing without opening
+a camera, run `uv run python scripts/layout_smoke.py qa/demo.pdf qa/layout`.
+This uses a drawn image and saves captures for inspection.
