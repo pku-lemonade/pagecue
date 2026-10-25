@@ -43,7 +43,7 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **54 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **55 passed** on the development Mac at this checkpoint.
 The initial native CI revision (`441b353`) ran **43 tests without skips** on Windows.
 
 Tests include actual Qt PDF rendering, notes/annotations/encryption, original
@@ -133,6 +133,15 @@ locally with TeX/FFmpeg excluded from PATH.
   previously raised SyntaxError and prevented the entire PDF from opening. A
   narrowly numeric reader now handles it; invalid numeric syntax is a recoverable
   metadata error. No PDF JavaScript is executed. Actual legacy frame colors pass.
+- Cold Mac CI media initialization exposed a paused-load race: starting playback
+  and waiting for a first frame before pausing could advance the video clock while
+  hardware initialization/conversion stalled. Non-autoplay loads now pause
+  immediately after priming and before image conversion. A delayed-event test
+  checks that frame zero remains selected. Native CI must verify the correction.
+- Windows shell-link verification must normalize 8.3 and long parent names; the
+  native API can expand RUNNER~1. Comparing raw strings incorrectly rejected a
+  newly created shortcut. Verification now resolves paths before comparison,
+  including after the executable is removed. Native CI must verify this change.
 
 ## Required remaining work
 
@@ -147,6 +156,8 @@ locally with TeX/FFmpeg excluded from PATH.
 4. Finish interaction/visual edge cases: small windows, changing DPI, crop/pan/zoom,
    selection scaling, persistent preferences, hide/fullscreen restoration and
    actual physical display selection/swap/unplug behavior.
+   `qa/resize/minimum.png` shows overlapping help text at 700×420; the full shortcut
+   list needs a readable compact/scrollable presentation at that size.
 5. Complete native package verification and the binary dependency/source/notice
    audit. Mac bundled Python/Qt, identity/icon, camera entitlements,
    usage text and staged installer exist. Clean-machine startup remains pending;

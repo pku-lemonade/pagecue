@@ -58,11 +58,11 @@ class MediaPlayer(QObject):
                     return  # Leave playback running until the next decoded frame.
                 self._cancel_step()
                 self.player.pause()
+            if not self.autoplay:
+                self.player.pause()
             image = frame.toImage()
             if not image.isNull():
                 self.frame.emit(image)
-                if not self.autoplay:
-                    self.player.pause()
 
     def load(self, media: Media, autoplay=True):
         self.stop()
@@ -100,6 +100,11 @@ class MediaPlayer(QObject):
         else:
             self.player.setSource(url)
             self.player.play()
+            if not autoplay:
+                # Prime a paused frame without advancing the playback clock
+                # during slow first-use hardware-decoder initialization.
+                self.player.pause()
+                self.player.setPosition(0)
 
     def _gif_frame(self, index):
         self.frame.emit(self.gif.currentImage())

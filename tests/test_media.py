@@ -2,6 +2,7 @@ from io import BytesIO
 from pathlib import Path
 import shutil
 import subprocess
+import time
 import wave
 
 import pytest
@@ -135,6 +136,22 @@ def test_audio_is_loaded_by_qt_without_playing_audible_sound(qtbot, tmp_path):
     qtbot.waitUntil(lambda: player.position > 100, timeout=5000)
     player.pause()
     assert player.player.error().value == 0
+    player.close()
+
+
+def test_paused_load_holds_first_frame_during_delayed_event_processing(qtbot, video):
+    player = MediaPlayer()
+    player.audio.setMuted(True)
+    frames = []
+    player.frame.connect(lambda image: frames.append(image.copy()))
+    player.load(Media(video.name, path=video), autoplay=False)
+    # Reproduce a busy UI/cold decoder while the native media clock can run.
+    time.sleep(.4)
+    qtbot.waitUntil(lambda: bool(frames), timeout=5000)
+    assert player.frame_start == 0
+    assert frames[-1].pixelColor(20, 20).red() > 200
+    QTest.qWait(200)
+    assert player.frame_start == 0
     player.close()
 
 

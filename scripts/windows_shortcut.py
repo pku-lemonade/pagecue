@@ -81,9 +81,13 @@ def verify_shortcut(path, target):
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"Not a PageCue shortcut: {path}")
     info = _shell_link(path)
-    if (os.path.normcase(info["target"]) != os.path.normcase(str(target))
+    # Shell links can expand an 8.3 parent (RUNNER~1) to its long directory name.
+    # Resolve existing ancestors even after uninstall removes the executable.
+    if (not info["target"] or Path(info["target"]).resolve() != target.resolve()
             or info["arguments"] or info["description"] != DESCRIPTION):
-        raise ValueError(f"Refusing to replace an unrelated shortcut: {path}")
+        raise ValueError(f"Refusing to replace an unrelated shortcut: {path}; "
+                         f"stored target={info['target']!r}, expected={str(target)!r}, "
+                         f"arguments={info['arguments']!r}, description={info['description']!r}")
 
 
 def check_destination(path, target):
