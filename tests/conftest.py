@@ -10,6 +10,14 @@ import pytest
 from reportlab.pdfgen import canvas
 from pypdf import PdfReader, PdfWriter
 from PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QMessageBox
+
+
+@pytest.fixture(autouse=True)
+def unexpected_modal_warning(monkeypatch):
+    def warning(parent, title, message, *args, **kwargs):
+        raise AssertionError(f"Unexpected modal warning: {title}: {message}")
+    monkeypatch.setattr(QMessageBox, "warning", warning)
 
 
 @pytest.fixture(scope="session")

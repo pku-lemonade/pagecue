@@ -25,3 +25,12 @@ def test_cli_version_and_original_icon_export(tmp_path):
     target = tmp_path / "exported icon 图标.png"
     subprocess.run(command + ["--icon", str(target)], env=environment, check=True, capture_output=True, timeout=20)
     assert target.read_bytes() == exported.stdout
+    # The optional output argument must never overwrite an existing document.
+    original = tmp_path / "slides.pdf"
+    contents = b"%PDF-original document must remain unchanged"
+    original.write_bytes(contents)
+    refused = subprocess.run(command + ["--icon", str(original)], env=environment,
+                             capture_output=True, timeout=20)
+    assert refused.returncode != 0
+    assert original.read_bytes() == contents
+    assert b"unused output filename" in refused.stderr

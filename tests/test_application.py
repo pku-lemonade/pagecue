@@ -5,11 +5,26 @@ import pytest
 from PIL import Image
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtTest import QTest
+from PySide6.QtGui import QFileOpenEvent
 
 from pagecue.app import Presenter
 from pagecue.document import Media
 from pagecue.model import Surface
 from pagecue.services import Release
+
+
+def test_native_file_open_ignores_launcher_arguments_and_accepts_extensionless_pdf(qapp, qtbot, deck, tmp_path):
+    script = tmp_path / "launcher.py"
+    script.write_text("print('This is not a presentation')")
+    with qtbot.assertNotEmitted(qapp.file_opened):
+        qapp.sendEvent(qapp, QFileOpenEvent(str(script)))
+        qapp.sendEvent(qapp, QFileOpenEvent("--junitxml=qa/tests.xml"))
+    extensionless = tmp_path / "slides without extension"
+    extensionless.write_bytes(deck.read_bytes())
+    for path in (deck, extensionless):
+        with qtbot.waitSignal(qapp.file_opened, timeout=1000) as signal:
+            qapp.sendEvent(qapp, QFileOpenEvent(str(path)))
+        assert signal.args == [str(path)]
 
 
 def test_update_notification_click_opens_current_release_once(qapp, qtbot, monkeypatch):

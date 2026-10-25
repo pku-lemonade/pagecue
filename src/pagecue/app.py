@@ -1,6 +1,7 @@
 """Desktop entry point and user commands for PageCue."""
 
 import argparse
+import logging
 from pathlib import Path
 import sys
 from urllib.parse import quote, urlsplit, urlunsplit
@@ -32,8 +33,21 @@ class Application(QApplication):
 
     def event(self, event):
         if event.type() == QEvent.Type.FileOpen:
-            self.file_opened.emit(event.file())
-            return True
+            path = event.file()
+            candidate = Path(path)
+            is_pdf = bool(path) and candidate.suffix.lower() == ".pdf"
+            if path and not is_pdf:
+                # Cocoa can forward launcher arguments as file-open events.
+                # Preserve extensionless PDFs, but ignore unrelated scripts/options.
+                try:
+                    with candidate.open("rb") as source:
+                        is_pdf = b"%PDF-" in source.read(1024)
+                except OSError:
+                    pass
+            if is_pdf:
+                self.file_opened.emit(path)
+                return True
+            logging.getLogger(__name__).info("Ignored non-PDF file-open event: %r", path)
         return super().event(event)
 
 
@@ -279,6 +293,8 @@ class Presenter(QObject):
             self.open(path)
 
     def open(self, path, page=None, destination=None):
+        if self._closed:
+            return False
         password = ""
         while True:
             try:
@@ -857,7 +873,11 @@ def main():
             output.write(icon_png())
             output.flush()
         else:
-            Path(args.icon).write_bytes(icon_png())
+            try:
+                with Path(args.icon).open("xb") as output:
+                    output.write(icon_png())
+            except OSError as error:
+                parser.error(f"Could not export icon: {error}. Choose an unused output filename.")
         return 0
     if args.smoke_output and not args.pdf:
         parser.error("The packaged smoke check requires a PDF")

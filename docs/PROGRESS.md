@@ -43,7 +43,18 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **79 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **80 passed** on the development Mac at this checkpoint.
+Run 40178706231 passed Windows, but Mac native tests timed out. The new stack
+dump located the stall inside the modal PDF-open warning, reached from a native
+QFileOpenEvent during fixture setup. Native file-open handling now ignores
+unrelated launcher arguments while recognizing extensionless PDF headers; real
+`.pdf` requests still reach the normal error/reporting path. Closed presenters
+also ignore late open requests. A regression test covers the event signal path,
+and unexpected modal warnings now fail tests immediately with their error text.
+Six native Cocoa interaction/long-deck checks pass locally; fresh CI must identify
+the actual ignored argument or expose any remaining failure.
+Icon export also now refuses existing output files, preserving an existing PDF
+instead of overwriting it. The subprocess regression confirms unchanged bytes.
 The user authorized real local camera/two-display tests with no saved/uploaded
 camera frames. Those checks exposed a wrong permission-call signature and actual
 macOS fullscreen transition failures. PySide's request now includes the Camera

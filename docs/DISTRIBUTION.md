@@ -99,8 +99,10 @@ secondary installations. See [Microsoft's shell-link documentation](https://lear
 
 The development Mac arm64 package has been installed, checked, updated, launched
 from a Unicode/space-containing path, and removed. Its frozen executable passed
-PDF/navigation/reload, muted media decoding and local WebEngine checks. Neither
-physical-device acceptance nor an ordinary Windows/macOS user's first-launch OS
-approval flow has been validated yet. The native CI workflow now exercises fresh
+PDF/navigation/reload, muted media decoding and local WebEngine checks. Authorized
+real Mac camera permission/capture/stop and two-display fullscreen/swap/restoration
+checks also pass, with user visual confirmation; see HARDWARE_ACCEPTANCE.md.
+Windows hardware, mixed-DPI/unplug/tablet behavior and downloaded-binary first
+launch remain unverified. The native CI workflow now exercises fresh
 Windows Server 2025 and Mac runner environments. Its results/artifacts, rather
 than the existence of the workflow, determine which platform checks passed.
