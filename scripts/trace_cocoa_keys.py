@@ -11,7 +11,9 @@ class DispatchTrace:
     def __init__(self, window, result):
         import objc
         from AppKit import NSApp
+        from Foundation import NSThread
         self.objc = objc
+        self.thread = NSThread
         self.entries = result.setdefault("dispatch_trace", [])
         self.runtime = ctypes.CDLL(ctypes.util.find_library("objc"))
         runtime = self.runtime
@@ -45,7 +47,8 @@ class DispatchTrace:
         def wrap_next(original):
             def next_event(receiver, selector, mask, date, mode, dequeue):
                 event = original(receiver, selector, mask, date, mode, dequeue)
-                self.record("dequeue" if dequeue else "peek", event)
+                self.record("dequeue" if dequeue else "peek", event, mask=mask,
+                            mode=str(self.objc.objc_object(c_void_p=mode)) if mode else None)
                 return event
             return next_event
 
@@ -77,13 +80,16 @@ class DispatchTrace:
             runtime.method_setImplementation(method, ctypes.cast(callback, pointer))
             self.replacements.append((method, original_address, callback))
 
-    def record(self, stage, pointer):
+    def record(self, stage, pointer, **details):
         if not pointer:
             return
         event = self.objc.objc_object(c_void_p=pointer)
         if int(event.type()) in (10, 11):
-            self.entries.append({"stage": stage, "key": int(event.keyCode()),
-                "type": int(event.type()), "window": int(event.windowNumber()), "timestamp": event.timestamp()})
+            entry = {"stage": stage, "key": int(event.keyCode()), "type": int(event.type()),
+                     "window": int(event.windowNumber()), "timestamp": event.timestamp(), **details}
+            if stage == "dequeue" and entry["key"] == 53 and entry["type"] == 10:
+                entry["stack"] = [str(frame) for frame in self.thread.callStackSymbols()][:50]
+            self.entries.append(entry)
 
     def close(self):
         for method, original, callback in reversed(self.replacements):
