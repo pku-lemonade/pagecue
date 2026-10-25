@@ -1,0 +1,42 @@
+Qt WebView shortcut bridge
+
+Original source: Copyright (C) 2025 The Qt Company Ltd.
+Modifications: Copyright (C) 2026 pku-lemonade
+SPDX-License-Identifier: LGPL-3.0-only
+
+--- a/src/plugins/windows/qwebview2webview.cpp
++++ b/src/plugins/windows/qwebview2webview.cpp
+@@ -217,6 +217,33 @@
+                 Q_ASSERT_SUCCEEDED(hr);
+ 
+                 m_settings->init(m_webviewController.Get());
++
++                EventRegistrationToken acceleratorToken;
++                hr = m_webviewController->add_AcceleratorKeyPressed(
++                    Microsoft::WRL::Callback<ICoreWebView2AcceleratorKeyPressedEventHandler>(
++                        [thisPtr](ICoreWebView2Controller *,
++                                  ICoreWebView2AcceleratorKeyPressedEventArgs *args) -> HRESULT {
++                            if (!thisPtr || !thisPtr->q_ptr->property("presenteriyakiShortcuts").toBool())
++                                return S_OK;
++                            UINT key;
++                            args->get_VirtualKey(&key);
++                            if (key != VK_ESCAPE && key != VK_F5)
++                                return S_OK;
++                            args->put_Handled(TRUE);
++                            COREWEBVIEW2_KEY_EVENT_KIND kind;
++                            args->get_KeyEventKind(&kind);
++                            const bool down = kind == COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN
++                                           || kind == COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN;
++                            COREWEBVIEW2_PHYSICAL_KEY_STATUS status;
++                            args->get_PhysicalKeyStatus(&status);
++                            // Dispatch after WebView2's synchronous callback has returned.
++                            QCoreApplication::postEvent(thisPtr->q_ptr, new QKeyEvent(
++                                down ? QEvent::KeyPress : QEvent::KeyRelease,
++                                key == VK_ESCAPE ? Qt::Key_Escape : Qt::Key_F5,
++                                Qt::NoModifier, QString(), down && status.WasKeyDown));
++                            return S_OK;
++                        }).Get(), &acceleratorToken);
++                Q_ASSERT_SUCCEEDED(hr);
+ 
+                 // Add a few settings for the webview
+                 ComPtr<ICoreWebView2Settings> settings;

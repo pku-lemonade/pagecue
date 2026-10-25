@@ -2,6 +2,11 @@ name: Native browser feasibility check
 
 on:
   workflow_dispatch:
+    inputs:
+      patched_windows:
+        description: Build the experimental WebView2 shortcut bridge
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -9,7 +14,9 @@ permissions:
 jobs:
   browser:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
+    env:
+      QT_PLUGIN_PATH: ${{ runner.os == 'Windows' && inputs.patched_windows && format('{0}/build/native-webview/plugins', github.workspace) || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -22,6 +29,9 @@ jobs:
           python-version: '3.13'
           enable-cache: true
       - run: uv sync --frozen
+      - name: Build experimental WebView2 shortcut bridge
+        if: runner.os == 'Windows' && inputs.patched_windows
+        run: uv run python scripts/build_native_webview.py
       - name: Decode original H.264 video through the native browser
         run: uv run python scripts/check_native_webview.py --capture --camera-overlay
       - name: Check native Cocoa browser input
@@ -39,4 +49,5 @@ jobs:
             qa/native-webview/result.json
             qa/native-webview/window.png
             qa/native-webkeys/result.json
+            build/native-webview/result.json
           if-no-files-found: warn

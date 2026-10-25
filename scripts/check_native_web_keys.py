@@ -185,6 +185,17 @@ def main():
         done = True
         if error:
             result["error"] = error
+        if sys.platform == "win32":
+            from ctypes import wintypes
+            kernel = ctypes.WinDLL("kernel32")
+            kernel.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
+            kernel.GetModuleHandleW.restype = wintypes.HMODULE
+            kernel.GetModuleFileNameW.argtypes = [wintypes.HMODULE, wintypes.LPWSTR, wintypes.DWORD]
+            name = ctypes.create_unicode_buffer(32768)
+            module = kernel.GetModuleHandleW("qtwebview_webview2.dll")
+            if module:
+                kernel.GetModuleFileNameW(module, name, len(name))
+                result["plugin_path"] = name.value
         (args.output / "result.json").write_text(json.dumps(result, indent=2) + "\n")
         app.quit()
 
@@ -207,6 +218,9 @@ def main():
 
     def loaded(info):
         if info.status() == QWebViewLoadingInfo.LoadStatus.Succeeded:
+            result["loads"] = result.get("loads", 0) + 1
+            if result["loads"] > 1:
+                return
             web.runJavaScript('document.querySelector("input").focus()', lambda _: QTimer.singleShot(200, exercise))
         elif info.status() == QWebViewLoadingInfo.LoadStatus.Failed:
             finish(info.errorString())
