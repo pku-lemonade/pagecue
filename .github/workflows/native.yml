@@ -1,0 +1,53 @@
+name: Native application checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-15, macos-15-intel]
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.12.12'
+          python-version: '3.13'
+          enable-cache: true
+      - name: Install locked dependencies
+        run: uv sync --frozen
+      - name: Exercise PDF rendering, animations, media, and application logic
+        run: uv run pytest -q --junitxml=qa/tests.xml
+      - name: Generate original demo deck
+        run: uv run python scripts/make_demo.py qa/demo.pdf
+      - name: Build native app with bundled Python and Qt
+        run: uv run python scripts/build_app.py
+      - name: Install, launch, update and remove the actual native package
+        run: uv run python scripts/check_bundle.py --output qa/packaged
+      - name: Preserve evidence, not an unaudited binary release
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: evidence-${{ matrix.os }}
+          path: |
+            qa/tests.xml
+            qa/packaged
+          retention-days: 14
+          if-no-files-found: warn

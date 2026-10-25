@@ -25,9 +25,10 @@ Qt library source/replacement information. Packaging is still in development.
 
 ## Build and install with an agent
 
-Give an agent this instruction from a checkout:
+Give an agent this instruction:
 
-> Read README.md, AGENTS.md and docs/DISTRIBUTION.md. Build PageCue using the
+> Install https://github.com/pku-lemonade/pagecue for my user. Read README.md,
+> AGENTS.md and docs/DISTRIBUTION.md. Build PageCue using the
 > pinned environment, run the checks, then install it for my user. Preserve my
 > existing Présentation apps, PDF associations, slides and notes. Report actual
 > results and any untested platform/device features.
@@ -36,9 +37,11 @@ The current development workflow requires Python 3.12–3.14 and `uv` for buildi
 The resulting application includes its Python/Qt runtime. Launching it does not
 require activating a Python environment. A public binary release is not ready yet.
 
-1. Check the OS and architecture, inspect the working tree, and run
-   `uv sync --frozen`, then `uv run pytest -q`. Record skipped tests: generated
-   animation/Beamer/video tests require `pdflatex` and `ffmpeg`.
+1. Clone the repository into an unused directory (or preserve local changes in
+   an existing checkout). Check the OS and architecture, inspect the working tree,
+   and run `uv sync --frozen`, then `uv run pytest -q`. Tests use original committed
+   PDF/video fixtures when `pdflatex` or `ffmpeg` is unavailable; no decoder tests
+   are skipped merely because fixture-generation tools are absent.
 2. Run `uv run python scripts/build_app.py` on the target OS.
 3. On macOS, run `uv run python scripts/install_app.py dist/PageCue.app`.
    On Windows, run `uv run python scripts/install_app.py dist/PageCue`.
@@ -61,3 +64,18 @@ To remove the installed app, run `uv run python scripts/install_app.py --uninsta
 (and the same `--destination` if customized). Preferences and documents remain.
 The installer never changes the default PDF viewer. It uses no administrator rights.
 See [distribution notes](docs/DISTRIBUTION.md) for signing and dependency details.
+
+## Native build verification
+
+The GitHub Actions workflow targets Windows x64, Mac arm64 and Mac Intel. It runs
+the tests, builds the app, installs it into a Unicode path, launches that executable
+to exercise PDF/media/WebEngine, then verifies update/removal. It uploads JSON,
+test reports and screenshots for review, without publishing an unaudited binary.
+The presence of the workflow is not proof that any particular run/platform passed;
+inspect the run's logs and evidence. Physical display/camera testing is separate.
+
+Locally, after building and generating `qa/demo.pdf`, reproduce the packaged check:
+
+```sh
+uv run python scripts/check_bundle.py --output qa/packaged
+```

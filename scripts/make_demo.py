@@ -36,7 +36,7 @@ def create(path):
                             "中文讲稿：让观众专注于内容。讲者备注只显示在自己的屏幕上。\n\n"
                             "Use the arrow keys to advance. Press ? to hide keyboard help."},
         {"idx": 1, "note": "This is the second page. The timer and notes remain on the presenter screen."}
-    ]}, ensure_ascii=False, indent=2))
+    ]}, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
 

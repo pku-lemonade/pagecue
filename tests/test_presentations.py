@@ -16,12 +16,13 @@ from pagecue.session import Session
 def test_real_beamer_notes_exclude_slide_miniature_and_hidden_text(tmp_path):
     engine = shutil.which("pdflatex")
     if not engine:
-        pytest.skip("Beamer fixture requires pdflatex")
-    source = Path(__file__).parent / "fixtures/beamer-notes.tex"
-    for _ in range(2):
-        result = subprocess.run([engine, "-interaction=nonstopmode", "-halt-on-error",
-            f"-output-directory={tmp_path}", str(source)], capture_output=True, text=True)
-        assert result.returncode == 0, result.stdout[-2000:]
+        shutil.copyfile(Path(__file__).parent / "fixtures/generated/beamer-notes.pdf", tmp_path / "beamer-notes.pdf")
+    else:
+        source = Path(__file__).parent / "fixtures/beamer-notes.tex"
+        for _ in range(2):
+            result = subprocess.run([engine, "-interaction=nonstopmode", "-halt-on-error",
+                f"-output-directory={tmp_path}", str(source)], capture_output=True, text=True)
+            assert result.returncode == 0, result.stdout[-2000:]
     snapshot = load_snapshot(tmp_path / "beamer-notes.pdf")
     assert len(snapshot.pages) == 3
     assert all(page.notes_crop for page in snapshot.pages)

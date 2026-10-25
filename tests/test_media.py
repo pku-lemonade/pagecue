@@ -30,9 +30,10 @@ def pdf_object(value):
 @pytest.fixture
 def video(tmp_path):
     ffmpeg = shutil.which("ffmpeg")
-    if not ffmpeg:
-        pytest.skip("Video fixture generation requires ffmpeg")
     path = tmp_path / "colors.mp4"
+    if not ffmpeg:
+        shutil.copyfile(Path(__file__).parent / "fixtures/generated/colors.mp4", path)
+        return path
     result = subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
         "-f", "lavfi", "-i", "color=c=red:s=160x90:r=10:d=1",
         "-f", "lavfi", "-i", "color=c=blue:s=160x90:r=10:d=1",
@@ -140,16 +141,17 @@ def test_audio_is_loaded_by_qt_without_playing_audible_sound(qtbot, tmp_path):
 def test_variable_frame_rate_step_includes_final_b_frame(qtbot, tmp_path):
     from PIL import Image
     ffmpeg = shutil.which("ffmpeg")
-    if not ffmpeg:
-        pytest.skip("VFR fixture requires ffmpeg")
-    for color in ("red", "green", "blue", "white"):
-        Image.new("RGB", (160, 90), color).save(tmp_path / f"{color}.png")
-    frames = tmp_path / "frames.txt"
-    frames.write_text("file 'red.png'\nduration 0.12\nfile 'green.png'\nduration 0.52\n"
-                      "file 'blue.png'\nduration 0.08\nfile 'white.png'\n")
     path = tmp_path / "vfr.mp4"
-    subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0",
-        "-i", str(frames), "-fps_mode", "vfr", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(path)], check=True)
+    if not ffmpeg:
+        shutil.copyfile(Path(__file__).parent / "fixtures/generated/vfr.mp4", path)
+    else:
+        for color in ("red", "green", "blue", "white"):
+            Image.new("RGB", (160, 90), color).save(tmp_path / f"{color}.png")
+        frames = tmp_path / "frames.txt"
+        frames.write_text("file 'red.png'\nduration 0.12\nfile 'green.png'\nduration 0.52\n"
+                          "file 'blue.png'\nduration 0.08\nfile 'white.png'\n")
+        subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0",
+            "-i", str(frames), "-fps_mode", "vfr", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(path)], check=True)
     player = MediaPlayer()
     player.audio.setMuted(True)
     player.load(Media(path.name, path=path), autoplay=False)

@@ -1,0 +1,15 @@
+{
+  "tools": {
+    "pdflatex": "pdfTeX 3.141592653-2.6-1.40.29 (TeX Live 2026)",
+    "ffmpeg": "ffmpeg version 9.0.1 Copyright (c) 2000-2026 the FFmpeg developers"
+  },
+  "sha256": {
+    "scripts/generate_fixtures.py": "ed784c8987945ca7bd1b988601ad06571090a2729edf172619aee11bf3595ced",
+    "tests/fixtures/animation.tex": "f75c34103cd7d0b125eb663bfe82c203d2d60f0de236ffee7bb9ef64380f83f8",
+    "tests/fixtures/beamer-notes.tex": "cab55db8a37f920573454b1944435551d1d43b5c972021f8fa0036804055376e",
+    "tests/fixtures/generated/animation.pdf": "769d0abd84febb7a5f0b8f9c1221fe8a65af6cdcf3efad5e70d17dc2ad0f268d",
+    "tests/fixtures/generated/beamer-notes.pdf": "fd562211caca581ba8d33bc7797804d11f77a96721501840c1605bd35879f551",
+    "tests/fixtures/generated/colors.mp4": "9f7d7e58e0fe2ad8858c65b65f2263be6d0cbd76c5e01ce244b3bfeb6c1819d5",
+    "tests/fixtures/generated/vfr.mp4": "01b46c5250fb5346e49f062d3f58dbc916c62a52aa2a1d97febc7ed5a86d1c4d"
+  }
+}

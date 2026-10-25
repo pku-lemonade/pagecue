@@ -46,7 +46,7 @@ def deck(tmp_path):
         "pdfpcFormat": 2,
         "pages": [{"idx": 0, "note": "Presenter-only notes.\n中文讲稿：保持简洁，专注内容。"},
                   {"idx": 1, "note": "Second page notes."}]
-    }, ensure_ascii=False))
+    }, ensure_ascii=False), encoding="utf-8")
     return path
 
 

@@ -62,7 +62,9 @@ def test_loop_palindrome_reverse_step_and_speed_controls():
 def latex_animation(tmp_path):
     engine = shutil.which("pdflatex")
     if engine is None:
-        pytest.skip("Real LaTeX fixture requires pdflatex/animate")
+        path = tmp_path / "animation.pdf"
+        shutil.copyfile(Path(__file__).parent / "fixtures/generated/animation.pdf", path)
+        return path
     source = Path(__file__).parent / "fixtures/animation.tex"
     result = subprocess.run([engine, "-interaction=nonstopmode", "-halt-on-error",
                              f"-output-directory={tmp_path}", str(source)], capture_output=True, text=True)
