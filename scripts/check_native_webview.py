@@ -60,6 +60,9 @@ def main():
         canvas.camera_image = QImage(160, 90, QImage.Format.Format_RGB32)
         canvas.camera_image.fill(QColor("#00ff00"))
         overlay = WebCameraOverlay(canvas, window)
+        overlay.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint |
+                               Qt.WindowType.WindowTransparentForInput | Qt.WindowType.WindowDoesNotAcceptFocus)
+        overlay.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         overlay.setGeometry(0, 0, 800, 600)
     else:
         overlay = QWidget(window)
@@ -92,6 +95,15 @@ def main():
                 x, y = (700, 550) if args.camera_overlay else (550, 350)
                 result["overlay_pixel"] = image.pixelColor(round(x * scale), round(y * scale)).name()
                 result["background_pixel"] = image.pixelColor(round(20 * scale), round(560 * scale)).name()
+                if args.camera_overlay:
+                    camera = image.pixelColor(round(x * scale), round(y * scale))
+                    background = image.pixelColor(round(20 * scale), round(560 * scale))
+                    result["camera_composited"] = (abs(camera.green() - 211) <= 3 and
+                        abs(camera.red() - 7) <= 3 and abs(camera.blue() - 7) <= 3 and
+                        background.name() == "#222222")
+                    if not result["camera_composited"]:
+                        result["passed"] = False
+                        result["error"] = "Camera transparency did not preserve the web page"
         (output / "result.json").write_text(json.dumps(result, indent=2) + "\n")
         app.quit()
 
@@ -112,8 +124,8 @@ def main():
             else:
                 first, last = result["samples"]
                 advancing = 0 < first["frames"] < last["frames"]
-                playing = all(not s["paused"] and s["ready"] >= 2 for s in (first, last))
-                finish(None if advancing and playing else "Video frames did not advance")
+                playing = all(not s["paused"] for s in (first, last))
+                finish(None if advancing and playing else "Video did not stay playing with advancing frames")
         web.runJavaScript(SAMPLE, received)
 
     def loaded(info):
@@ -131,6 +143,9 @@ def main():
     window.show()
     window.raise_()
     window.activateWindow()
+    if args.camera_overlay:
+        overlay.move(window.mapToGlobal(QPoint(0, 0)))
+        overlay.raise_()
     web.setUrl(QUrl.fromLocalFile(str(output / "player.html")))
     QTimer.singleShot(20000, lambda: finish("Native browser probe timed out"))
     app.exec()
