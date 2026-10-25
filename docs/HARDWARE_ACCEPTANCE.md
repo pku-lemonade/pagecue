@@ -95,6 +95,19 @@ verified; simulated click-routing tests still pass. Local metadata is under
 `clicked` value remains false and is not presented as a successful click check.
 The existing PageCue bundle was preserved. No camera or video frames were captured.
 
+After the rename, `dist/Presenteriyaki.app` delivered a “Presenteriyaki notification
+test” alert using the same grant, with no additional permission prompt. macOS
+still labeled its sender PageCue; the native application menu displayed
+Presenteriyaki. Metadata is under `qa/presenteriyaki-notification/`. Click attempts
+could not reach the transient notification before its window disappeared, so the
+record correctly retains `clicked: false`.
+
+The app was also installed and checked at `~/Applications/Presenteriyaki.app`.
+Computer Use opened that installed application through the native app launcher
+and observed “Presenteriyaki · audience” and the Presenteriyaki application menu.
+This is source-built local launch evidence, separate from downloaded-binary
+Gatekeeper or Windows laptop acceptance.
+
 ## Still to verify
 
 The user declined the physical display-disconnect check for now on 2026-10-25.

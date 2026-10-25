@@ -74,8 +74,9 @@ The current development workflow requires Python 3.12–3.14 and `uv` for buildi
 The resulting application includes its Python/Qt runtime. Launching it does not
 require activating a Python environment. A public binary release is not ready yet.
 
-For a versioned source preview, use
-[`v0.1.0`](https://github.com/pku-lemonade/presenteriyaki/tree/v0.1.0). Agents should check
+For a versioned source preview, choose a published version from the
+[source tags](https://github.com/pku-lemonade/presenteriyaki/tags). Version 0.2.0
+introduces Presenteriyaki; v0.1.0 is the earlier PageCue checkpoint. Agents should check
 `git --version` and `uv --version` first. If uv is missing, use a per-user method
 from its [official installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 The command below selects Python 3.13, the version used in CI; uv can download a
@@ -112,7 +113,8 @@ To remove the installed app, run `uv run python scripts/install_app.py --uninsta
 The installer never changes the default PDF viewer. It uses no administrator rights.
 See [distribution notes](docs/DISTRIBUTION.md) for signing and dependency details.
 
-Existing PageCue preferences and notification permissions are reused. New installs
+Existing PageCue preferences are reused. The approved macOS notification permission
+was also preserved in a live test; macOS may still label that entry PageCue. New installs
 use the Presenteriyaki name and leave old PageCue app directories and shortcuts
 in place. The `pagecue` command remains an alias; Windows packages also retain a
 `PageCue.exe` launcher for old shortcuts. To check or remove an identified old
@@ -136,11 +138,14 @@ Windows evidence is from a
 Windows Server 2025 runner, not a Windows 11 laptop with a projector. Full parity
 and hardware acceptance remain incomplete; see the feature ledger for details.
 
-The subsequent [main-branch check](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40190588667)
-passes 94 tests and 15 native interaction checks on all three targets. It includes
-cropped/rotated PDF geometry, pausing timed slides that contain animations, and
-camera composition above web content. Camera checks use synthetic images only.
-The published v0.1.0 tag remains the earlier immutable checkpoint.
+The [rename check](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40195062883)
+passes 97 tests and 16 native interaction checks on all three targets, plus
+packaged execution and installation. It includes cropped/rotated PDF geometry,
+timed animation pause, selected-ink scaling, camera composition above web content,
+old-preference reuse, both command names and Windows compatibility launchers/links.
+Camera checks use synthetic images only. The published v0.1.0 tag remains the
+earlier immutable checkpoint. See the [completion audit](docs/COMPLETION_AUDIT.md)
+for remaining acceptance work.
 
 Locally, after building and generating `qa/demo.pdf`, reproduce the packaged check:
 

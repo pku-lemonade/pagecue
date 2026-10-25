@@ -60,7 +60,14 @@ side-by-side legacy preservation and explicit in-place update. The renamed Mac
 package also passes actual Unicode-path install/update/remove, icon, PDF/media/
 web and camera-composition checks under `qa/presenteriyaki-package/`. Its metadata
 records display name Presenteriyaki and internal application name PageCue.
-Fresh cross-platform verification of the rename is pending.
+The exact rename commit `73c683079bbf42361665b49fd5bbc076aec7b512` passes all three
+platforms in [run 40195062883](https://github.com/pku-lemonade/presenteriyaki/actions/runs/40195062883):
+97 tests, 16 native interaction checks and actual packaged install/update/remove.
+The renamed package was installed and checked at `~/Applications/Presenteriyaki.app`;
+native app-launch observation confirms the Presenteriyaki window/menu name.
+It remains available for the user. Do not replace this installed bundle while it
+is running. The old PageCue build directories remain intact.
+See COMPLETION_AUDIT.md for the remaining acceptance gates.
 
 The ink-scaling audit now uses an actual GUI selection and wheel event on a
 zoomed/letterboxed slide. It checks a stationary cursor anchor, visibly extended
