@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
-      QT_PLUGIN_PATH: ${{ runner.os == 'Windows' && inputs.patched_windows && format('{0}/build/native-webview/plugins', github.workspace) || '' }}
+      QT_PLUGIN_PATH: ${{ matrix.os == 'windows-2025' && inputs.patched_windows && format('{0}/build/native-webview/plugins', github.workspace) || '' }}
     strategy:
       fail-fast: false
       matrix:
