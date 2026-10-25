@@ -202,6 +202,11 @@ class Presenter(QObject):
         action(view_menu, "Reset notes / web zoom", self.reset_text_zoom)
         action(view_menu, "Show audience window", self.audience.show)
         action(view_menu, "Show clock / timer", self.toggle_clock)
+        self.automatic_action = action(view_menu, "Automatic playback",
+            lambda: self.session.set_auto_advance(not self.session.auto_advance))
+        self.automatic_action.setCheckable(True)
+        self.automatic_action.setChecked(self.session.auto_advance)
+        self.automatic_action.setToolTip("Honor PDF page durations and start autoplay animations")
         action(view_menu, "Hide both windows", self.hide_all)
         media_menu = self.presenter.menuBar().addMenu("Media")
         action(media_menu, "Open video or audio…", self.pick_media)
@@ -457,11 +462,10 @@ class Presenter(QObject):
         elif text == " ":
             if state.surface == Surface.MEDIA:
                 self.media.toggle()
+            elif state.snapshot.pages[state.page].duration:
+                state.set_auto_advance(not state.auto_advance)
             elif state.animation_command("Toggle"):
                 pass
-            elif state.snapshot.pages[state.page].duration:
-                state.auto_advance = not state.auto_advance
-                state._schedule()
             else:
                 state.clock.toggle()
         elif text.lower() == "z":
@@ -717,6 +721,7 @@ class Presenter(QObject):
                 proxy.installEventFilter(self)
 
     def _surface_changed(self):
+        self.automatic_action.setChecked(self.session.auto_advance)
         context = (id(self.session.snapshot), self.session.page, self.session.surface)
         if context != self._video_context:
             self.video_router.cancel()

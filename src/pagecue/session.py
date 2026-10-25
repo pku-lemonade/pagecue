@@ -134,6 +134,14 @@ class Session(QObject):
         if self.snapshot:
             self.open(self.snapshot.path, password=self.snapshot.password, reload=True)
 
+    def set_auto_advance(self, enabled):
+        enabled = bool(enabled)
+        if enabled == self.auto_advance:
+            return
+        self.auto_advance = enabled
+        self._schedule()
+        self.changed.emit()
+
     def _schedule(self):
         self.turn_timer.stop()
         for identifier, state in self.animations.items():

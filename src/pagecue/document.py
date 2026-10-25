@@ -11,7 +11,7 @@ from functools import cached_property
 import hashlib
 
 from pypdf import PdfReader, PdfWriter
-from pypdf.generic import ArrayObject, NameObject
+from pypdf.generic import ArrayObject, NameObject, RectangleObject
 
 from .notes import Notes, choose
 from .animation import AnimationSpec, extract as extract_animations
@@ -76,10 +76,20 @@ def resolved(value):
     return value.get_object() if hasattr(value, "get_object") else value
 
 
+def visible_box(page):
+    """Match the visible PDF page: CropBox intersected with MediaBox."""
+    crop, media = page.cropbox, page.mediabox
+    left, bottom = max(crop.left, media.left), max(crop.bottom, media.bottom)
+    right, top = min(crop.right, media.right), min(crop.top, media.top)
+    if right <= left or top <= bottom:
+        raise ValueError("The PDF page has no visible area within its media box")
+    return RectangleObject((left, bottom, right, top))
+
+
 def rectangle(page, value) -> tuple[float, float, float, float]:
     """Convert PDF bottom-left coordinates to normalized, rotated top-left space."""
     x0, y0, x1, y1 = (float(v) for v in value)
-    box = page.cropbox
+    box = visible_box(page)
     width, height = float(box.width), float(box.height)
     rotation = int(page.get("/Rotate", 0)) % 360
     corners = []
@@ -183,10 +193,11 @@ def load_snapshot(path: Path, password: str = "", notes_layout: str = "auto") ->
     diagnostics = []
     pages = []
     first = reader.pages[0]
-    inferred_split = float(first.cropbox.width) / float(first.cropbox.height) > 7 / 3
+    first_box = visible_box(first)
+    inferred_split = float(first_box.width) / float(first_box.height) > 7 / 3
     split = notes_layout == "right" or (notes_layout == "auto" and inferred_split)
     for index, page in enumerate(reader.pages):
-        box = page.cropbox
+        box = visible_box(page)
         width, height = float(box.width), float(box.height)
         if int(page.get("/Rotate", 0)) % 180:
             width, height = height, width

@@ -20,8 +20,9 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | DOC-05 | PDF text annotations, sidecar/embedded format-2 notes, Unicode | Implemented | Sidecar/embedded/annotation/Unicode tests pass |
 | DOC-06 | Beamer two-region notes cropping and zoomable notes text | Cropping, size adjustment and reset implemented | Real Beamer notes PDF excludes miniature/header/off-page text; keyboard/menu reset preserves numeric page entry |
 | DOC-07 | Internal/named/external links and hover hit testing | Implemented, including other-PDF destinations | Real direct/GoTo/named/GoToR/URI/Launch fixtures; zoom/pan click and hover; hidden links inactive in blackout; encoded file-URI round trip |
+| DOC-08 | Cropped and rotated PDF page geometry | Implemented; metadata and annotation coordinates now use the visible CropBox/MediaBox intersection | Eight original fixtures cover crop offsets, crops extending beyond the media box, all quarter-turn rotations, Qt-rendered landmarks and links after zoom/pan; offscreen/native Mac pass; fresh cross-platform CI pending |
 | TIME-01 | Wall clock, count up/down, pause/reset, duration adjustments | Implemented | Pause/reset domain, Shift+T clock, and reload tests pass |
-| TIME-02 | PDF /Dur auto-advance and pause/resume | Implemented | Actual /Dur PDF auto-advance and disabled state tested |
+| TIME-02 | PDF /Dur auto-advance and pause/resume | Implemented; Space prioritizes the page timer over animations on timed slides; automatic-playback menu is available for any deck | Actual /Dur PDF auto-advance and disabled state tested; combined timed/animated PDF proves keyboard pause, disabled state across navigation and menu resume; offscreen/native Mac pass; fresh CI pending |
 | INK-01 | Draw on slides and board, color/opacity/width, tablet input | Implemented, including visible single-point ink; device QA pending | GUI strokes and actual painted Shift-click dots pass; native dot capture inspected; physical tablet pending |
 | INK-02 | Select/move/scale strokes, delete/clear, overlay-aware persistence | Implemented | GUI select/move/erase and domain scaling/overlay tests pass |
 | VIEW-01 | Crop/pan/zoom, cursor size, laser/spotlight, blackout | Implemented; pan corrected for letterboxing, zoom anchored to cursor, crosshair size now follows P/Shift+P | Qt drag/wheel/keyboard tests pass on slides, board and notes-cropped PDF; rendered crosshair resizing/spotlight/blackout pixels and timeout pass; native Mac captures inspected |
@@ -50,3 +51,17 @@ supports older named-icon frames as an addition. The author's
 [feature description](https://iihm.imag.fr/blanch/software/osx-presentation/) explicitly
 excludes fancy page-transition effects; PDF duration-based page advance remains
 in scope and is implemented.
+
+The geometry audit uses the visible intersection of CropBox and MediaBox, as
+described in [Adobe's coordinate-system documentation](https://opensource.adobe.com/dc-acrobat-sdk-docs/library/interapp/IAC_API_CoordinateSystems.html).
+The new fixtures compare metadata with Qt's actual page size and painted markers,
+then activate an internal link at the marker after zoom/pan. These checks exposed
+four failures before the correction (one per rotation with an oversized crop).
+Normal offset crops already passed. Source PDFs are unchanged in every case.
+
+The reference help/key and mouse handlers were also checked against PageCue's
+commands. The audit found that Space could not stop a timed page when an animation
+was present; this is corrected and covered by an actual PDF/Qt regression.
+Keyboard help now exposes play/pause, frame stepping, section navigation, first/
+last page, expansion and hide/quit controls. Native Mac normal/minimum scrolled
+captures were inspected; scrolling the longer help still preserves the page.

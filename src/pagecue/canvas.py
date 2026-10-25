@@ -11,15 +11,18 @@ from .typography import ui_font
 
 HELP = [
     ("← → / click", "previous / next page"), ("Ctrl/⌘ + ← →", "previous / next frame"),
+    ("Ctrl/⌘ + ↑ ↓", "previous / next section"), ("Home / End", "first / last page"),
     ("Alt + arrows", "history back / forward"), ("0–9 ↵", "go to physical page"),
     ("F5 / Esc", "fullscreen / windowed"), ("X", "swap screens"),
     ("T / Shift+T / Z", "timer / clock / reset"), ("[ ] / { }", "adjust talk duration"),
+    ("Space", "play / pause media, timed page or animation"), ("< / >", "step media / animation"),
     ("+ − / 0", "text size / reset"), ("R", "reload PDF and notes"),
     (". / B", "blackout / whiteboard"), ("L / P", "pointer mode / size"),
     ("drag / Shift", "draw / draw immediately"), ("Alt + drag", "select ink"),
     ("Shift + drag", "move selected ink"), ("⌘/Ctrl + drag", "pan slide"),
     ("⌘/Ctrl + wheel", "zoom slide"), ("C / E / ⌫", "color / clear / erase last"),
-    ("V / M / W", "camera / media / web"), ("?", "toggle this help"),
+    ("V / M / W", "camera / media / web"), ("Shift+V/M", "expand camera / media"),
+    ("H / Q / R", "hide / quit / reload"), ("?", "toggle this help"),
 ]
 
 

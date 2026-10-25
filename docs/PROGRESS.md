@@ -44,6 +44,25 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
+The latest geometry/control audit passes **94 tests** locally. Page metadata used
+the raw CropBox while Qt clips it against MediaBox, stretching affected slides and
+misplacing annotation targets. `visible_box` now supplies consistent bounds to
+layout, notes-region detection and annotation coordinates. Four oversized-crop
+rotation tests failed before the fix; all eight crop/rotation cases now pass with
+actual Qt-rendered landmarks, zoom/pan, link activation and unchanged source bytes.
+The eight tests also pass natively on Cocoa; unrotated/90-degree captures under
+`qa/geometry-native/` were inspected. The native CI subset now includes them.
+
+A second regression showed that Space paused an animation but left the PDF /Dur
+page-turn timer running. Timed pages now take precedence; a View → Automatic
+playback toggle also exposes the global page-duration/autoplay setting before
+opening a deck. The combined timed/animated fixture verifies keyboard pause,
+disabled timers across navigation, and menu resume through actual page advance.
+It passes offscreen and native Cocoa. Keyboard help now includes previously
+unlisted playback/stepping/section/expansion/hide controls; normal and minimum
+scrolled captures under `qa/parity-help-layout/` were inspected. Fresh native CI
+for these changes is pending; older successful runs below predate them.
+
 WebEngine's separate audience widget previously covered the camera image painted
 on the canvas below it. The reference keeps its camera above web content. A
 transparent, mouse-transparent Qt widget now draws the same camera renderer above

@@ -9,6 +9,7 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
 
 from pagecue.canvas import Canvas
+from pagecue.app import Presenter
 from pagecue.document import load_snapshot
 from pagecue.session import Session
 
@@ -55,6 +56,39 @@ def test_pdf_page_labels_outline_and_auto_advance(qtbot, deck):
     session.navigate(1, "section")
     assert session.page == 2
     session.close()
+
+
+def test_space_pauses_timed_page_with_animation_and_menu_resumes(qapp, qtbot, tmp_path):
+    writer = PdfWriter(clone_from=PdfReader(Path(__file__).parent / "fixtures/generated/animation.pdf"))
+    writer.pages[0][NameObject("/Dur")] = FloatObject(.1)
+    writer.add_blank_page(600, 400)
+    path = tmp_path / "timed-animation.pdf"
+    writer.write(path)
+    app = Presenter(qapp)
+    qtbot.addWidget(app.presenter)
+    qtbot.addWidget(app.audience)
+    app.open(path)
+    try:
+        state = app.session
+        assert state.turn_timer.isActive() and state.animation_timers[0].isActive()
+        QTest.keyClick(app.view, Qt.Key.Key_Space)
+        assert not state.auto_advance
+        assert not state.turn_timer.isActive() and not state.animation_timers[0].isActive()
+        QTest.qWait(150)
+        assert state.page == 0
+        view_menu = next(action.menu() for action in app.presenter.menuBar().actions() if action.text() == "View")
+        automatic = next(action for action in view_menu.actions() if action.text() == "Automatic playback")
+        assert not automatic.isChecked()
+        state.go(1)
+        state.go(0)
+        assert not state.turn_timer.isActive() and not state.animation_timers[0].isActive()
+        automatic.trigger()
+        assert state.auto_advance and automatic.isChecked()
+        assert state.animation_timers[0].isActive()
+        qtbot.waitUntil(lambda: state.page == 1, timeout=1000)
+    finally:
+        app.session.close()
+        app.media.close()
 
 
 def test_canvas_draw_select_move_and_erase(qtbot, deck):

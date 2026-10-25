@@ -37,6 +37,12 @@ a page number already being entered (for example, **1 0 Enter**).
 On macOS, presentation fullscreen stays on the current desktops rather than
 moving the windows into separate Spaces.
 
+**View → Automatic playback** controls PDF timed page changes and autoplay
+animations, including before opening a deck. Space pauses/resumes local media;
+on a timed slide it toggles automatic playback, otherwise it pauses/resumes an
+animation or the talk timer. Use **< / >** to step media or animation frames.
+Individual animation buttons remain available on timed slides.
+
 Command-line options include `-p/--page` (1-based), `-d/--duration` (minutes),
 `-y/--youtube/--direct-video`, `-v/--version`, and `-i/--icon [FILE]`.
 For example, `uv run pagecue -p 2 -d 20 slides.pdf` starts on page two with a

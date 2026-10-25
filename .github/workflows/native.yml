@@ -41,7 +41,12 @@ jobs:
         timeout-minutes: 5
         env:
           QT_QPA_PLATFORM: ${{ runner.os == 'Windows' && 'windows' || 'cocoa' }}
-        run: uv run pytest tests/test_view_interactions.py tests/test_long_deck.py -vv -s --log-cli-level=INFO -o faulthandler_timeout=30 --junitxml=qa/native-views.xml --basetemp=qa/native-views
+        run: >-
+          uv run pytest tests/test_view_interactions.py tests/test_long_deck.py
+          tests/test_pdf_geometry.py
+          tests/test_presentations.py::test_space_pauses_timed_page_with_animation_and_menu_resumes
+          -vv -s --log-cli-level=INFO -o faulthandler_timeout=30
+          --junitxml=qa/native-views.xml --basetemp=qa/native-views
       - name: Exercise Windows Unicode shell links
         if: runner.os == 'Windows'
         run: uv run python scripts/check_windows_shortcut.py
