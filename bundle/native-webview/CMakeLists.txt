@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 project(PresenteriyakiWebViewKeys LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_AUTOMOC ON)
-find_package(Qt6 6.12.0 EXACT REQUIRED COMPONENTS Core Gui Widgets WebView)
+find_package(Qt6 6.12.0 EXACT REQUIRED COMPONENTS Core Gui Widgets WebViewPrivate)
 set(plugin_source "${QT_SOURCE_DIR}/src/plugins/windows")
 add_library(qtwebview_webview2 MODULE
     "${plugin_source}/qwebview2webview.cpp"
