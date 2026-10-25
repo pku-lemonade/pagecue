@@ -43,7 +43,15 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **80 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **84 passed** on the development Mac at this checkpoint.
+The updater now supports the GitHub source-install workflow: if no published
+release exists, it finds the latest non-prerelease source version among the
+returned repository tags. HTTP fallback, numeric version ordering, canonical
+links and cancellation at either request stage have tests. The first source tag
+will be published only after the new code passes native CI; see SOURCE_RELEASES.md.
+Run 40181248779 successfully verifies Python/FFmpeg runtime notice collection and
+installed-notice hashes on all three platforms. The next package check additionally
+preserves the runtime notice inventory in its evidence artifact.
 Run 40178706231 passed Windows, but Mac native tests timed out. The new stack
 dump located the stall inside the modal PDF-open warning, reached from a native
 QFileOpenEvent during fixture setup. Native file-open handling now ignores

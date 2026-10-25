@@ -44,6 +44,11 @@ For example, `uv run pagecue -p 2 -d 20 slides.pdf` starts on page two with a
 without opening a window. Omitting the filename writes binary PNG to stdout;
 use a filename with the packaged Windows GUI executable, which has no console.
 
+**Help → Check for updates** checks published releases and, when none exist,
+versioned source tags. Source updates open the corresponding GitHub version for
+the same agent-based installation workflow. Background notifications are opt-in.
+See [source versions](docs/SOURCE_RELEASES.md).
+
 PageCue's original code is MIT licensed. Qt/PySide and other dependencies retain
 their own licenses. Binary distribution must include the applicable notices and
 Qt library source/replacement information. Packaging is still in development.

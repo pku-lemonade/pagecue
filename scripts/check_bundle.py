@@ -32,6 +32,7 @@ def main():
         for item in native_inventory["files"]:
             if hashlib.sha256((notices / item["path"]).read_bytes()).hexdigest() != item["sha256"]:
                 raise RuntimeError(f"A runtime notice was missing or changed during packaging: {item['path']}")
+        (output / "runtime-notices.json").write_text(json.dumps(native_inventory, indent=2), encoding="utf-8")
         shortcut = None
         if platform == "windows":
             from windows_shortcut import create_shortcut, remove_shortcut, verify_shortcut

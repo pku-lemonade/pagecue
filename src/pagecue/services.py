@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import json
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from packaging.version import InvalidVersion, Version
 from PySide6.QtCore import QCoreApplication, QObject, QUrl, Signal
@@ -13,6 +13,7 @@ from . import __version__
 REPOSITORY = "pku-lemonade/pagecue"
 RELEASES_URL = f"https://github.com/{REPOSITORY}/releases"
 RELEASE_API = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
+SOURCE_TAGS_API = f"https://api.github.com/repos/{REPOSITORY}/tags?per_page=100"
 INSTANCES_API = "https://api.invidious.io/instances.json?sort_by=health"
 
 
@@ -21,6 +22,14 @@ class Release:
     version: str
     url: str
     newer: bool
+    channel: str = "release"
+
+
+class HttpError(str):
+    def __new__(cls, message, status=None):
+        result = super().__new__(cls, message)
+        result.status = status
+        return result
 
 
 def parse_release(payload, current):
@@ -37,6 +46,27 @@ def parse_release(payload, current):
     if parsed.scheme != "https" or parsed.hostname != "github.com":
         raise ValueError("The release URL is not a GitHub HTTPS page")
     return Release(str(version), url, version > installed)
+
+
+def parse_source_tags(payload, current):
+    """Choose the newest non-prerelease version among the returned source tags."""
+    if not isinstance(payload, list):
+        raise ValueError("The source version metadata is not a tag list")
+    candidates = []
+    for tag in payload:
+        if not isinstance(tag, dict) or not isinstance(tag.get("name"), str):
+            continue
+        try:
+            version = Version(tag["name"].removeprefix("v"))
+        except InvalidVersion:
+            continue
+        if not version.is_prerelease and not version.is_devrelease:
+            candidates.append((version, tag["name"]))
+    if not candidates:
+        raise ValueError("No versioned source tag is available yet")
+    version, name = max(candidates)
+    return Release(str(version), f"https://github.com/{REPOSITORY}/tree/{quote(name, safe='')}",
+                   version > Version(current), "source")
 
 
 def video_url(original, proxy):
@@ -73,9 +103,9 @@ class JsonRequests(QObject):
             error = None
             payload = None
             if status == 404:
-                error = "No published release is available yet"
+                error = HttpError("The requested metadata was not found", status)
             elif reply.error() != QNetworkReply.NetworkError.NoError:
-                error = reply.errorString()
+                error = HttpError(reply.errorString(), status)
             else:
                 try:
                     data = bytes(reply.readAll())
@@ -97,24 +127,39 @@ class ReleaseChecker(QObject):
     checked = Signal(object, bool)
     failed = Signal(str, bool)
 
-    def __init__(self, parent=None, endpoint=RELEASE_API, current=__version__):
+    def __init__(self, parent=None, endpoint=RELEASE_API, current=__version__, tags_endpoint=None):
         # Keep asynchronous network objects alive through deferred reply cleanup.
         super().__init__(parent if parent is not None else QCoreApplication.instance())
         self.requests = JsonRequests(self)
         self.endpoint, self.current = endpoint, current
+        self.tags_endpoint = tags_endpoint or (SOURCE_TAGS_API if endpoint == RELEASE_API else None)
         self.busy = False
+        self.generation = 0
+
+    def cancel(self):
+        self.generation += 1
+        self.busy = False
+        self.requests.close()
 
     def check(self, manual=True):
         if self.busy:
             return
         self.busy = True
-        def finished(payload, error):
+        self.generation += 1
+        generation = self.generation
+        def finished(payload, error, source=False):
+            if generation != self.generation:
+                return
+            if not source and getattr(error, "status", None) == 404 and self.tags_endpoint:
+                self.requests.get(self.tags_endpoint, lambda payload, error: finished(payload, error, source=True))
+                return
             self.busy = False
             if error:
-                self.failed.emit(error, manual)
+                message = "No published release is available yet" if not source and getattr(error, "status", None) == 404 else str(error)
+                self.failed.emit(message, manual)
                 return
             try:
-                release = parse_release(payload, self.current)
+                release = parse_source_tags(payload, self.current) if source else parse_release(payload, self.current)
             except ValueError as error:
                 self.failed.emit(str(error), manual)
             else:

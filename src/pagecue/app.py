@@ -247,9 +247,10 @@ class Presenter(QObject):
             if manual:
                 self.notify(f"PageCue {__version__} is up to date")
             return
-        message = f"PageCue {release.version} is available (installed: {__version__})"
+        kind = " source update" if release.channel == "source" else ""
+        message = f"PageCue {release.version}{kind} is available (installed: {__version__})"
         if manual:
-            answer = QMessageBox.question(self.presenter, "Update available", message + "\nOpen the release page?",
+            answer = QMessageBox.question(self.presenter, "Update available", message + "\nOpen this version on GitHub?",
                                           QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Cancel)
             if answer == QMessageBox.StandardButton.Open:
                 QDesktopServices.openUrl(QUrl(release.url))
@@ -840,7 +841,7 @@ class Presenter(QObject):
         self.session.save()
         self.session.close()
         self.video_router.cancel()
-        self.updates.requests.close()
+        self.updates.cancel()
         if self.update_tray:
             self.update_tray.hide()
         self.camera.stop()
