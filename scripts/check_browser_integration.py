@@ -35,7 +35,7 @@ const frame=()=>{framesPresented++;video.requestVideoFrameCallback(frame)};
 video.requestVideoFrameCallback(frame);</script></body>''')
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(output / "settings"))
-    app = Application([])
+    app = Application([sys.argv[0]])
     p = Presenter(app)
     p.show()
     if not p.open(args.deck.resolve()):
@@ -43,6 +43,7 @@ video.requestVideoFrameCallback(frame);</script></body>''')
     p.audience.raise_()
     p.audience.activateWindow()
     result = {"passed": False, "captures_checked": not args.no_capture, "native_shortcuts": []}
+    app.file_opened.connect(lambda path: result.setdefault("file_events", []).append(path))
     done = False
 
     def finish(error=None):
@@ -100,6 +101,10 @@ video.requestVideoFrameCallback(frame);</script></body>''')
 
     def ready():
         def received(state):
+            result["surface_at_load"] = p.session.surface.name
+            result["browser_visible"] = p.web.isVisible()
+            result["canvas_visible"] = p.slide.isVisible()
+            assert p.session.surface == Surface.WEB, "Presentation returned to slides during web load"
             assert state["error"] is None, state["error"]
             if not state["frames"]:
                 later(ready, 100)
