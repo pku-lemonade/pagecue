@@ -394,6 +394,30 @@ class Canvas(QWidget):
         return QPointF(self._scene.x() + (point.x() - self._crop.x()) / self._crop.width() * self._scene.width(),
                        self._scene.y() + (point.y() - self._crop.y()) / self._crop.height() * self._scene.height())
 
+    def _base_scene(self):
+        if self.session.surface == Surface.BOARD:
+            return QRectF(self.current_box)
+        info = self.session.snapshot.pages[self.session.page]
+        return fit_rect(self.current_box, info.size[0] / (2 if info.notes_crop else 1), info.size[1])
+
+    def zoom_at(self, factor, point):
+        """Keep the content under the requested widget position stationary."""
+        if self.session.surface not in (Surface.SLIDES, Surface.BOARD):
+            return
+        base = self._base_scene()
+        if base.isEmpty():
+            return
+        zoom_field, pan_field = ("board_zoom", "board_pan") if self.session.surface == Surface.BOARD else ("zoom", "pan")
+        old_zoom = getattr(self.session, zoom_field)
+        zoom = min(12, max(.25, old_zoom * factor))
+        ratio = zoom / old_zoom
+        pan = getattr(self.session, pan_field)
+        anchor = QPointF((point.x() - base.center().x()) / base.width(),
+                         (point.y() - base.center().y()) / base.height())
+        setattr(self.session, zoom_field, zoom)
+        setattr(self.session, pan_field, pan * ratio + anchor * (1 - ratio))
+        self.session.changed.emit()
+
     def keyPressEvent(self, event):
         self.command.emit(event)
 
@@ -468,9 +492,10 @@ class Canvas(QWidget):
         elif self._drag == "pan":
             delta = pos - self._previous
             field = "board_pan" if self.session.surface == Surface.BOARD else "pan"
+            base = self._base_scene()
             setattr(self.session, field, getattr(self.session, field) +
-                    QPointF(delta.x() / max(1, self.current_box.width()),
-                            delta.y() / max(1, self.current_box.height())))
+                    QPointF(delta.x() / max(1, base.width()),
+                            delta.y() / max(1, base.height())))
         elif self._drag == "select":
             self.session.selection = QRectF(self._to_page(self._press), self._to_page(pos)).normalized()
         elif self._drag == "move":
@@ -520,9 +545,7 @@ class Canvas(QWidget):
             self.help_scroll -= delta / 3
             self.update()
         elif event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier):
-            field = "board_zoom" if self.session.surface == Surface.BOARD else "zoom"
-            setattr(self.session, field, min(12, max(.25, getattr(self.session, field) * math.exp(delta / 1200))))
-            self.session.changed.emit()
+            self.zoom_at(math.exp(delta / 1200), event.position())
         elif self.session.ink.selected:
             point = self._to_page(event.position())
             self.session.ink.transform_selected(scale=math.exp(delta / 1200), center=(point.x(), point.y()))

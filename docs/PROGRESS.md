@@ -43,7 +43,16 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **67 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **72 passed** on the development Mac at this checkpoint.
+The new interaction checks also pass with the native Cocoa plugin. A simulated
+two-screen topology verifies audience-only fullscreen by double-click, mode
+switching with F5, Escape and hide/restore. This is not physical monitor evidence.
+Ctrl/Command dragging now tracks the mouse on letterboxed slides: the previous
+denominator used the window box rather than the fitted slide dimensions. Wheel
+and keyboard zoom keep the cursor's content point stationary, including on the
+board and a notes-cropped PDF. Actual painted laser/spotlight, pointer resizing,
+blackout and pointer timeout checks pass; native captures are under
+`qa/view-interactions-native/` and the two spotlight captures were inspected.
 New work covers multiple animations, last/absent posters, reverse pause/resume,
 and duplicate source field names in merged PDFs. Native Cocoa captures of the
 poster and previously invisible first-frame states were inspected under
@@ -61,11 +70,15 @@ synthetic inset/expanded camera images; all five were visually inspected. The
 layout check confirms that scrolling help does not navigate the PDF. No physical
 camera was activated or photographed by these checks. Windows minimum/scrolled
 and Intel Mac minimum captures were also inspected from the CI artifacts.
-The current implementation commit **`9ace65b`** passes **61 tests without skips on
+The verified implementation commit **`ab36d48`** passes **67 tests without skips on
 Windows x64, Mac arm64 and Mac Intel**, plus all three packaged executable checks:
-[native run 40169910930](https://github.com/pku-lemonade/pagecue/actions/runs/40169910930).
+[native run 40173372590](https://github.com/pku-lemonade/pagecue/actions/runs/40173372590).
+Downloaded reports and opening results under `qa/animation-opening-ci/` confirm
+all 67 tests on each target, Unicode Qt widget-dialog selection, drag/drop,
+QFileOpenEvent handling, recent-page restoration and unchanged source PDFs.
+The fullscreen/zoom/pointer changes above postdate this run and need fresh CI.
 Windows additionally passes Unicode shell-link create/read/update/conflict/removal.
-Downloaded JSON, JUnit reports and captures are under `qa/camera-windows-ci/`,
+Earlier downloaded JSON, JUnit reports and captures are under `qa/camera-windows-ci/`,
 `qa/camera-arm-ci/` and `qa/camera-intel-ci/`. Local rebuilt-bundle checks also pass
 under `qa/camera-bundle/`. Only authored fixtures/synthetic camera images were used.
 This is automated runner evidence, not physical-device or ordinary-user OS approval
@@ -152,8 +165,8 @@ locally with TeX/FFmpeg excluded from PATH.
   to select a filename in the dialog. Programmatic selectFile calls after showing
   left the focused filename field empty. The check now uses the documented initial
   filename parameter, waits for the real selection, captures the widget dialog,
-  accepts it and verifies the returned file. Offscreen and Cocoa runs pass locally;
-  the new native CI run must verify this correction.
+  accepts it and verifies the returned file. Offscreen, Cocoa and all three native
+  CI targets now pass this correction.
 
 - Beamer initially exposed its miniature/header and off-page hidden overlay text
   in notes. Extraction now checks page bounds and recognizes the miniature header.

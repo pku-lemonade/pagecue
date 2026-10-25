@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image
@@ -82,6 +83,34 @@ def test_hide_restore_keeps_both_windows_available(qapp, qtbot, deck):
     qtbot.waitUntil(lambda: not app.audience.isMinimized())
     assert not app._hidden
     app.session.close()
+
+
+def test_audience_only_fullscreen_and_restore_on_two_screen_topology(qapp, qtbot, deck, monkeypatch):
+    app = Presenter(qapp)
+    qtbot.addWidget(app.presenter)
+    qtbot.addWidget(app.audience)
+    app.show()
+    app.open(deck)
+    # Exercise the multi-screen decision without claiming physical monitor QA.
+    screens = [SimpleNamespace(name=lambda: "presenter"), SimpleNamespace(name=lambda: "audience")]
+    monkeypatch.setattr(qapp, "screens", lambda: screens)
+    placements = []
+    monkeypatch.setattr(app, "_place", lambda window, screen: placements.append((window, screen)))
+    QTest.mouseDClick(app.slide, Qt.MouseButton.LeftButton)
+    assert app.fullscreen and app.audience_only_fullscreen
+    assert app.audience.isFullScreen() and not app.presenter.isFullScreen()
+    app.hide_all()
+    app.restore_all()
+    assert app.fullscreen and app.audience_only_fullscreen
+    assert app.audience.isFullScreen() and not app.presenter.isFullScreen()
+    QTest.keyClick(app.view, Qt.Key.Key_F5)
+    assert app.fullscreen and not app.audience_only_fullscreen
+    assert app.audience.isFullScreen() and app.presenter.isFullScreen()
+    QTest.keyClick(app.view, Qt.Key.Key_Escape)
+    assert not app.fullscreen
+    assert not app.audience.isFullScreen() and not app.presenter.isFullScreen()
+    app.session.close()
+    app.media.close()
 
 
 def test_linked_gif_uses_actual_decoder(qapp, qtbot, tmp_path):

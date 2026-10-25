@@ -113,10 +113,12 @@ class Presenter(QObject):
         self.app.file_opened.connect(self.open)
         self.app.screenRemoved.connect(self._screen_removed)
         self.fullscreen = False
+        self.audience_only_fullscreen = False
         self.audience_screen = self.session.settings.value("audience-screen", None)
         self._windowed = None
         self._hidden = False
         self._hidden_fullscreen = False
+        self._hidden_audience_only = False
         self._closed = False
         self.video_mode = str(self.session.settings.value("video-routing", ""))
         self.video_router = VideoRouter(self)
@@ -144,6 +146,7 @@ class Presenter(QObject):
         action(file_menu, "Quit", self.quit, QKeySequence.StandardKey.Quit)
         view_menu = self.presenter.menuBar().addMenu("View")
         action(view_menu, "Fullscreen", self.toggle_fullscreen)
+        action(view_menu, "Audience fullscreen", lambda: self.toggle_fullscreen(audience_only=True))
         action(view_menu, "Audience display…", self.choose_screen)
         action(view_menu, "Swap screens", self.swap)
         action(view_menu, "Notes layout…", self.choose_notes_layout)
@@ -284,8 +287,9 @@ class Presenter(QObject):
 
     def hide_all(self):
         self._hidden_fullscreen = self.fullscreen
+        self._hidden_audience_only = self.audience_only_fullscreen
         if self.fullscreen:
-            self.toggle_fullscreen()
+            self.leave_fullscreen()
         self._hidden = True
         self.presenter.showMinimized()
         self.audience.showMinimized()
@@ -297,7 +301,7 @@ class Presenter(QObject):
         self.presenter.showNormal()
         self.audience.showNormal()
         if self._hidden_fullscreen:
-            self.toggle_fullscreen()
+            self.toggle_fullscreen(audience_only=self._hidden_audience_only)
         self.view.setFocus()
 
     def eventFilter(self, watched, event):
@@ -321,7 +325,7 @@ class Presenter(QObject):
     def command(self, command):
         if isinstance(command, str):
             if command == "fullscreen":
-                self.toggle_fullscreen()
+                self.toggle_fullscreen(audience_only=True)
             elif command == "media-toggle":
                 self.media.toggle()
             elif command == "media-expand":
@@ -342,7 +346,7 @@ class Presenter(QObject):
         if key == Qt.Key.Key_Escape:
             self.video_router.cancel()
             if self.fullscreen:
-                self.toggle_fullscreen()
+                self.leave_fullscreen()
             return
         if text == "?":
             self.toggle_help()
@@ -406,8 +410,7 @@ class Presenter(QObject):
         elif text in ("+", "=", "-", "_"):
             factor = 1.1 if text in ("+", "=") else 1 / 1.1
             if ctrl:
-                field = "board_zoom" if state.surface == Surface.BOARD else "zoom"
-                setattr(state, field, min(12, max(.25, getattr(state, field) * factor)))
+                self.view.zoom_at(factor, self.view._from_page(state.pointer))
             elif state.surface == Surface.WEB and self.web:
                 self.web.setZoomFactor(min(5, max(.25, self.web.zoomFactor() * factor)))
             else:
@@ -680,33 +683,43 @@ class Presenter(QObject):
         if okay:
             screen = screens[names.index(name)]
             was_fullscreen = self.fullscreen
+            audience_only = self.audience_only_fullscreen
             if was_fullscreen:
-                self.toggle_fullscreen()
+                self.leave_fullscreen()
             self.audience_screen = screen.name()
             self.session.settings.setValue("audience-screen", self.audience_screen)
             self._place(self.audience, screen)
             if was_fullscreen:
-                self.toggle_fullscreen()
+                self.toggle_fullscreen(audience_only=audience_only)
 
-    def toggle_fullscreen(self):
+    def leave_fullscreen(self):
+        if not self.fullscreen:
+            return
+        for window in (self.presenter, self.audience):
+            window.showNormal()
+        if self._windowed:
+            self.presenter.setGeometry(self._windowed[0])
+            self.audience.setGeometry(self._windowed[1])
+        self.fullscreen = False
+        self.view.setFocus()
+
+    def toggle_fullscreen(self, audience_only=False):
         if self.fullscreen:
-            for window in (self.presenter, self.audience):
-                window.showNormal()
-            if self._windowed:
-                self.presenter.setGeometry(self._windowed[0])
-                self.audience.setGeometry(self._windowed[1])
-            self.fullscreen = False
-        else:
-            self._windowed = (self.presenter.geometry(), self.audience.geometry())
-            screens = self.app.screens()
-            target = next((s for s in screens if s.name() == self.audience_screen), screens[-1])
-            self._place(self.audience, target)
-            self.audience.showFullScreen()
-            if len(screens) > 1:
-                other = next(s for s in screens if s != target)
-                self._place(self.presenter, other)
-                self.presenter.showFullScreen()
-            self.fullscreen = True
+            same_mode = audience_only == self.audience_only_fullscreen
+            self.leave_fullscreen()
+            if same_mode:
+                return
+        self._windowed = (self.presenter.geometry(), self.audience.geometry())
+        screens = self.app.screens()
+        target = next((s for s in screens if s.name() == self.audience_screen), screens[-1])
+        self._place(self.audience, target)
+        self.audience.showFullScreen()
+        if len(screens) > 1 and not audience_only:
+            other = next(s for s in screens if s != target)
+            self._place(self.presenter, other)
+            self.presenter.showFullScreen()
+        self.fullscreen = True
+        self.audience_only_fullscreen = audience_only
         self.view.setFocus()
 
     def swap(self):
@@ -719,18 +732,19 @@ class Presenter(QObject):
         if old_audience == new_audience:
             new_audience = next(s for s in screens if s != old_audience)
         was_fullscreen = self.fullscreen
+        audience_only = self.audience_only_fullscreen
         if was_fullscreen:
-            self.toggle_fullscreen()
+            self.leave_fullscreen()
         self._place(self.audience, new_audience)
         self._place(self.presenter, old_audience)
         self.audience_screen = new_audience.name()
         self.session.settings.setValue("audience-screen", self.audience_screen)
         if was_fullscreen:
-            self.toggle_fullscreen()
+            self.toggle_fullscreen(audience_only=audience_only)
 
     def _screen_removed(self, screen):
         if self.fullscreen:
-            self.toggle_fullscreen()
+            self.leave_fullscreen()
         for window in (self.presenter, self.audience):
             self._place(window, self.app.primaryScreen())
         self.presenter.raise_()

@@ -12,7 +12,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 |---|---|---|---|
 | UI-01 | Minimal dark layout: clock, current/next, notes, thumbnail rail, help | Implemented; help wraps and scrolls in small windows | Mac and Windows minimum/scrolled captures inspected, including Intel; layout checks pass on all three targets and help scrolling preserves page |
 | UI-02 | Two independently resizable windows, single-screen rehearsal | Implemented | Two-window Qt/Cocoa smoke; physical screens pending |
-| UI-03 | Display selection, swap, fullscreen, hide/unhide, unplug recovery | Implemented controls; hardware validation pending | Hide/restore unit integration passes; physical displays pending |
+| UI-03 | Display selection, swap, fullscreen, hide/unhide, unplug recovery | Implemented, including separate audience-only fullscreen | Double-click, general fullscreen, Escape and hide/restore Qt checks pass with simulated two-screen topology; physical displays pending |
 | DOC-01 | PDF picker, file arguments, drag/drop, OS file-open events | Implemented | Unicode PDF drag/drop, Qt widget file picker and QApplication QFileOpenEvent routes pass; packaged arguments pass; native OS-dialog/event delivery pending |
 | DOC-02 | Page labels, frame/overlay grouping, section/outlines navigation | Implemented | Actual PDF labels/outlines and domain overlay tests pass |
 | DOC-03 | First/last, numeric jump, back/forward history, recent position | Implemented | Navigation/history and saved-page restoration pass; explicit page overrides persistence; invalid saved values fall back safely |
@@ -24,7 +24,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | TIME-02 | PDF /Dur auto-advance and pause/resume | Implemented | Actual /Dur PDF auto-advance and disabled state tested |
 | INK-01 | Draw on slides and board, color/opacity/width, tablet input | Implemented; device QA pending | GUI draw test passes; physical tablet pending |
 | INK-02 | Select/move/scale strokes, delete/clear, overlay-aware persistence | Implemented | GUI select/move/erase and domain scaling/overlay tests pass |
-| VIEW-01 | Crop/pan/zoom, cursor size, laser/spotlight, blackout | Initial implementation | GUI interaction/coordinate tests pending |
+| VIEW-01 | Crop/pan/zoom, cursor size, laser/spotlight, blackout | Implemented; pan corrected for letterboxing and zoom anchored to cursor | Qt drag/wheel/keyboard tests pass on slides, board and notes-cropped PDF; rendered pointer/spotlight/blackout pixels and timeout pass; native Mac captures inspected |
 | MEDIA-01 | Local linked video/audio/GIF, poster, play/pause/seek/step | Implemented | Qt GIF/H.264/WAV decoding; seeking; CFR/VFR stepping tests pass |
 | MEDIA-02 | Movie, Screen/Rendition, RichMedia embedded PDF media | Implemented | Movie/Rendition/RichMedia PDFs decoded through Qt |
 | MEDIA-03 | Embedded-rectangle and full-slide playback | Implemented | Embedded/expanded pixel assertions and native Mac captures inspected |
