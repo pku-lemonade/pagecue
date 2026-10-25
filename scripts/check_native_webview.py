@@ -12,7 +12,7 @@ import threading
 # QWebView otherwise prefers WebEngine when both plugins are installed.
 os.environ["QT_WEBVIEW_PLUGIN"] = "native"
 
-from PySide6.QtCore import QLibraryInfo, QPluginLoader, QTimer, QUrl, qVersion
+from PySide6.QtCore import QLibraryInfo, QPluginLoader, QPoint, QTimer, QUrl, Qt, qVersion
 from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtWebView import QWebView, QWebViewLoadingInfo, QtWebView
 
@@ -34,6 +34,7 @@ class Handler(SimpleHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "qa/native-webview")
+    parser.add_argument("--capture", action="store_true", help="Capture the probe on an unlocked test desktop")
     args = parser.parse_args()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -52,6 +53,13 @@ def main():
     web = QWebView()
     container = QWidget.createWindowContainer(web, window)
     container.setGeometry(0, 0, 800, 600)
+    overlay = QWidget(window)
+    overlay.setAttribute(Qt.WidgetAttribute.WA_NativeWindow)
+    overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+    overlay.setStyleSheet("background: #00ff00")
+    overlay.setGeometry(500, 330, 150, 90)
+    overlay.show()
+    overlay.raise_()
     plugin_dir = Path(QLibraryInfo.path(QLibraryInfo.PluginsPath)) / "webview"
     result = {"qt": qVersion(), "samples": [], "passed": False,
               "plugins": {p.name: QPluginLoader(str(p)).metaData() for p in plugin_dir.iterdir()}}
@@ -65,6 +73,15 @@ def main():
         result["passed"] = error is None
         if error:
             result["error"] = error
+        if args.capture:
+            origin = window.mapToGlobal(QPoint(0, 0)) - window.screen().geometry().topLeft()
+            capture = window.screen().grabWindow(0, origin.x(), origin.y(), window.width(), window.height())
+            result["capture_saved"] = capture.save(str(output / "window.png"))
+            if not capture.isNull():
+                image = capture.toImage()
+                scale = capture.devicePixelRatio()
+                result["overlay_pixel"] = image.pixelColor(round(550 * scale), round(350 * scale)).name()
+                result["background_pixel"] = image.pixelColor(round(20 * scale), round(560 * scale)).name()
         (output / "result.json").write_text(json.dumps(result, indent=2) + "\n")
         app.quit()
 
@@ -102,6 +119,8 @@ def main():
 
     web.loadingChanged.connect(loaded)
     window.show()
+    window.raise_()
+    window.activateWindow()
     web.setUrl(QUrl(f"http://127.0.0.1:{server.server_port}/player.html"))
     QTimer.singleShot(20000, lambda: finish("Native browser probe timed out"))
     try:
