@@ -22,7 +22,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | DOC-07 | Internal/named/external links and hover hit testing | Implemented, including other-PDF destinations | Real direct/GoTo/named/GoToR/URI/Launch fixtures; zoom/pan click and hover; hidden links inactive in blackout; encoded file-URI round trip |
 | TIME-01 | Wall clock, count up/down, pause/reset, duration adjustments | Implemented | Pause/reset domain, Shift+T clock, and reload tests pass |
 | TIME-02 | PDF /Dur auto-advance and pause/resume | Implemented | Actual /Dur PDF auto-advance and disabled state tested |
-| INK-01 | Draw on slides and board, color/opacity/width, tablet input | Implemented; device QA pending | GUI draw test passes; physical tablet pending |
+| INK-01 | Draw on slides and board, color/opacity/width, tablet input | Implemented, including visible single-point ink; device QA pending | GUI strokes and actual painted Shift-click dots pass; native dot capture inspected; physical tablet pending |
 | INK-02 | Select/move/scale strokes, delete/clear, overlay-aware persistence | Implemented | GUI select/move/erase and domain scaling/overlay tests pass |
 | VIEW-01 | Crop/pan/zoom, cursor size, laser/spotlight, blackout | Implemented; pan corrected for letterboxing, zoom anchored to cursor, crosshair size now follows P/Shift+P | Qt drag/wheel/keyboard tests pass on slides, board and notes-cropped PDF; rendered crosshair resizing/spotlight/blackout pixels and timeout pass; native Mac captures inspected |
 | MEDIA-01 | Local linked video/audio/GIF, poster, play/pause/seek/step | Implemented | Qt GIF/H.264/WAV decoding; seeking; CFR/VFR stepping tests pass |

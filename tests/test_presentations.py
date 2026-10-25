@@ -85,3 +85,24 @@ def test_canvas_draw_select_move_and_erase(qtbot, deck):
     session.ink.erase(session.ink_pages)
     assert not session.ink.pages[0]
     session.close()
+
+
+def test_single_point_annotation_is_visible_without_a_pointer(qtbot, deck):
+    session = Session()
+    session.open(deck)
+    session.color, session.stroke_width = "#ff0000", .012
+    view = Canvas(session, False)
+    qtbot.addWidget(view)
+    view.resize(640, 360)
+    view.show()
+    qtbot.waitUntil(lambda: bool(session.images.cache))
+    point = view.current_box.center().toPoint()
+    QTest.mouseClick(view, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ShiftModifier, point)
+    session.pointer_visible = False
+    image = view.grab().toImage()
+    image.save(str(deck.parent / "single-point.png"))
+    ratio = image.devicePixelRatio()
+    color = image.pixelColor(round(point.x() * ratio), round(point.y() * ratio))
+    assert color.red() > 200 and color.green() < 50
+    assert session.page == 0 and len(session.ink.pages[0][0].points) == 1
+    session.close()

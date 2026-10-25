@@ -376,7 +376,10 @@ class Canvas(QWidget):
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             painter.setPen(pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawPath(path)
+            if len(stroke.points) == 1:
+                painter.drawPoint(path.currentPosition())
+            else:
+                painter.drawPath(path)
             if self.presenter and any(stroke is s for s in self.session.ink.selected):
                 painter.setPen(QPen(QColor("#65b7ff"), 1, Qt.PenStyle.DashLine))
                 painter.drawRect(path.boundingRect().adjusted(-3, -3, 3, 3))

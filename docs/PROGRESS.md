@@ -43,7 +43,12 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
-`uv run pytest -q`: **84 passed** on the development Mac at this checkpoint.
+`uv run pytest -q`: **85 passed** on the development Mac at this checkpoint.
+Single-point ink was present in the model but invisible because a move-only
+QPainterPath has no painted segment. It now uses the same round pen to draw a
+point. The regression failed on the old code, then passed with offscreen and
+native Cocoa rendering; the native capture under `qa/single-point-native/` was
+inspected. This also covers the rendering needed by a stationary pen tap.
 The updater now supports the GitHub source-install workflow: if no published
 release exists, it finds the latest non-prerelease source version among the
 returned repository tags. HTTP fallback, numeric version ordering, canonical
