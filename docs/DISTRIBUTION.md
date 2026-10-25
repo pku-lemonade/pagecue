@@ -62,6 +62,22 @@ Mac resource packs, including gzip-decoded entries, did not find a bundled
 credits/license document; copyright headers in JavaScript are not a substitute.
 Fresh packaged diagnostics record the separate version strings on each platform.
 
+The notice collector now also inspects Qt Multimedia's **actual shared FFmpeg
+libraries** through `av_version_info`, `avcodec_license` and
+`avcodec_configuration`. The development Mac reports FFmpeg 9.0.1, LGPL 2.1 or
+later, built shared without `--enable-gpl` or `--enable-nonfree`. The collector
+records the library hash, configuration and matching upstream tag, includes
+FFmpeg's license texts and IJG attribution, and copies the installed Python
+runtime's license (falling back to the matching upstream release when absent).
+`native-runtime.json` lists notice-file hashes; the package check verifies those
+files survived installation unchanged. Extra upstream COPYING variants do not
+select a different license from the runtime's reported configuration.
+
+These FFmpeg notices cover the Qt Multimedia libraries. They do not establish
+complete attribution or source correspondence for Chromium's separately embedded
+third-party code, Qt's other bundled components, or Python extension dependencies.
+The public-binary audit remains open.
+
 ## Build and test
 
 ```sh

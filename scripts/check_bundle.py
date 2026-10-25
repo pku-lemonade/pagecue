@@ -1,6 +1,7 @@
 """Install and exercise a native bundle, then update and remove the test installation."""
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -25,6 +26,12 @@ def main():
         work = Path(directory)
         destination = work / source.name
         install(source, destination, platform)
+        resources = destination / ("Contents/Resources" if platform == "macos" else "_internal")
+        notices = resources / "licenses/dependencies"
+        native_inventory = json.loads((notices / "native-runtime.json").read_text(encoding="utf-8"))
+        for item in native_inventory["files"]:
+            if hashlib.sha256((notices / item["path"]).read_bytes()).hexdigest() != item["sha256"]:
+                raise RuntimeError(f"A runtime notice was missing or changed during packaging: {item['path']}")
         shortcut = None
         if platform == "windows":
             from windows_shortcut import create_shortcut, remove_shortcut, verify_shortcut
@@ -88,6 +95,7 @@ def main():
         "passed": True, "platform": platform, "unicode_path": True,
         "install": True, "update": True, "verify": True, "uninstall": True,
         "icon_export": True, "cli_page_duration_direct_video": True,
+        "runtime_notices_verified": True,
         "shortcut": "create/verify/update/preserve-other/remove" if platform == "windows" else "not applicable",
     }, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(evidence, indent=2))

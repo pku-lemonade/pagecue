@@ -101,8 +101,8 @@ test reports and screenshots for review, without publishing an unaudited binary.
 The presence of the workflow is not proof that any particular run/platform passed;
 inspect the run's logs and evidence. Physical display/camera testing is separate.
 
-The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40175202365)
-passes 75 tests on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
+The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40179834045)
+passes 80 tests plus six native interaction checks on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
 PDF/media/web execution and Unicode-path installation checks. Windows shortcut lifecycle
 checks, CLI page/duration/direct-video settings and PNG icon export also pass.
 Windows evidence is from a

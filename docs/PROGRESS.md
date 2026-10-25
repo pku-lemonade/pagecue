@@ -51,8 +51,12 @@ unrelated launcher arguments while recognizing extensionless PDF headers; real
 `.pdf` requests still reach the normal error/reporting path. Closed presenters
 also ignore late open requests. A regression test covers the event signal path,
 and unexpected modal warnings now fail tests immediately with their error text.
-Six native Cocoa interaction/long-deck checks pass locally; fresh CI must identify
-the actual ignored argument or expose any remaining failure.
+Six native Cocoa interaction/long-deck checks pass locally. Run 40179834045 now
+passes all three platforms: 80 tests, six native interaction checks and packaged
+execution/install/update/remove. Its Mac log confirms the ignored events were
+the pytest executable, the two Python test files and `faulthandler_timeout=30`.
+The user separately confirmed the native Mac picker and Finder Open With paths
+in the rebuilt executable using original test PDFs; see HARDWARE_ACCEPTANCE.md.
 Icon export also now refuses existing output files, preserving an existing PDF
 instead of overwriting it. The subprocess regression confirms unchanged bytes.
 The user authorized real local camera/two-display tests with no saved/uploaded
@@ -88,7 +92,8 @@ checks. Both Mac native-test steps stalled and reached the job timeout; the
 terminal run is cancelled, not successful. The next native-test step has verbose
 output, a 30-second Python stack dump and a five-minute step limit for diagnosis;
 the checks have not been removed or marked optional. Windows native artifacts are
-under `qa/native-font-windows-ci/`. Fresh CI must verify the current corrections.
+under `qa/native-font-windows-ci/`. The later successful run 40179834045 verifies
+the corrections; this failed run is retained as diagnostic history.
 The CLI restores `-v`, `-y`, and `-i/--icon`; optional file output supports a Windows
 GUI executable without stdout. Icon export paints PageCue's original SVG, with no
 GUI application/font dependency. Subprocess tests use an invalid platform-plugin
@@ -110,7 +115,8 @@ enlarged crosshair capture was inspected. The six interaction/long-deck checks n
 also run in CI with the native Windows/Cocoa backend and preserve their captures.
 Windows' offscreen test captures showed missing-font boxes; the real installed
 Windows app capture renders correctly. Do not use offscreen Windows captures as
-font-acceptance evidence. Fresh CI must verify the additional native-test step.
+font-acceptance evidence. Run 40179834045 now verifies the additional native-test
+step on all three platforms.
 Packaged diagnostics now record Python/PySide, Qt build, WebEngine and Chromium
 baseline/security-patch versions separately to support the distribution audit.
 Bare 0 now resets notes/web zoom unless a page number is already being entered;
@@ -145,22 +151,27 @@ Older animation tests now compile actual 2013, 2016 and 2018 packages as well as
 the current one. The 2013 button-icon `/MK/I` format and object-style interval/
 scheduled-autoplay metadata, plus 2016 `/Names/AP` icons, render correctly through
 Qt. Source package/dependency versions and hashes are in the fixture manifest.
-The current changes add scrollable/wrapped help and camera permission/device
+Earlier changes added scrollable/wrapped help and camera permission/device
 lifecycle, plus persisted inset width/opacity/corner controls. Native macOS
 captures under `qa/layout-camera/` show minimum, scrolled and normal layouts and
 synthetic inset/expanded camera images; all five were visually inspected. The
 layout check confirms that scrolling help does not navigate the PDF. No physical
 camera was activated or photographed by these checks. Windows minimum/scrolled
 and Intel Mac minimum captures were also inspected from the CI artifacts.
-The verified implementation commit **`cc399f3`** passes **75 tests without skips on
+The verified implementation commit **`a09a0c1`** passes **80 tests without skips on
 Windows x64, Mac arm64 and Mac Intel**, plus all three packaged executable checks:
-[native run 40175202365](https://github.com/pku-lemonade/pagecue/actions/runs/40175202365).
-Windows downloaded reports under `qa/cli-windows-ci/` confirm 75 tests,
+[native run 40179834045](https://github.com/pku-lemonade/pagecue/actions/runs/40179834045).
+The additional six native-window/font interaction checks also pass on all targets.
+The native Python/FFmpeg notice collector and installed-notice hash checks postdate
+this verified app revision and need fresh package CI. Local collection verifies
+seven notice files and reports the actual FFmpeg 9.0.1 LGPL configuration.
+Earlier Windows reports under `qa/cli-windows-ci/` confirm 75 tests,
 frozen executable PDF/media/web operation and install/update/remove/shortcut
 lifecycle, icon export and page/duration/direct-video CLI settings. Its icon and
-packaged presenter captures were inspected. The run also completed both Mac jobs
-successfully. Crosshair resizing and richer runtime diagnostics postdate this
-verified revision and need fresh CI.
+packaged presenter captures were inspected. Those reports predate the current
+verified revision. Current Mac arm64 reports/captures are downloaded under
+`qa/native-open-fixed-arm-ci/`; both JUnit reports, runtime JSON and the native
+presenter spotlight capture were inspected.
 Downloaded reports and opening results under `qa/animation-opening-ci/` confirm
 all 67 tests on each target, Unicode Qt widget-dialog selection, drag/drop,
 QFileOpenEvent handling, recent-page restoration and unchanged source PDFs.
@@ -319,7 +330,8 @@ locally with TeX/FFmpeg excluded from PATH.
    The overlapping help at 700×420 is corrected: rows wrap at readable sizes and
    the panel scrolls. `qa/layout-camera/minimum.png` and `minimum-scrolled.png`
    show the correction; native Windows/Intel resize captures are added to CI.
-   Native file-picker/OS-open acceptance is still pending. A normal LaunchServices
+   Native Mac file-picker/OS-open acceptance now passes by user confirmation.
+   Windows native picker acceptance remains pending. A normal LaunchServices
    launch ran the packaged Cocoa event loop and painted (sampled process evidence),
    but Computer Use returned `cgWindowNotFound` for both the app path and bundle ID,
    so no successful native picker interaction is claimed. The owned QA process was

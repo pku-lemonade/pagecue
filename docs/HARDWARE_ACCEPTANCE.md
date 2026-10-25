@@ -57,6 +57,13 @@ Local metadata is under `qa/hardware-live-fixed-20261025/` and
 `qa/hardware-small-inset-live/` (ignored by Git). The first failed run remains in
 `qa/hardware-live-20261025/` to preserve the evidence for the corrections.
 
+The user also confirmed the rebuilt app's native Mac file picker (Command+O,
+`qa/demo.pdf`) and Finder Open With (`qa/native-open-check.pdf`, a new two-page
+original fixture) both loaded correctly, without changing the default PDF app.
+This is direct user acceptance, not a simulated QFileOpenEvent claim. The
+Computer Use service could not access Finder or PageCue's windows, so it did not
+perform or capture these interactions.
+
 ## Still to verify
 
 - Disconnect/reconnect an actual presentation display: return to usable windowed
@@ -67,6 +74,7 @@ Local metadata is under `qa/hardware-live-fixed-20261025/` and
   but does not provide a real projector or webcam.
 - Mixed-DPI monitor movement and physical tablet input. The two tested Mac
   displays had the same DPR, so they do not establish mixed-DPI acceptance.
-- Native OS file picker, OS file-open delivery and ordinary-user first launch.
+- Windows native file picker/file-open delivery and ordinary-user first launch.
   The local Computer Use service currently returns `cgWindowNotFound` for the
-  running app; Qt widget-dialog tests do not substitute for those OS checks.
+  running app; the user's successful Mac check is recorded above. Qt widget-dialog
+  tests do not substitute for remaining OS checks.
