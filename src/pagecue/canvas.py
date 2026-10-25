@@ -30,6 +30,22 @@ def fit_rect(box: QRectF, width: float, height: float) -> QRectF:
     return result
 
 
+class WebCameraOverlay(QWidget):
+    """Paint above the sibling WebEngine view without intercepting its input."""
+
+    def __init__(self, canvas, parent):
+        super().__init__(parent)
+        self.canvas = canvas
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
+        self.hide()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        self.canvas.paint_camera(painter, QRectF(self.rect()))
+
+
 class Canvas(QWidget):
     command = Signal(object)
     files_dropped = Signal(str)
@@ -349,8 +365,13 @@ class Canvas(QWidget):
                     painter.setPen(QPen(QColor("#ffcf59"), 1.5))
                     painter.drawLine(point - QPointF(arm, 0), point + QPointF(arm, 0))
                     painter.drawLine(point - QPointF(0, arm), point + QPointF(0, arm))
+        self.paint_camera(painter, self.current_box)
+        painter.restore()
+
+    def paint_camera(self, painter, bounds):
         if self.camera_image is not None:
-            box = self.current_box.adjusted(16, 16, -16, -16)
+            painter.save()
+            box = bounds.adjusted(16, 16, -16, -16)
             if not self.camera_large:
                 size = fit_rect(QRectF(0, 0, box.width() * self.camera_width, box.height() * self.camera_width),
                                 self.camera_image.width(), self.camera_image.height()).size()
@@ -360,7 +381,7 @@ class Canvas(QWidget):
                 box = QRectF(x, y, width, height)
             painter.setOpacity(self.camera_opacity)
             painter.drawImage(fit_rect(box, self.camera_image.width(), self.camera_image.height()), self.camera_image)
-        painter.restore()
+            painter.restore()
 
     def _paint_ink(self, painter):
         for stroke in self.session.ink.visible(self.session.ink_pages):

@@ -7,6 +7,7 @@ from PySide6.QtCore import QSettings, QTimer, Qt
 from PySide6.QtTest import QTest
 from pagecue.app import Application, Presenter
 from pagecue.model import Surface
+from pagecue.diagnostics import check_web_camera
 
 
 def main():
@@ -33,6 +34,14 @@ def main():
             result["web_zoom_reset"] = presenter.web.zoomFactor() == 1.0
             result["web_geometry_matches"] = presenter.web.geometry() == presenter.slide.geometry()
             presenter.audience.grab().save(str(output / "audience.png"))
+            try:
+                check_web_camera(presenter, output)
+                result["web_camera_overlay"] = True
+            except Exception as error:
+                result["error"] = str(error)
+                (output / "results.json").write_text(json.dumps(result, indent=2))
+                app.quit()
+                return
             def title(value):
                 result["title"] = value
                 QTest.keyClick(presenter.web, Qt.Key.Key_Escape)
@@ -46,7 +55,7 @@ def main():
     QTimer.singleShot(15000, app.quit)
     app.exec()
     presenter.quit()
-    if not all(result.get(key) for key in ("loaded", "escape_returns_slides", "web_zoom_reset")):
+    if not all(result.get(key) for key in ("loaded", "escape_returns_slides", "web_zoom_reset", "web_camera_overlay")):
         raise RuntimeError("Web integration smoke check failed or timed out")
 
 

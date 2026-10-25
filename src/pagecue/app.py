@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, Q
                               QMessageBox, QSlider, QSpinBox, QStatusBar, QSystemTrayIcon)
 
 from . import __version__
-from .canvas import Canvas
+from .canvas import Canvas, WebCameraOverlay
 from .document import PasswordRequired
 from .media import Camera, MediaPlayer, Posters
 from .model import Surface
@@ -140,6 +140,7 @@ class Presenter(QObject):
         self.media.changed.connect(self._media_state)
         self.seek.sliderMoved.connect(lambda value: self.media.seek(round(value / 1000 * self.media.duration)))
         self.web = None
+        self.web_camera = None
         self.session.message.connect(self.notify)
         self.session.action_requested.connect(self.activate)
         self.session.document_changed.connect(self._opened)
@@ -367,6 +368,7 @@ class Presenter(QObject):
             return False
         if watched is self.slide and event.type() == QEvent.Type.Resize and self.web:
             self.web.setGeometry(self.slide.geometry())
+            self.web_camera.setGeometry(self.slide.geometry())
         if self.web and self.session.surface == Surface.WEB and event.type() == QEvent.Type.KeyPress:
             from PySide6.QtWidgets import QWidget
             in_web = isinstance(watched, QWidget) and (watched is self.web or self.web.isAncestorOf(watched))
@@ -696,6 +698,7 @@ class Presenter(QObject):
         if self.web is None:
             from PySide6.QtWebEngineWidgets import QWebEngineView
             self.web = QWebEngineView(self.audience)
+            self.web_camera = WebCameraOverlay(self.slide, self.audience)
             self.web.installEventFilter(self)
             self.web.loadFinished.connect(lambda okay: None if okay else self.notify("Could not load web content"))
             self.web.loadFinished.connect(lambda _: self._web_keyboard_filter())
@@ -723,6 +726,10 @@ class Presenter(QObject):
             if self.session.surface == Surface.WEB:
                 self.web.setGeometry(self.audience.centralWidget().geometry())
                 self.web.raise_()
+            self.web_camera.setGeometry(self.slide.geometry())
+            self.web_camera.setVisible(self.session.surface == Surface.WEB and self.slide.camera_image is not None)
+            self.web_camera.raise_()
+            self.web_camera.update()
         if self.session.surface != Surface.MEDIA:
             self.media.pause()
             self.seek.hide()

@@ -6,13 +6,56 @@ import platform
 import sys
 
 from PySide6 import __version__ as pyside_version
-from PySide6.QtCore import QEvent, QLibraryInfo, QObject, Qt, QTimer, qVersion
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtCore import QEvent, QLibraryInfo, QObject, QPoint, Qt, QTimer, qVersion
+from PySide6.QtGui import QColor, QImage, QKeyEvent
 from PySide6.QtWidgets import QApplication
 
 from . import __version__
 from .document import Media
 from .model import Surface
+
+
+def check_web_camera(presenter, output):
+    """Inspect synthetic compositing only; never starts or photographs a camera."""
+    p = presenter
+    assert not p.camera.active and p.slide.camera_image is None
+    image = QImage(400, 400, QImage.Format.Format_RGB32)
+    image.fill(QColor("#f08030"))
+    previous = (p.slide.camera_opacity, p.slide.camera_large, p.audience.size())
+    try:
+        p.slide.camera_image = image
+        p.slide.camera_opacity = .5
+        p.session.changed.emit()
+        def pixel(x, y):
+            capture = p.audience.grab()
+            ratio = capture.devicePixelRatio()
+            return capture.toImage().pixelColor(round(x * ratio), round(y * ratio))
+        def inset_check():
+            box = p.slide.geometry()
+            point = box.bottomRight() - QPoint(30, 30)
+            color = pixel(point.x(), point.y())
+            # Half-opacity orange over the known green HTML background.
+            assert abs(color.red() - 132) <= 3 and abs(color.green() - 92) <= 3, color.name()
+            target = p.audience.childAt(point)
+            assert target is p.web or p.web.isAncestorOf(target), "Camera blocks web input"
+        inset_check()
+        p.audience.resize(800, 500)
+        QApplication.processEvents()
+        inset_check()
+        p.audience.grab().save(str(Path(output) / "web-camera.png"))
+        p.slide.camera_large = True
+        p.session.changed.emit()
+        center = p.slide.geometry().center()
+        assert abs(pixel(center.x(), center.y()).red() - 132) <= 3, "Expanded camera hidden"
+        p.slide.camera_image = None
+        p.session.changed.emit()
+        point = p.slide.geometry().bottomRight()
+        assert pixel(point.x() - 30, point.y() - 30).name() == "#18372b", "Stale camera after stop"
+    finally:
+        p.slide.camera_image = None
+        p.slide.camera_opacity, p.slide.camera_large, size = previous
+        p.audience.resize(size)
+        p.session.changed.emit()
 
 
 class SmokeCheck(QObject):
@@ -123,6 +166,8 @@ class SmokeCheck(QObject):
         assert p.web.zoomFactor() == 1.0, "Web zoom reset failed"
         self.results["web_zoom_reset"] = True
         p.audience.grab().save(str(self.output / "web.png"))
+        check_web_camera(p, self.output)
+        self.results["web_camera_overlay"] = True
         def title(value):
             if value != "PageCue packaged web check":
                 self.finish("Unexpected packaged web document title")

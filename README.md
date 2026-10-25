@@ -67,9 +67,17 @@ The current development workflow requires Python 3.12–3.14 and `uv` for buildi
 The resulting application includes its Python/Qt runtime. Launching it does not
 require activating a Python environment. A public binary release is not ready yet.
 
+For a versioned source preview, use
+[`v0.1.0`](https://github.com/pku-lemonade/pagecue/tree/v0.1.0). Agents should check
+`git --version` and `uv --version` first. If uv is missing, use a per-user method
+from its [official installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+The command below selects Python 3.13, the version used in CI; uv can download a
+missing interpreter automatically. Keep the operating system's Python unchanged.
+No TeX or FFmpeg command-line installation is needed to run the committed tests.
+
 1. Clone the repository into an unused directory (or preserve local changes in
    an existing checkout). Check the OS and architecture, inspect the working tree,
-   and run `uv sync --frozen`, then `uv run pytest -q`. Tests use original committed
+   and run `uv sync --frozen --python 3.13`, then `uv run pytest -q`. Tests use original committed
    PDF/video fixtures when `pdflatex` or `ffmpeg` is unavailable; no decoder tests
    are skipped merely because fixture-generation tools are absent.
 2. Run `uv run python scripts/build_app.py` on the target OS.
@@ -106,8 +114,8 @@ test reports and screenshots for review, without publishing an unaudited binary.
 The presence of the workflow is not proof that any particular run/platform passed;
 inspect the run's logs and evidence. Physical display/camera testing is separate.
 
-The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40179834045)
-passes 80 tests plus six native interaction checks on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
+The [verified source preview](https://github.com/pku-lemonade/pagecue/actions/runs/40183195653)
+passes 85 tests plus six native interaction checks on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
 PDF/media/web execution and Unicode-path installation checks. Windows shortcut lifecycle
 checks, CLI page/duration/direct-video settings and PNG icon export also pass.
 Windows evidence is from a

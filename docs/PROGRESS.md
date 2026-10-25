@@ -22,7 +22,8 @@ application are unchanged. PageCue is a working name. No binary release is claim
 - Window hide/restore, persisted display preference/window geometry, safe shutdown.
 - Async version check, opt-in background notification, configurable direct/custom/
   automatic privacy-video routing. Delayed routing is cancelled on context changes
-  and Escape. No release exists at the configured GitHub endpoint yet.
+  and Escape. The published v0.1.0 source tag provides the update channel while
+  no binary release is published.
 - Original SVG app icon, PyInstaller native bundle recipe and runtime notices.
   Standard-library installer stages and verifies copies, checks app identity,
   restores the previous app on failed commit, and preserves a recovery copy if
@@ -43,6 +44,15 @@ application are unchanged. PageCue is a working name. No binary release is claim
 
 ## Evidence
 
+WebEngine's separate audience widget previously covered the camera image painted
+on the canvas below it. The reference keeps its camera above web content. A
+transparent, mouse-transparent Qt widget now draws the same camera renderer above
+WebEngine. The native offline test first failed with only the green HTML pixel,
+then passed for inset/half-opacity composition, resize, expansion, web input hit
+testing and clearing. The synthetic capture under `qa/web-camera-fixed/` was
+inspected; no physical camera was activated. The packaged smoke now requires this
+check on each native CI target. Cross-platform results for this change are pending.
+
 `uv run pytest -q`: **85 passed** on the development Mac at this checkpoint.
 Single-point ink was present in the model but invisible because a move-only
 QPainterPath has no painted segment. It now uses the same round pen to draw a
@@ -52,8 +62,11 @@ inspected. This also covers the rendering needed by a stationary pen tap.
 The updater now supports the GitHub source-install workflow: if no published
 release exists, it finds the latest non-prerelease source version among the
 returned repository tags. HTTP fallback, numeric version ordering, canonical
-links and cancellation at either request stage have tests. The first source tag
-will be published only after the new code passes native CI; see SOURCE_RELEASES.md.
+links and cancellation at either request stage have tests. The `v0.1.0` source tag
+is now published on verified commit `8a5138a`, after all three native CI targets
+passed. The live Qt checker found it through the real GitHub tags API and correctly
+compared both older/current installed versions; see SOURCE_RELEASES.md. This is a
+source preview, not a completed binary audit.
 Run 40181248779 successfully verifies Python/FFmpeg runtime notice collection and
 installed-notice hashes on all three platforms. The next package check additionally
 preserves the runtime notice inventory in its evidence artifact.
@@ -176,8 +189,9 @@ Windows x64, Mac arm64 and Mac Intel**, plus all three packaged executable check
 [native run 40179834045](https://github.com/pku-lemonade/pagecue/actions/runs/40179834045).
 The additional six native-window/font interaction checks also pass on all targets.
 The native Python/FFmpeg notice collector and installed-notice hash checks postdate
-this verified app revision and need fresh package CI. Local collection verifies
-seven notice files and reports the actual FFmpeg 9.0.1 LGPL configuration.
+that app revision and pass on all three platforms in run 40181248779. Local
+collection verifies seven notice files and reports the actual FFmpeg 9.0.1 LGPL
+configuration.
 Earlier Windows reports under `qa/cli-windows-ci/` confirm 75 tests,
 frozen executable PDF/media/web operation and install/update/remove/shortcut
 lifecycle, icon export and page/duration/direct-video CLI settings. Its icon and
@@ -315,8 +329,9 @@ locally with TeX/FFmpeg excluded from PATH.
 
 ## Required remaining work
 
-1. Create an actual release channel; validate OS update notification delivery and
-   real privacy-video service behavior. Release parsing/routing now have coverage.
+1. Validate OS update notification delivery and real privacy-video playback.
+   The v0.1.0 source update channel is published and live-checked; release/source
+   parsing, cancellation, routing and public HTTPS service calls have coverage.
 2. Complete the remaining rendering/long-deck audit. Current and compiled
    2013/2016/2018 animation output now cover widget and named-icon forms, original
    object-style timing, independent animations, posters and click/keyboard controls.

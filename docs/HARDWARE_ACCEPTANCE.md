@@ -66,6 +66,9 @@ perform or capture these interactions.
 
 ## Still to verify
 
+The user declined the physical display-disconnect check for now on 2026-10-25.
+Leave that check pending; do not request another unplug test in this work session.
+
 - Disconnect/reconnect an actual presentation display: return to usable windowed
   mode, preserve page/timer/ink, then choose the reconnected audience display.
 - Switch real camera devices and disconnect an external camera while previewing:

@@ -30,5 +30,17 @@ then follow README.md and AGENTS.md in that checkout.
 5. Future packaged releases additionally need the public-binary notice/source and
    signing checks in DISTRIBUTION.md. A source tag does not waive those checks.
 
-The first planned checkpoint is `v0.1.0`; publication and its live-channel result
-will be recorded after native CI verifies the source-tag updater.
+## Published checkpoint
+
+[`v0.1.0`](https://github.com/pku-lemonade/pagecue/tree/v0.1.0) is a development
+source preview at commit `8a5138aa3d48deae4844bcb4b5698fcc1fd60a90`.
+[CI run 40183195653](https://github.com/pku-lemonade/pagecue/actions/runs/40183195653)
+passed 85 tests, six native interaction checks and packaged execution on all three
+targets. The annotated tag object is `b0d435564d5bae457918e4a10f3954261036c908`.
+
+The live Qt checker followed GitHub's missing-release response to the public tag
+list and found 0.1.0. With an older installed-version value (0.0.0), it reported an
+update; with 0.1.0, it reported no newer version. Both results linked to the
+canonical tagged source tree. Local transport evidence is under
+`qa/source-release-live/result.json`. This verifies the source update channel;
+actual OS notification delivery remains a separate acceptance item.
