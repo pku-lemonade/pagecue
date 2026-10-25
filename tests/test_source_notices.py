@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 from io import BytesIO
 import json
 from pathlib import Path
@@ -39,3 +40,24 @@ def test_archive_preserves_copyright_and_resolves_referenced_and_standard_licens
     assert result["texts"]["src/component/COPYRIGHT"] == files["src/component/COPYRIGHT"]
     assert result["components"][1]["text_files"] == ["LICENSES/MIT.txt"]
     assert result["components"][1]["attribution"]["Copyright"] == "Original fixture authors"
+
+
+@pytest.mark.parametrize("valid_hash", [True, False])
+def test_external_standard_license_keeps_source_and_rejects_changed_text(tmp_path, valid_hash):
+    archive = tmp_path / "standard-fixture.tar.xz"
+    metadata = json.dumps({"Id": "fixture", "LicenseId": "MIT", "Copyright": "Fixture author"}).encode()
+    with tarfile.open(archive, "w:xz") as output:
+        member = tarfile.TarInfo("fixture/src/qt_attribution.json")
+        member.size = len(metadata)
+        output.addfile(member, BytesIO(metadata))
+    text = "Original license fixture"
+    source = {"text": text, "url": "https://example.invalid/MIT.txt",
+              "sha256": hashlib.sha256(text.encode()).hexdigest() if valid_hash else "0" * 64}
+    standard = {"LICENSES/MIT.txt": source}
+    if not valid_hash:
+        with pytest.raises(ValueError, match="hash mismatch"):
+            notices.collect(archive, "fixture", "1", standard)
+        return
+    result = notices.collect(archive, "fixture", "1", standard)
+    assert result["texts"]["LICENSES/MIT.txt"] == text
+    assert result["external_text_sources"]["LICENSES/MIT.txt"]["url"] == source["url"]

@@ -10,6 +10,7 @@ from pathlib import Path
 import platform
 import re
 import shutil
+import ssl
 import sys
 import sysconfig
 import urllib.request
@@ -19,10 +20,13 @@ OUT = ROOT / "build/notices"
 
 
 def fetch_notice(url, destination):
-    if not destination.exists():
+    cache = ROOT / "build/license-cache" / hashlib.sha256(url.encode()).hexdigest()
+    if not cache.exists():
         with urllib.request.urlopen(url, timeout=30) as response:
             contents = response.read()
-        destination.write_bytes(contents)
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_bytes(contents)
+    shutil.copyfile(cache, destination)
 
 
 def collect_native_runtime():
@@ -46,6 +50,41 @@ def collect_native_runtime():
         fetch_notice(source_url, target)
     record(target, "Installed Python runtime license" if installed else source_url)
     python = {"version": version, "source": f"https://github.com/python/cpython/tree/v{version}"}
+    build_file = Path(sys.base_prefix) / "BUILD"
+    if build_file.is_file():
+        build = build_file.read_text().strip()
+        python["distribution"] = "python-build-standalone"
+        python["build"] = build
+        python["build_recipe"] = f"https://github.com/astral-sh/python-build-standalone/tree/{build}"
+        for component in ("bzip2", "expat", "libffi", "liblzma", "mpdecimal", "zlib"):
+            url = f"https://raw.githubusercontent.com/astral-sh/python-build-standalone/{build}/LICENSE.{component}.txt"
+            target = python_dir / f"LICENSE.{component}.txt"
+            fetch_notice(url, target)
+            record(target, url)
+    from cryptography.hazmat.backends.openssl.backend import backend
+    from cryptography.hazmat.bindings import _rust
+    openssl = {}
+    for owner, description in (("python", ssl.OPENSSL_VERSION), ("cryptography", backend.openssl_version_text())):
+        version = description.split()[1]
+        source = f"https://github.com/openssl/openssl/tree/openssl-{version}"
+        openssl[owner] = {"version": description, "source": source}
+        folder = OUT / f"OpenSSL-{version}"
+        folder.mkdir(exist_ok=True)
+        url = f"https://raw.githubusercontent.com/openssl/openssl/openssl-{version}/LICENSE.txt"
+        target = folder / "LICENSE.txt"
+        fetch_notice(url, target)
+        record(target, url)
+    revisions = sorted({match.decode() for match in re.findall(
+        rb"rustc[\\/]([0-9a-f]{40})[\\/]", Path(_rust.__file__).read_bytes())})
+    rust = {"source_revisions": revisions}
+    for revision in revisions:
+        folder = OUT / f"Rust-{revision}"
+        folder.mkdir(exist_ok=True)
+        for name in ("LICENSE-APACHE", "LICENSE-MIT"):
+            url = f"https://raw.githubusercontent.com/rust-lang/rust/{revision}/{name}"
+            target = folder / name
+            fetch_notice(url, target)
+            record(target, url)
     def library_path(stem):
         matches = [path for pattern in (f"lib{stem}*.dylib", f"{stem}-*.dll", f"lib{stem}.so*")
                    for path in root.rglob(pattern) if path.is_file()]
@@ -85,14 +124,25 @@ def collect_native_runtime():
                       "The accompanying COPYING files include upstream's optional license variants; their presence does not select them.\n",
                       encoding="utf-8")
     record(credit, "Presenteriyaki attribution for the supplied FFmpeg libraries")
-    (OUT / "native-runtime.json").write_text(json.dumps({"python": python, "ffmpeg": ffmpeg, "files": files}, indent=2), encoding="utf-8")
+    (OUT / "native-runtime.json").write_text(json.dumps({"python": python, "openssl": openssl,
+        "rust_standard_library": rust, "ffmpeg": ffmpeg, "files": files}, indent=2), encoding="utf-8")
 
 
 def main():
+    if OUT.exists():
+        shutil.rmtree(OUT)
     OUT.mkdir(parents=True, exist_ok=True)
+    from PySide6.QtCore import qVersion
+    from PySide6.QtWebEngineCore import qWebEngineVersion
+    for path in (ROOT / "bundle/notices").glob("*.json"):
+        inventory = json.loads(path.read_text(encoding="utf-8"))
+        expected = (distribution("cryptography").version if inventory["module"] == "cryptography-rust"
+                    else qWebEngineVersion() if inventory["module"] == "qtwebengine" else qVersion())
+        if inventory["version"] != expected:
+            raise RuntimeError(f"Refresh {path.name}: installed runtime is {expected}")
     manifest = []
     names = ("PySide6", "PySide6-Essentials", "PySide6-Addons", "PySide6-Pdf", "PySide6-WebEngine",
-             "shiboken6", "pypdf", "cryptography", "cffi", "pycparser", "packaging")
+             "shiboken6", "pypdf", "cryptography", "cffi", "pycparser", "packaging", "PyInstaller")
     for name in names:
         installed = distribution(name)
         target = OUT / name
@@ -116,7 +166,14 @@ def main():
         target = OUT / name
         fetch_notice(url, target)
     collect_native_runtime()
+    shutil.copytree(ROOT / "bundle/notices", OUT / "components")
     (OUT / "dependency-versions.json").write_text(json.dumps(manifest, indent=2))
+    from render_notices import render
+    render(OUT)
+    files = [{"path": path.relative_to(OUT).as_posix(),
+              "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+             for path in sorted(OUT.rglob("*")) if path.is_file() and path.name != "notice-files.json"]
+    (OUT / "notice-files.json").write_text(json.dumps({"files": files}, indent=2), encoding="utf-8")
     print("Collected dependency notices:", OUT)
 
 

@@ -9,7 +9,7 @@ import re
 import tarfile
 
 
-def collect(archive, module, version):
+def collect(archive, module, version, standard_texts=None):
     metadata_files, texts, roots = {}, {}, set()
     with tarfile.open(archive, "r|xz") as source:
         for item in source:
@@ -47,6 +47,15 @@ def collect(archive, module, version):
             if item.isfile() and relative in needed:
                 texts[relative] = source.extractfile(item).read().decode("utf-8")
     missing = needed - texts.keys()
+    external_sources = {}
+    for reference in sorted(missing):
+        if reference.startswith("LICENSES/") and reference in (standard_texts or {}):
+            standard = standard_texts[reference]
+            if hashlib.sha256(standard["text"].encode("utf-8")).hexdigest() != standard["sha256"]:
+                raise ValueError(f"Standard license text hash mismatch: {reference}")
+            texts[reference] = standard["text"]
+            external_sources[reference] = {key: value for key, value in standard.items() if key != "text"}
+    missing -= texts.keys()
     if missing:
         raise ValueError(f"Missing referenced notice text: {sorted(missing)}")
     with archive.open("rb") as stream:
@@ -54,7 +63,7 @@ def collect(archive, module, version):
     return {"module": module, "version": version, "archive": archive.name,
             "archive_sha256": digest,
             "scope": "Source-module attribution inventory; includes components not necessarily shipped by the app.",
-            "components": components, "texts": dict(sorted(texts.items()))}
+            "components": components, "texts": dict(sorted(texts.items())), "external_text_sources": external_sources}
 
 
 def main():
@@ -63,8 +72,10 @@ def main():
     parser.add_argument("--module", required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--standard-texts", type=Path, help="JSON of SPDX license texts and their source URLs/hashes")
     args = parser.parse_args()
-    result = collect(args.archive, args.module, args.version)
+    standard_texts = json.loads(args.standard_texts.read_text(encoding="utf-8")) if args.standard_texts else None
+    result = collect(args.archive, args.module, args.version, standard_texts)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Collected {len(result['components'])} attributions and {len(result['texts'])} texts into {args.output}")

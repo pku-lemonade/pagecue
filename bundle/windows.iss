@@ -12,6 +12,7 @@ AppVersion={#AppVersion}
 AppPublisherURL=https://github.com/pku-lemonade/presenteriyaki
 DefaultDirName={localappdata}\Programs\Presenteriyaki
 PrivilegesRequired=lowest
+MinVersion=10.0.17763
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes

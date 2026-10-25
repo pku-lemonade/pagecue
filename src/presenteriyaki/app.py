@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+import sys
 from urllib.parse import quote, urlsplit, urlunsplit
 
 from PySide6.QtCore import QEvent, QObject, QPointF, QRect, Qt, QTimer, QUrl, Signal
@@ -222,6 +223,12 @@ class Presenter(QObject):
         action(media_menu, "Video link routing…", self.configure_video_routing)
         help_menu = self.presenter.menuBar().addMenu("Help")
         action(help_menu, "Keyboard help", self.toggle_help)
+        notice_root = (Path(sys._MEIPASS) / "licenses/dependencies" if getattr(sys, "frozen", False)
+                       else Path(__file__).resolve().parents[2] / "build/notices")
+        notice_index = notice_root / "index.html"
+        notice_action = action(help_menu, "Third-party notices", lambda:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(notice_index))))
+        notice_action.setEnabled(notice_index.is_file())
         action(help_menu, "Check for updates…", lambda: self.updates.check(manual=True))
         self.auto_update_action = action(help_menu, "Notify about new versions")
         self.auto_update_action.setCheckable(True)

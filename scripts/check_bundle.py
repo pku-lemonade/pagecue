@@ -32,10 +32,14 @@ def main():
         resources = destination / ("Contents/Resources" if platform == "macos" else "_internal")
         notices = resources / "licenses/dependencies"
         native_inventory = json.loads((notices / "native-runtime.json").read_text(encoding="utf-8"))
-        for item in native_inventory["files"]:
+        notice_files = json.loads((notices / "notice-files.json").read_text(encoding="utf-8"))
+        for item in notice_files["files"]:
             if hashlib.sha256((notices / item["path"]).read_bytes()).hexdigest() != item["sha256"]:
                 raise RuntimeError(f"A runtime notice was missing or changed during packaging: {item['path']}")
         (output / "runtime-notices.json").write_text(json.dumps(native_inventory, indent=2), encoding="utf-8")
+        (output / "notice-files.json").write_text(json.dumps(notice_files, indent=2), encoding="utf-8")
+        if not (notices / "index.html").is_file():
+            raise RuntimeError("Missing readable dependency-notice index")
         shortcut = None
         if platform == "windows":
             from windows_shortcut import create_shortcut, remove_shortcut, verify_shortcut

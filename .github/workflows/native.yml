@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      upload_installers:
+        description: Upload the tested unsigned preview installers
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -62,6 +67,15 @@ jobs:
         run: uv run python scripts/build_installer.py
       - name: Verify the installer artifact
         run: uv run python scripts/check_installer.py --output qa/installer
+      - name: Upload tested preview installer
+        if: github.event_name == 'workflow_dispatch' && inputs.upload_installers
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installer-${{ matrix.os }}
+          path: dist/installers/*
+          compression-level: 0
+          retention-days: 14
+          if-no-files-found: error
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

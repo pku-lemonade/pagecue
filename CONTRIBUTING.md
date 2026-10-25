@@ -101,3 +101,14 @@ See Apple's [notarization workflow](https://developer.apple.com/documentation/se
 Run the native checks, review [distribution requirements](docs/DISTRIBUTION.md),
 and publish platform application downloads with release notes. Keep internal QA
 logs, research notes and personal acceptance history out of release documentation.
+
+The native workflow's manual **Upload installers** option retains the tested
+DMG and Setup files as `installer-*` artifacts. For an unsigned preview:
+
+```sh
+gh workflow run native.yml -f upload_installers=true
+```
+
+Wait for all platform checks, download those artifacts, and publish the three
+installers with a SHA-256 checksum file in a GitHub prerelease. Keep the release
+in draft until every installer is attached and verified.

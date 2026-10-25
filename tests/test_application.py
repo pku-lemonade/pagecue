@@ -13,6 +13,27 @@ from presenteriyaki.model import Surface
 from presenteriyaki.services import Release
 
 
+def test_packaged_notice_menu_opens_the_local_index(qapp, qtbot, tmp_path, monkeypatch):
+    from presenteriyaki import app as module
+    index = tmp_path / "licenses/dependencies/index.html"
+    index.parent.mkdir(parents=True)
+    index.write_text("Original notice-index fixture")
+    monkeypatch.setattr(module.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(module.sys, "_MEIPASS", str(tmp_path), raising=False)
+    opened = []
+    monkeypatch.setattr(module.QDesktopServices, "openUrl", lambda url: opened.append(Path(url.toLocalFile())))
+    app = Presenter(qapp)
+    qtbot.addWidget(app.presenter)
+    qtbot.addWidget(app.audience)
+    help_menu = app.presenter.menuBar().actions()[-1].menu()
+    action = next(action for action in help_menu.actions() if action.text() == "Third-party notices")
+    assert action.isEnabled()
+    action.trigger()
+    assert opened == [index]
+    app.session.close()
+    app.media.close()
+
+
 def test_native_file_open_ignores_launcher_arguments_and_accepts_extensionless_pdf(qapp, qtbot, deck, tmp_path):
     script = tmp_path / "launcher.py"
     script.write_text("print('This is not a presentation')")
