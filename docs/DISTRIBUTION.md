@@ -29,6 +29,16 @@ check. Package metadata lists source repositories for the remaining dependencies
 The exact runtime payload and third-party notices must be audited before a public
 binary release; development bundles are not yet a release-compliance sign-off.
 
+The installed WebEngine module reports **6.140.0**, Chromium **140.0.7339.225**,
+and security-patch version **152.0.7977.83** through its Qt runtime APIs, while
+`qVersion()` reports Qt **6.12.0**. Treat those as distinct version identifiers in
+the audit; a Qt 6.12 source pointer alone has not established complete source
+coverage for this payload. The Qt wheels contain no discoverable standalone
+license/attribution files, and `chrome://credits` did not load in the local build.
+The public licensing page redirects to the separate WebEngine documentation;
+collect matching third-party notices and verify exact source correspondence before
+publishing a binary. These are recorded gaps, not completed release checks.
+
 ## Build and test
 
 ```sh

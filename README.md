@@ -76,8 +76,10 @@ test reports and screenshots for review, without publishing an unaudited binary.
 The presence of the workflow is not proof that any particular run/platform passed;
 inspect the run's logs and evidence. Physical display/camera testing is separate.
 
-The first CI run verified Windows x64 and Mac arm64/Intel packages, including actual
-PDF/media/web execution and Unicode-path installation. Windows evidence is from a
+The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40168937506)
+passes 55 tests on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
+PDF/media/web execution and Unicode-path installation checks. Windows shortcut lifecycle
+checks also pass. Windows evidence is from a
 Windows Server 2025 runner, not a Windows 11 laptop with a projector. Full parity
 and hardware acceptance remain incomplete; see the feature ledger for details.
 

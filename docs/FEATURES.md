@@ -34,7 +34,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | ANIM-01 | LaTeX animate frames, widget controls, frame stepping | Implemented for recognized widget-frame animations | Current and animate 2018/02/28 PDFs: actual Qt-rendered frame colors, controls and stepping pass; other methods/multiple animations pending |
 | ANIM-02 | Autoplay, forward/reverse, loop, palindrome, old/new metadata | Implemented for recognized metadata | Current/2018 generated fixtures verify autoplay/loop/palindrome; reverse/speed/object metadata unit tests; broader formats pending |
 | APP-01 | Menus, help, about, version/update check and notifications | Implemented; actual release channel pending | Real local HTTP/QtNetwork version and missing-release tests; OS notification delivery pending |
-| APP-02 | Per-user installation, reproducible packages, update/uninstall | Native bundle recipe, staged installer and Windows Start Menu support | Windows x64 and Mac arm64/Intel CI install/update/remove and packaged execution pass; new shortcut checks pending CI; OS first-launch approval flow pending |
+| APP-02 | Per-user installation, reproducible packages, update/uninstall | Native bundle recipe, staged installer and Windows Start Menu support | Windows x64 and Mac arm64/Intel CI install/update/remove and packaged execution pass; Windows Unicode shortcut lifecycle passes; OS first-launch approval flow pending |
 | APP-03 | Windows/macOS support, fonts, mixed DPI, input devices | Windows x64 and Mac arm64/Intel packages run in CI | Windows presenter/Chinese notes capture inspected; mixed DPI and physical device acceptance pending |
 
 No native code/toolkit choice proves media/animation parity. Keep actual fixture

@@ -36,7 +36,7 @@ application are unchanged. PageCue is a working name. No binary release is claim
 - Windows Start Menu helper preserves unrelated shortcuts and uses per-user shell
   links without changing PDF associations; CI coverage added. The first scripting
   helper failed to set a Unicode target in Windows CI; it has been replaced with
-  native IShellLinkW/IPersistFile calls and is awaiting re-verification.
+  native IShellLinkW/IPersistFile calls and passes native Windows verification.
 - An original animation fixture compiled with the maintainer's pinned, unmodified
   animate 2018/02/28 package now renders all frames with correct timing/controls.
   The fixture generator records its source/hash and does not vendor the package.
@@ -44,7 +44,14 @@ application are unchanged. PageCue is a working name. No binary release is claim
 ## Evidence
 
 `uv run pytest -q`: **55 passed** on the development Mac at this checkpoint.
-The initial native CI revision (`441b353`) ran **43 tests without skips** on Windows.
+The current implementation commit **`0bc2f83`** passes **55 tests without skips on
+Windows x64, Mac arm64 and Mac Intel**, plus all three packaged executable checks:
+[native run 40168937506](https://github.com/pku-lemonade/pagecue/actions/runs/40168937506).
+Windows additionally passes Unicode shell-link create/read/update/conflict/removal.
+Downloaded JSON, JUnit reports and captures are under `qa/windows-final-ci/`,
+`qa/mac-arm-final-ci/` and `qa/mac-intel-final-ci/`. Only authored fixtures were used.
+This is automated runner evidence, not physical-device or ordinary-user OS approval
+acceptance. Documentation-only commits after that revision do not change binaries.
 
 Tests include actual Qt PDF rendering, notes/annotations/encryption, original
 LaTeX animate and Beamer-generated fixtures, controlled PDF labels/outlines,
@@ -82,13 +89,13 @@ Offscreen/native Cocoa captures are local under `qa/` (ignored):
   Chinese notes) and WebEngine captures were inspected. This proves that runner
   configuration, not physical Windows laptops/projectors or first-launch prompts.
   Mac arm64 and Intel also completed the workflow successfully. Downloaded runner
-  evidence is under `mac-arm-ci/` and `mac-intel-ci/`; the second run must still
-  verify the latest link and Start Menu changes.
+  evidence is under `mac-arm-ci/` and `mac-intel-ci/`. These earlier artifacts
+  remain distinct from the final successful run listed above.
 - [Second native run 40168249300](https://github.com/pku-lemonade/pagecue/actions/runs/40168249300):
   all 52 application tests and both Mac packages passed. Windows packaging built,
   but the new shortcut helper failed before the runtime smoke. Do not present that
   revision's Windows installer as fully validated. A native Unicode API replacement
-  and an early Windows shell-link check are now prepared for the next run.
+  and an early Windows shell-link check corrected that failure in the final run.
 
 Reproduce the common checks:
 
@@ -137,11 +144,11 @@ locally with TeX/FFmpeg excluded from PATH.
   and waiting for a first frame before pausing could advance the video clock while
   hardware initialization/conversion stalled. Non-autoplay loads now pause
   immediately after priming and before image conversion. A delayed-event test
-  checks that frame zero remains selected. Native CI must verify the correction.
+  checks that frame zero remains selected. All three native CI targets pass.
 - Windows shell-link verification must normalize 8.3 and long parent names; the
   native API can expand RUNNER~1. Comparing raw strings incorrectly rejected a
   newly created shortcut. Verification now resolves paths before comparison,
-  including after the executable is removed. Native CI must verify this change.
+  including after the executable is removed. Native Windows CI passes.
 
 ## Required remaining work
 
@@ -153,6 +160,9 @@ locally with TeX/FFmpeg excluded from PATH.
    package probe needs its historical `animfp.sty` dependency before compilation.
 3. Audit camera permission/device lifecycle and test a real camera with deliberate
    user involvement. Camera frames are not captured automatically during QA.
+   Source review found fixed inset opacity/size rather than adjustment controls,
+   a permission callback lacking cancellation/close protection, and no explicit
+   stale-inset clearing on device loss. Correct these before hardware acceptance.
 4. Finish interaction/visual edge cases: small windows, changing DPI, crop/pan/zoom,
    selection scaling, persistent preferences, hide/fullscreen restoration and
    actual physical display selection/swap/unplug behavior.
@@ -160,10 +170,10 @@ locally with TeX/FFmpeg excluded from PATH.
    list needs a readable compact/scrollable presentation at that size.
 5. Complete native package verification and the binary dependency/source/notice
    audit. Mac bundled Python/Qt, identity/icon, camera entitlements,
-   usage text and staged installer exist. Clean-machine startup remains pending;
-   local Mac Unicode-path install/update/uninstall and startup checks pass.
-6. Rerun native checks for the link/shortcut changes,
-   and complete both platforms' physical-device acceptance and ordinary-user
+   usage text and staged installer exist. Fresh CI runner startup passes; ordinary
+   user first-launch permission/signing checks remain pending. WebEngine's separate
+   runtime version and missing notices are recorded in DISTRIBUTION.md.
+6. Complete both platforms' physical-device acceptance and ordinary-user
    first-launch checks. Windows CI is not equivalent to hardware acceptance.
 7. Do a requirement-by-requirement completion audit against `FEATURES.md`; do not
    substitute an unsupported-feature message for a feature's implementation.
