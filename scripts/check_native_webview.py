@@ -10,7 +10,8 @@ import sys
 # QWebView otherwise prefers WebEngine when both plugins are installed.
 os.environ["QT_WEBVIEW_PLUGIN"] = "native"
 
-from PySide6.QtCore import QLibraryInfo, QPluginLoader, QPoint, QTimer, QUrl, Qt, qVersion
+from PySide6.QtCore import QLibraryInfo, QPluginLoader, QPoint, QSettings, QTimer, QUrl, Qt, qVersion
+from PySide6.QtGui import QColor, QImage
 from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtWebView import QWebView, QWebViewLoadingInfo, QWebViewSettings, QtWebView
 
@@ -28,6 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "qa/native-webview")
     parser.add_argument("--capture", action="store_true", help="Capture the probe on an unlocked test desktop")
+    parser.add_argument("--camera-overlay", action="store_true", help="Use the app's translucent overlay with a synthetic image")
     args = parser.parse_args()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -47,11 +49,24 @@ def main():
         web.settings().setAttribute(QWebViewSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
     container = QWidget.createWindowContainer(web, window)
     container.setGeometry(0, 0, 800, 600)
-    overlay = QWidget(window)
+    if args.camera_overlay:
+        from presenteriyaki.canvas import Canvas, WebCameraOverlay
+        from presenteriyaki.session import Session
+        QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+        QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(output / "settings"))
+        session = Session()
+        canvas = Canvas(session, False, window)
+        canvas.hide()
+        canvas.camera_image = QImage(160, 90, QImage.Format.Format_RGB32)
+        canvas.camera_image.fill(QColor("#00ff00"))
+        overlay = WebCameraOverlay(canvas, window)
+        overlay.setGeometry(0, 0, 800, 600)
+    else:
+        overlay = QWidget(window)
+        overlay.setStyleSheet("background: #00ff00")
+        overlay.setGeometry(500, 330, 150, 90)
     overlay.setAttribute(Qt.WidgetAttribute.WA_NativeWindow)
     overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-    overlay.setStyleSheet("background: #00ff00")
-    overlay.setGeometry(500, 330, 150, 90)
     overlay.show()
     overlay.raise_()
     plugin_dir = Path(QLibraryInfo.path(QLibraryInfo.PluginsPath)) / "webview"
@@ -74,7 +89,8 @@ def main():
             if not capture.isNull():
                 image = capture.toImage()
                 scale = capture.devicePixelRatio()
-                result["overlay_pixel"] = image.pixelColor(round(550 * scale), round(350 * scale)).name()
+                x, y = (700, 550) if args.camera_overlay else (550, 350)
+                result["overlay_pixel"] = image.pixelColor(round(x * scale), round(y * scale)).name()
                 result["background_pixel"] = image.pixelColor(round(20 * scale), round(560 * scale)).name()
         (output / "result.json").write_text(json.dumps(result, indent=2) + "\n")
         app.quit()
