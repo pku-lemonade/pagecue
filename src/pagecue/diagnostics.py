@@ -5,7 +5,8 @@ from pathlib import Path
 import platform
 import sys
 
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, qVersion
+from PySide6 import __version__ as pyside_version
+from PySide6.QtCore import QEvent, QLibraryInfo, QObject, Qt, QTimer, qVersion
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QApplication
 
@@ -23,6 +24,7 @@ class SmokeCheck(QObject):
         self.media = Path(media).resolve() if media else None
         self.web = web
         self.results = {"version": __version__, "qt": qVersion(), "platform": platform.platform(),
+                        "python": platform.python_version(), "pyside": pyside_version, "qt_build": QLibraryInfo.build(),
                         "architecture": platform.machine(), "frozen": bool(getattr(sys, "frozen", False)), "passed": False}
         self.done = False
         self.poll = QTimer(self)
@@ -96,6 +98,10 @@ class SmokeCheck(QObject):
             self.finish()
 
     def _web(self):
+        from PySide6.QtWebEngineCore import (qWebEngineVersion, qWebEngineChromiumVersion,
+                                            qWebEngineChromiumSecurityPatchVersion)
+        self.results.update(qt_webengine=qWebEngineVersion(), chromium=qWebEngineChromiumVersion(),
+                            chromium_security_patch=qWebEngineChromiumSecurityPatchVersion())
         html = self.output / "web-fixture.html"
         html.write_text('<!doctype html><title>PageCue packaged web check</title>'
                         '<body style="background:#18372b;color:white;font:24px sans-serif">'

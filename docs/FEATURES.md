@@ -24,7 +24,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | TIME-02 | PDF /Dur auto-advance and pause/resume | Implemented | Actual /Dur PDF auto-advance and disabled state tested |
 | INK-01 | Draw on slides and board, color/opacity/width, tablet input | Implemented; device QA pending | GUI draw test passes; physical tablet pending |
 | INK-02 | Select/move/scale strokes, delete/clear, overlay-aware persistence | Implemented | GUI select/move/erase and domain scaling/overlay tests pass |
-| VIEW-01 | Crop/pan/zoom, cursor size, laser/spotlight, blackout | Implemented; pan corrected for letterboxing and zoom anchored to cursor | Qt drag/wheel/keyboard tests pass on slides, board and notes-cropped PDF; rendered pointer/spotlight/blackout pixels and timeout pass; native Mac captures inspected |
+| VIEW-01 | Crop/pan/zoom, cursor size, laser/spotlight, blackout | Implemented; pan corrected for letterboxing, zoom anchored to cursor, crosshair size now follows P/Shift+P | Qt drag/wheel/keyboard tests pass on slides, board and notes-cropped PDF; rendered crosshair resizing/spotlight/blackout pixels and timeout pass; native Mac captures inspected |
 | MEDIA-01 | Local linked video/audio/GIF, poster, play/pause/seek/step | Implemented | Qt GIF/H.264/WAV decoding; seeking; CFR/VFR stepping tests pass |
 | MEDIA-02 | Movie, Screen/Rendition, RichMedia embedded PDF media | Implemented | Movie/Rendition/RichMedia PDFs decoded through Qt |
 | MEDIA-03 | Embedded-rectangle and full-slide playback | Implemented | Embedded/expanded pixel assertions and native Mac captures inspected |
@@ -36,7 +36,7 @@ Implementation is independent, using public Qt and PDF APIs and behavioral needs
 | APP-01 | Menus, help, about, version/update check and notifications | Implemented; actual release channel pending | Real local HTTP/QtNetwork version and missing-release tests; OS notification delivery pending |
 | APP-02 | Per-user installation, reproducible packages, update/uninstall | Native bundle recipe, staged installer and Windows Start Menu support | Windows x64 and Mac arm64/Intel CI install/update/remove and packaged execution pass; Windows Unicode shortcut lifecycle passes; OS first-launch approval flow pending |
 | APP-03 | Windows/macOS support, fonts, mixed DPI, input devices | Windows x64 and Mac arm64/Intel packages run in CI | Windows presenter/Chinese notes capture inspected; mixed DPI and physical device acceptance pending |
-| APP-04 | CLI help/version, initial page/duration, direct video and icon export | Implemented, including original short aliases and optional PNG output path | Headless subprocess version/stdout/file export tests pass; actual Mac bundle verifies PNG export and `-p 2 -d 12.5 -y` session settings; fresh Windows/Intel CI pending |
+| APP-04 | CLI help/version, initial page/duration, direct video and icon export | Implemented, including original short aliases and optional PNG output path | Headless subprocess export tests pass; actual Windows/Mac arm64/Intel packages verify PNG export and `-p 2 -d 12.5 -y` session settings |
 
 No native code/toolkit choice proves media/animation parity. Keep actual fixture
 evidence for each format and control. Do not mark “unsupported” as completion.

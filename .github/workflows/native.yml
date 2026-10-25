@@ -37,6 +37,10 @@ jobs:
         run: uv run python scripts/make_demo.py qa/demo.pdf
       - name: Exercise PDF rendering, animations, media, and application logic
         run: uv run pytest -q --junitxml=qa/tests.xml --basetemp=qa/tests
+      - name: Check interaction rendering with the native window and font backend
+        env:
+          QT_QPA_PLATFORM: ${{ runner.os == 'Windows' && 'windows' || 'cocoa' }}
+        run: uv run pytest tests/test_view_interactions.py tests/test_long_deck.py -q --junitxml=qa/native-views.xml --basetemp=qa/native-views
       - name: Exercise Windows Unicode shell links
         if: runner.os == 'Windows'
         run: uv run python scripts/check_windows_shortcut.py
@@ -57,6 +61,9 @@ jobs:
             qa/tests.xml
             qa/tests/test_*/*.png
             qa/tests/test_long_deck_*/result.json
+            qa/native-views.xml
+            qa/native-views/test_*/*.png
+            qa/native-views/test_long_deck_*/result.json
             qa/packaged
             qa/layout
             qa/opening/result.json

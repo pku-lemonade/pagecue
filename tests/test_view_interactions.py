@@ -94,6 +94,14 @@ def test_pointer_modes_size_timeout_and_blackout(qapp, qtbot, presenter, tmp_pat
     move(qapp, view, point)
     state.pointer_visible = False
     plain = view.grab().toImage()
+    state.pointer_visible = True
+    cross = view.grab().toImage()
+    beyond_cross = QPointF(point) + QPointF(round(state.pointer_size * view._scene.width() / 4) + 2, 0)
+    QTest.keyClick(app.view, Qt.Key.Key_P, Qt.KeyboardModifier.ShiftModifier)
+    enlarged = view.grab().toImage()
+    enlarged.save(str(tmp_path / "enlarged-crosshair.png"))
+    assert pixel(enlarged, beyond_cross).red() > pixel(cross, beyond_cross).red() + 100
+    QTest.keyClick(app.view, Qt.Key.Key_P)
     # Laser and spotlight render on both windows from a shared page coordinate.
     QTest.keyClick(app.view, Qt.Key.Key_L)
     move(qapp, view, point)

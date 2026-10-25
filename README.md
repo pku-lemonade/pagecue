@@ -97,10 +97,11 @@ test reports and screenshots for review, without publishing an unaudited binary.
 The presence of the workflow is not proof that any particular run/platform passed;
 inspect the run's logs and evidence. Physical display/camera testing is separate.
 
-The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40174372319)
-passes 72 tests on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
+The [verified implementation revision](https://github.com/pku-lemonade/pagecue/actions/runs/40175202365)
+passes 75 tests on Windows x64 and Mac arm64/Intel. Its packaged apps also pass
 PDF/media/web execution and Unicode-path installation checks. Windows shortcut lifecycle
-checks also pass. Windows evidence is from a
+checks, CLI page/duration/direct-video settings and PNG icon export also pass.
+Windows evidence is from a
 Windows Server 2025 runner, not a Windows 11 laptop with a projector. Full parity
 and hardware acceptance remain incomplete; see the feature ledger for details.
 

@@ -55,7 +55,19 @@ The staged install/update/remove check passes under `qa/cli-bundle/`.
 Run 40174814252 failed all targets before executing tests: `--basetemp=qa/tests`
 requires its parent directory, which a fresh runner did not have. The workflow
 now generates the original demo/QA directory before pytest. This corrects the
-evidence-path setup; it does not weaken the tests. Fresh native CI must confirm it.
+evidence-path setup; it does not weaken the tests. Run 40175202365 now passes all
+three targets, including the 75 tests and actual packaged CLI/icon checks.
+
+Pointer-size controls originally changed the laser/spotlight but left the default
+crosshair fixed at six pixels. Crosshair arms now follow the shared size setting;
+actual before/after pixel checks pass with offscreen and Cocoa backends. The
+enlarged crosshair capture was inspected. The six interaction/long-deck checks now
+also run in CI with the native Windows/Cocoa backend and preserve their captures.
+Windows' offscreen test captures showed missing-font boxes; the real installed
+Windows app capture renders correctly. Do not use offscreen Windows captures as
+font-acceptance evidence. Fresh CI must verify the additional native-test step.
+Packaged diagnostics now record Python/PySide, Qt build, WebEngine and Chromium
+baseline/security-patch versions separately to support the distribution audit.
 Bare 0 now resets notes/web zoom unless a page number is already being entered;
 the View menu also exposes reset. Numeric input such as 10 remains intact. The
 native offline WebEngine check under `qa/web-zoom-reset/` confirms real zoom reset,
@@ -95,13 +107,15 @@ synthetic inset/expanded camera images; all five were visually inspected. The
 layout check confirms that scrolling help does not navigate the PDF. No physical
 camera was activated or photographed by these checks. Windows minimum/scrolled
 and Intel Mac minimum captures were also inspected from the CI artifacts.
-The verified implementation commit **`6e3537e`** passes **72 tests without skips on
+The verified implementation commit **`cc399f3`** passes **75 tests without skips on
 Windows x64, Mac arm64 and Mac Intel**, plus all three packaged executable checks:
-[native run 40174372319](https://github.com/pku-lemonade/pagecue/actions/runs/40174372319).
-Windows downloaded reports under `qa/fullscreen-windows-ci/` confirm 72 tests,
+[native run 40175202365](https://github.com/pku-lemonade/pagecue/actions/runs/40175202365).
+Windows downloaded reports under `qa/cli-windows-ci/` confirm 75 tests,
 frozen executable PDF/media/web operation and install/update/remove/shortcut
-lifecycle. The run also completed both Mac jobs successfully. Long-deck and
-text/web reset work postdates this verified revision and needs fresh CI.
+lifecycle, icon export and page/duration/direct-video CLI settings. Its icon and
+packaged presenter captures were inspected. The run also completed both Mac jobs
+successfully. Crosshair resizing and richer runtime diagnostics postdate this
+verified revision and need fresh CI.
 Downloaded reports and opening results under `qa/animation-opening-ci/` confirm
 all 67 tests on each target, Unicode Qt widget-dialog selection, drag/drop,
 QFileOpenEvent handling, recent-page restoration and unchanged source PDFs.
@@ -262,6 +276,9 @@ locally with TeX/FFmpeg excluded from PATH.
    but Computer Use returned `cgWindowNotFound` for both the app path and bundle ID,
    so no successful native picker interaction is claimed. The owned QA process was
    stopped after investigation; original Présentation apps were untouched.
+   A fresh attempt against the rebuilt CLI-capable app again returned
+   `cgWindowNotFound` while the app inventory showed it running. The owned QA
+   process was stopped; no alternate OS-input automation was used.
 5. Complete native package verification and the binary dependency/source/notice
    audit. Mac bundled Python/Qt, identity/icon, camera entitlements,
    usage text and staged installer exist. Fresh CI runner startup passes; ordinary

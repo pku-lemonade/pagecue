@@ -345,9 +345,10 @@ class Canvas(QWidget):
                     mask.setFillRule(Qt.FillRule.OddEvenFill)
                     painter.fillPath(mask, QColor(0, 0, 0, 155))
                 else:
+                    arm = max(2, radius / 4)
                     painter.setPen(QPen(QColor("#ffcf59"), 1.5))
-                    painter.drawLine(point - QPointF(6, 0), point + QPointF(6, 0))
-                    painter.drawLine(point - QPointF(0, 6), point + QPointF(0, 6))
+                    painter.drawLine(point - QPointF(arm, 0), point + QPointF(arm, 0))
+                    painter.drawLine(point - QPointF(0, arm), point + QPointF(0, arm))
         if self.camera_image is not None:
             box = self.current_box.adjusted(16, 16, -16, -16)
             if not self.camera_large:

@@ -52,6 +52,15 @@ wheel was built from it. The public WebEngine licensing page also currently
 redirects to development snapshots. A fresh direct `chrome://credits` load via
 QWebEngineView returned `loadFinished(false)`; it was not rejected by PageCue's URL
 filter. Runtime correspondence and third-party notices remain unresolved.
+The RC's Chromium submodule is commit
+`39352427a3245a19fb395547b3aa38be9d091ec4`. Its `chromium/chrome/VERSION` contains
+140.0.7339.225, while the parent module's `CHROMIUM_VERSION` records baseline
+140.0.7339.264 and security patches through 152.0.7977.83. This explains why a
+single version string is insufficient evidence of exact source correspondence.
+The direct credits-page failure was `ERR_INVALID_URL`. Inspecting the installed
+Mac resource packs, including gzip-decoded entries, did not find a bundled
+credits/license document; copyright headers in JavaScript are not a substitute.
+Fresh packaged diagnostics record the separate version strings on each platform.
 
 ## Build and test
 
