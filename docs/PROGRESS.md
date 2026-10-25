@@ -51,13 +51,18 @@ WebEngine. The native offline test first failed with only the green HTML pixel,
 then passed for inset/half-opacity composition, resize, expansion, web input hit
 testing and clearing. The synthetic capture under `qa/web-camera-fixed/` was
 inspected; no physical camera was activated. The packaged smoke now requires this
-check on each native CI target. Cross-platform results for this change are pending.
-Run 40185241913 passed the Windows package but failed the Mac arm64 camera pixel
+check on each native CI target. Corrected commit `30c30aa` passes on Windows x64,
+Mac arm64 and Mac Intel in [run 40185694176](https://github.com/pku-lemonade/pagecue/actions/runs/40185694176):
+85 tests, six native interaction checks and packaged install/update/remove plus
+PDF/media/web/camera-composition checks. Windows and Mac arm64 synthetic web-camera
+captures were downloaded and inspected. This postdates the immutable v0.1.0 tag;
+it does not replace that tagged source checkpoint or the user's open local app.
+Run 40185241913 passed the Windows and Intel packages but failed the Mac arm64 camera pixel
 check: the saved web capture was still white after `loadFinished`. The fixture
 check now waits, with a five-second deadline, for the actual HTML background
 before compositing and after resize. The expected camera pixels remain required;
 the check is not skipped or relaxed to accept an unpainted web view. Native local
-execution passes; fresh runner results are required for this correction.
+execution and the subsequent three-platform run above pass this correction.
 
 `uv run pytest -q`: **85 passed** on the development Mac at this checkpoint.
 Single-point ink was present in the model but invisible because a move-only

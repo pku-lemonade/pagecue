@@ -122,6 +122,11 @@ Windows evidence is from a
 Windows Server 2025 runner, not a Windows 11 laptop with a projector. Full parity
 and hardware acceptance remain incomplete; see the feature ledger for details.
 
+The subsequent [main-branch check](https://github.com/pku-lemonade/pagecue/actions/runs/40185694176)
+also passes on all three targets and verifies that the camera inset stays above
+web content. This uses synthetic images only. The published v0.1.0 tag remains
+the earlier immutable checkpoint.
+
 Locally, after building and generating `qa/demo.pdf`, reproduce the packaged check:
 
 ```sh
